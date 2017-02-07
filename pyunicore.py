@@ -1,6 +1,8 @@
 import requests
 import json
 import time
+from re import match
+
 requests.packages.urllib3.disable_warnings()
 
 """
@@ -11,45 +13,66 @@ https://sourceforge.net/p/unicore/wiki/REST_API
 https://sourceforge.net/p/unicore/wiki/REST_API_Examples
 """
 
-_HBP_REGISTRY_URL = "https://hbp-unic.fz-juelich.de:7112/HBP/services/Registry?res=default_registry"
+_HBP_REGISTRY_URL = "https://hbp-unic.fz-juelich.de:7112/HBP/rest/registries/default_registry"
 
-def read_sites():
-    """ read the available sites from the HBP registry
+_LOCAL_REGISTRY_URL = "https://localhost:8080/REGISTRY/rest/registries/default_registry"
+
+def read_sites(registry_url=None, headers={}):
+    """ read the base URLs of the available sites from the registry.
+        If the registry_url is None, the HBP registry is used.
     """
+    if registry_url is None:
+        registry_url = _HBP_REGISTRY_URL
+    my_headers = headers.copy()
+    my_headers['Accept']="application/json"
+    r = requests.get(registry_url, headers=my_headers, verify=False)
+    if r.status_code!=200:
+        raise RuntimeError("Error accessing registry at %s: %s" % (registry_url, r.status_code))
     sites = {}
-    sites['JUQUEEN'] = {'name': 'JUQUEEN (JSC)', 'id': 'JUQUEEN', 
-                        'url': "https://hbp-unic.fz-juelich.de:7112/HBP_JUQUEEN/rest/core" }
+    for x in r.json()['entries']:
+        try:
+            # just want the "core" URL and the site ID
+            href = x['href']
+            service_type = x['type']
+            if "TargetSystemFactory" == service_type:
+                base = match(r"(https://\S+/rest/core).*", href).group(1)
+                site_name = match(r"https://\S+/(\S+)/rest/core", href).group(1)
+                sites[site_name]=base
+        except:
+            pass
     return sites
 
+
+def get_hbp_sites():
+    """ get the base URLs of known sites in the HBP HPAC Platform """
+    sites = {}
+    sites['JUQUEEN'] = "https://hbp-unic.fz-juelich.de:7112/HBP_JUQUEEN/rest/core"
+    sites['JURECA'] = "https://hbp-unic.fz-juelich.de:7112/HBP_JURECA/rest/core"
+    sites['VIS-CSCS'] = "https://contra.cscs.ch:8080/VIS-CSCS/rest/core" 
+    sites['BGQ-CSCS'] = "https://contra.cscs.ch:8080/BGQ-CSCS/rest/core"
+    sites['MARE_NOSTRUM'] = "https://unicore-hbp.bsc.es:8080/BSC-MareNostrum/rest/core"
+    sites['PICO'] = "https://grid.hpc.cineca.it:9111/CINECA-PICO/rest/core"
+    sites['GALILEO'] = "https://grid.hpc.cineca.it:9111/CINECA-GALILEO/rest/core"
+    sites['MARCONI'] = "https://grid.hpc.cineca.it:9111/CINECA-MARCONI/rest/core"
+    sites['KIT'] = "https://unicore.data.kit.edu:8080/HBP-KIT/rest/core"
+    return sites
+
+def site_info(sites, headers={}):
+    """ get access information for all the sites """
+    site_info={}
+    for site_id in sites.keys():
+        info = {}
+        try:
+            props = get_properties(sites[site_id], headers)
+            info['status'] = "OK"
+            info['access_type'] = props['client']['role']['selected']
+            if info['access_type'] == "user":
+                info['groups'] = props['client']['xlogin']['availableGroups']
+        except:
+            info['status'] = "Error accessing"
+        site_info[site_id] = info
+    return site_info
     
-def get_sites():
-    """ get info about the known sites in the HPC Platform """
-    sites = {}
-    sites['JUQUEEN'] = {'name': 'JUQUEEN (JSC)', 'id': 'JUQUEEN', 
-                        'url': "https://hbp-unic.fz-juelich.de:7112/HBP_JUQUEEN/rest/core" }
-    sites['JURECA'] = {'name': 'JURECA (JSC)', 'id': 'JURECA',
-                       'url': "https://hbp-unic.fz-juelich.de:7112/HBP_JURECA/rest/core" }
-    sites['VIZ_CSCS'] = {'name': 'VIZ (CSCS)', 'id': 'VIS',
-                         'url': "https://contra.cscs.ch:8080/VIS-CSCS/rest/core" }
-    sites['BGQ_CSCS'] = {'name': 'BGQ (CSCS)', 'id': 'BGQ',
-                         'url': "https://contra.cscs.ch:8080/BGQ-CSCS/rest/core" }
-    sites['MARE_NOSTRUM'] = {'name': 'Mare Nostrum (BSC)', 'id': 'MN',
-                             'url': "https://unicore-hbp.bsc.es:8080/BSC-MareNostrum/rest/core" }
-    sites['PICO'] = {'name': 'PICO (CINECA)', 'id': 'PICO',
-                     'url': "https://grid.hpc.cineca.it:9111/CINECA-PICO/rest/core" }
-    sites['GALILEO'] = {'name': 'GALILEO (CINECA)', 'id': 'GALILEO',
-                        'url': "https://grid.hpc.cineca.it:9111/CINECA-GALILEO/rest/core" }
-    sites['FERMI'] = {'name': 'FERMI (CINECA)', 'id': 'FERMI',
-                      'url': "https://grid.hpc.cineca.it:9111/CINECA-FERMI/rest/core" }
-    sites['KIT'] = {'name': 'Cloud storage (KIT)', 'id': 'S3-KIT',
-                    'url': "https://unicore.data.kit.edu:8080/HBP-KIT/rest/core" }
-    return sites
-
-
-def get_site(name):
-    return get_sites().get(name, None)
-
-
 def get_properties(resource, headers={}):
     """ get JSON properties of a resource """
     my_headers = headers.copy()
@@ -79,6 +102,9 @@ def invoke_action(resource, action, headers, data={}):
 
 
 def upload(destination, file_desc, headers):
+    """ upload a file. The file_desc is a dictionary containing the target file name and 
+        the data to be uploaded.
+    """
     my_headers = headers.copy()
     my_headers['Content-Type']="application/octet-stream"
     name = file_desc['To']
@@ -121,7 +147,7 @@ def submit(url, job, headers, inputs=[]):
 
     
 def is_running(job, headers={}):
-    """ check status for a job """
+    """ checks whether a job is still running """
     properties = get_properties(job,headers)
     status = properties['status']
     return ("SUCCESSFUL"!=status) and ("FAILED"!=status)
@@ -130,8 +156,7 @@ def is_running(job, headers={}):
 def wait_for_completion(job, headers={}, refresh_function=None, refresh_interval=360):
     """ wait until job is done 
         if refresh_function is not none, it will be called to refresh
-        the "Authorization" header
-        refresh_interval is in seconds
+        the "Authorization" header. The refresh_interval is in seconds
     """
     sleep_interval = 10
     do_refresh = refresh_function is not None
