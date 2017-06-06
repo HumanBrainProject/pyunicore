@@ -205,6 +205,6 @@ def get_oidc_auth(token=None):
     if token is None:
         try:
             token = get_bbp_client().task.oauth_client.get_auth_header()
-        except as e:
+        except Error as e:
             print ("Error getting Oauth token: %s" % str(e))
     return {'Authorization': token}
