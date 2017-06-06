@@ -48,6 +48,8 @@ def get_hbp_sites():
     sites = {}
     sites['JUQUEEN'] = "https://hbp-unic.fz-juelich.de:7112/HBP_JUQUEEN/rest/core"
     sites['JURECA'] = "https://hbp-unic.fz-juelich.de:7112/HBP_JURECA/rest/core"
+    sites['JULIA'] = "https://hbp-unic.fz-juelich.de:7112/HBP_JULIA/rest/core"
+    sites['JURON'] = "https://hbp-unic.fz-juelich.de:7112/HBP_JURON/rest/core"
     sites['VIS-CSCS'] = "https://contra.cscs.ch:8080/VIS-CSCS/rest/core" 
     sites['BGQ-CSCS'] = "https://contra.cscs.ch:8080/BGQ-CSCS/rest/core"
     sites['MARE_NOSTRUM'] = "https://unicore-hbp.bsc.es:8080/BSC-MareNostrum/rest/core"
@@ -203,6 +205,6 @@ def get_oidc_auth(token=None):
     if token is None:
         try:
             token = get_bbp_client().task.oauth_client.get_auth_header()
-        except:
-            pass
+        except as e:
+            print ("Error getting Oauth token: %s" % str(e))
     return {'Authorization': token}
