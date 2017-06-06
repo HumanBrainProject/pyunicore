@@ -15,9 +15,7 @@ https://sourceforge.net/p/unicore/wiki/REST_API_Examples
 
 _HBP_REGISTRY_URL = "https://hbp-unic.fz-juelich.de:7112/HBP/rest/registries/default_registry"
 
-_LOCAL_REGISTRY_URL = "https://localhost:8080/REGISTRY/rest/registries/default_registry"
-
-def read_sites(registry_url=None, headers={}):
+def get_sites(registry_url=None, headers={}):
     """ read the base URLs of the available sites from the registry.
         If the registry_url is None, the HBP registry is used.
     """
@@ -42,22 +40,6 @@ def read_sites(registry_url=None, headers={}):
             pass
     return sites
 
-
-def get_hbp_sites():
-    """ get the base URLs of known sites in the HBP HPAC Platform """
-    sites = {}
-    sites['JUQUEEN'] = "https://hbp-unic.fz-juelich.de:7112/HBP_JUQUEEN/rest/core"
-    sites['JURECA'] = "https://hbp-unic.fz-juelich.de:7112/HBP_JURECA/rest/core"
-    sites['JULIA'] = "https://hbp-unic.fz-juelich.de:7112/HBP_JULIA/rest/core"
-    sites['JURON'] = "https://hbp-unic.fz-juelich.de:7112/HBP_JURON/rest/core"
-    sites['VIS-CSCS'] = "https://contra.cscs.ch:8080/VIS-CSCS/rest/core" 
-    sites['BGQ-CSCS'] = "https://contra.cscs.ch:8080/BGQ-CSCS/rest/core"
-    sites['MARE_NOSTRUM'] = "https://unicore-hbp.bsc.es:8080/BSC-MareNostrum/rest/core"
-    sites['PICO'] = "https://grid.hpc.cineca.it:9111/CINECA-PICO/rest/core"
-    sites['GALILEO'] = "https://grid.hpc.cineca.it:9111/CINECA-GALILEO/rest/core"
-    sites['MARCONI'] = "https://grid.hpc.cineca.it:9111/CINECA-MARCONI/rest/core"
-    sites['KIT'] = "https://unicore.data.kit.edu:8080/HBP-KIT/rest/core"
-    return sites
 
 def site_info(sites, headers={}):
     """ get access information for all the sites """
@@ -198,13 +180,12 @@ def get_file_content(file_url, headers, check_size_limit=True, MAX_SIZE=2048000)
         return r.content
 
 def list_files(dir_url, auth, path="/"):
+    """ list files in the given directory """
     return get_properties(dir_url+"/files"+path, auth)['children']
 
-def get_oidc_auth(token=None):
+
+def get_auth_header(token):
     """ returns HTTP headers containing OIDC bearer token """
     if token is None:
-        try:
-            token = get_bbp_client().task.oauth_client.get_auth_header()
-        except BaseException as e:
-            print ("Error getting Oauth token: %s" % str(e))
+        raise Exception("A Bearer token is required. Get it via 'get_bbp_client().task.oauth_client.get_auth_header()'")
     return {'Authorization': token}
