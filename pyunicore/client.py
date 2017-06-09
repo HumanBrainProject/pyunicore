@@ -1,7 +1,12 @@
 '''Client for Unicore'''
+#TODO:
+# - Add site picking
+# - Add Application discovery and launch creation
+
 import cStringIO
 import logging
 import os
+import re
 import time
 
 from contextlib import closing
@@ -11,7 +16,28 @@ import requests
 
 L = logging.getLogger(__name__)
 requests.packages.urllib3.disable_warnings()
-REST_CACHE_TIMEOUT = 5  # in seconds
+_REST_CACHE_TIMEOUT = 5  # in seconds
+_HBP_REGISTRY_URL = ('https://hbp-unic.fz-juelich.de:7112'
+                     '/HBP/rest/registries/default_registry')
+
+_FACTORY_RE = r'''
+^                                 # start of line
+(?P<site_url>\s*https://.*/       # capture full url
+(?P<site_name>.*)                 # capture site name
+/rest/core/)
+.*                                # ignore the rest
+'''
+_FACTORY_RE = re.compile(_FACTORY_RE, re.VERBOSE)
+
+
+def get_sites(transport, registry_url=_HBP_REGISTRY_URL):
+    resp = transport.get(url=registry_url)
+    site_urls = (prop['href']
+                 for prop in resp['entries']
+                 if prop['type'] == 'TargetSystemFactory')
+    sites = dict(reversed(_FACTORY_RE.match(site).groups())
+                 for site in site_urls)
+    return sites
 
 
 class TimedCache(object):
@@ -103,6 +129,14 @@ class Client(object):
         return Job(self.transport, job_url)
 
 
+class Application(object):
+    '''wrapper around Unicore job'''
+    def __init__(self, transport, app_url):
+        super(Job, self).__init__()
+        self.transport = transport
+        self.app_url = app_url
+
+
 class Job(object):
     '''wrapper around unicore job'''
     def __init__(self, transport, job_url):
@@ -111,11 +145,12 @@ class Job(object):
         self.job_url = job_url
 
     @property
-    @TimedCache(timeout=REST_CACHE_TIMEOUT)
+    @TimedCache(timeout=_REST_CACHE_TIMEOUT)
     def properties(self):
         return self.transport.get(url=self.job_url)
 
     @property
+    @TimedCache(timeout=3600)
     def working_dir(self):
         '''return the working directory'''
         return PathDir(
@@ -147,8 +182,8 @@ class Job(object):
     def poll(self):
         '''wait until job completes'''
         while self.properties['status'] in ('QUEUED', 'RUNNING'):
-            L.debug('Sleeping %s', REST_CACHE_TIMEOUT + 0.1)
-            time.sleep(REST_CACHE_TIMEOUT + 0.1)
+            L.debug('Sleeping %s', _REST_CACHE_TIMEOUT + 0.1)
+            time.sleep(_REST_CACHE_TIMEOUT + 0.1)
 
     def __repr__(self):
         return 'Job: %s: running: %s' % (self.job_id, self.is_running())
@@ -193,7 +228,7 @@ class PathDir(Path):
         self._cached_contents = {}
 
     @property
-    @TimedCache(timeout=REST_CACHE_TIMEOUT)
+    @TimedCache(timeout=_REST_CACHE_TIMEOUT)
     def contents(self):
         return self.transport.get(url=self.path_urls['files'])
 
