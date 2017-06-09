@@ -40,7 +40,7 @@ def get_config():
     # _version.py
     cfg = VersioneerConfig()
     cfg.VCS = "git"
-    cfg.style = "pep440"
+    cfg.style = "pep440-minor"
     cfg.tag_prefix = ""
     cfg.parentdir_prefix = ""
     cfg.versionfile_source = "pyunicore/_version.py"
@@ -402,6 +402,22 @@ def render_pep440_old(pieces):
     return rendered
 
 
+def render_pep440_minor(pieces):
+    # TAG[.DISTANCE] . No -dirty
+
+    # exceptions:
+    # 1: no tags. 0.DISTANCE
+
+    if pieces["closest-tag"]:
+        rendered = pieces["closest-tag"]
+        if pieces["distance"]:
+            rendered += ".%d" % pieces["distance"]
+    else:
+        # exception #1
+        rendered = "0.%d" % pieces["distance"]
+    return rendered
+
+
 def render_git_describe(pieces):
     """TAG[-DISTANCE-gHEX][-dirty].
 
@@ -462,6 +478,8 @@ def render(pieces, style):
         rendered = render_pep440_post(pieces)
     elif style == "pep440-old":
         rendered = render_pep440_old(pieces)
+    elif style == "pep440-minor":
+        rendered = render_pep440_minor(pieces)
     elif style == "git-describe":
         rendered = render_git_describe(pieces)
     elif style == "git-describe-long":
