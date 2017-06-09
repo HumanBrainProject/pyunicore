@@ -31,10 +31,10 @@ class TimedCache(object):
         return wrap
 
 
-class UnicoreTransport(object):
+class Transport(object):
     '''wrapper around requests to add authentication headers'''
     def __init__(self, oidc_token):
-        super(UnicoreTransport, self).__init__()
+        super(Transport, self).__init__()
         self.oidc_token = oidc_token
 
     def _headers(self, kwargs):
@@ -69,13 +69,13 @@ class UnicoreTransport(object):
         return req
 
 
-class UnicoreClient(object):
+class Client(object):
     '''Entrypoint to Unicore API
 
         >>> base_url = '...'
         >>> token = '...'
-        >>> transport = UnicoreTransport(token)
-        >>> client = UnicoreClient(transport, base_url)
+        >>> transport = Transport(token)
+        >>> client = Client(transport, base_url)
         >>> # to get the jobs
         >>> client.get_jobs()
         >>> # to start a new job:
@@ -83,7 +83,7 @@ class UnicoreClient(object):
 
     '''
     def __init__(self, transport, site_url):
-        super(UnicoreClient, self).__init__()
+        super(Client, self).__init__()
         self.transport = transport
         self.site_url = site_url
         self.site_urls = {
@@ -91,7 +91,7 @@ class UnicoreClient(object):
             for k, v in self.transport.get(url=site_url)['_links'].items()}
 
     def get_jobs(self):
-        return [UnicoreJob(self.transport, url)
+        return [Job(self.transport, url)
                 for url in self.transport.get(url=self.site_urls['jobs'])['jobs']]
 
     def new_job(self, cmd):
@@ -100,13 +100,13 @@ class UnicoreClient(object):
         resp = self.transport.post(url=self.site_urls['jobs'],
                                    json=launch_params)
         job_url = resp.headers['Location']
-        return UnicoreJob(self.transport, job_url)
+        return Job(self.transport, job_url)
 
 
-class UnicoreJob(object):
+class Job(object):
     '''wrapper around unicore job'''
     def __init__(self, transport, job_url):
-        super(UnicoreJob, self).__init__()
+        super(Job, self).__init__()
         self.transport = transport
         self.job_url = job_url
 
@@ -118,7 +118,7 @@ class UnicoreJob(object):
     @property
     def working_dir(self):
         '''return the working directory'''
-        return UnicorePathDir(
+        return PathDir(
             self.transport,
             self.properties['_links']['workingDirectory']['href'])
 
@@ -151,14 +151,14 @@ class UnicoreJob(object):
             time.sleep(REST_CACHE_TIMEOUT + 0.1)
 
     def __repr__(self):
-        return 'UnicoreJob: %s: running: %s' % (self.job_id, self.is_running())
+        return 'Job: %s: running: %s' % (self.job_id, self.is_running())
 
     __str__ = __repr__
 
 
-class UnicorePath(object):
+class Path(object):
     def __init__(self, transport, path_url):
-        super(UnicorePath, self).__init__()
+        super(Path, self).__init__()
         self.transport = transport
         self.path_url = path_url
 
@@ -185,9 +185,9 @@ class UnicorePath(object):
     #    pass
 
 
-class UnicorePathDir(UnicorePath):
+class PathDir(Path):
     def __init__(self, transport, path_url):
-        super(UnicorePathDir, self).__init__(transport, path_url)
+        super(PathDir, self).__init__(transport, path_url)
 
         self._last_contents_lookup = datetime.min
         self._cached_contents = {}
@@ -216,9 +216,9 @@ class UnicorePathDir(UnicorePath):
             path_url = self.path_urls['files'] + path
             path = path[1:]  # strip leading '/'
             if meta['isDirectory']:
-                ret[path] = UnicorePathDir(self.transport, path_url)
+                ret[path] = PathDir(self.transport, path_url)
             else:
-                ret[path] = UnicorePathFile(self.transport, path_url)
+                ret[path] = PathFile(self.transport, path_url)
         return ret
 
     def isdir(self):
@@ -232,9 +232,9 @@ class UnicorePathDir(UnicorePath):
     #    pass
 
 
-class UnicorePathFile(UnicorePath):
+class PathFile(Path):
     def __init__(self, transport, path_url):
-        super(UnicorePathFile, self).__init__(transport, path_url)
+        super(PathFile, self).__init__(transport, path_url)
 
     def download(self, max_size=10**6):
         '''download file into StringIO object, of maximum size `max_size`'''
