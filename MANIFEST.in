@@ -1,2 +1,3 @@
+include README.md
 include versioneer.py
 include pyunicore/_version.py
