@@ -98,6 +98,19 @@ def upload(destination, file_desc, headers):
     if r.status_code!=204:
         raise RuntimeError("Error uploading data: %s" % r.status_code)
 
+def download(source, destination, headers):
+    """ download a file. The source is the full URL to the file, the destination
+        a local filename
+    """
+    my_headers = headers.copy()
+    my_headers['Accept']="application/octet-stream"
+    r = requests.get(source, headers=my_headers, stream=True, verify=False)
+    if r.status_code!=200:
+        raise RuntimeError("Error downloading data: %s" % r.status_code)
+    else:
+        with open(destination, 'wb') as fd:
+            for chunk in r.iter_content(chunk_size=512):
+                fd.write(chunk)
 
 def submit(url, job, headers, inputs=[]):
     """
@@ -185,7 +198,9 @@ def list_files(dir_url, auth, path="/"):
 
 
 def get_auth_header(token):
-    """ returns HTTP headers containing OIDC bearer token """
+    """ returns Authorization HTTP header using the given token.
+        For OIDC auth in the collaboratory, use "Bearer "+oauth.get_token()
+    """
     if token is None:
-        raise Exception("A Bearer token is required. Get it via 'get_bbp_client().task.oauth_client.get_auth_header()'")
+        raise Exception("Authorization header value is required")
     return {'Authorization': token}
