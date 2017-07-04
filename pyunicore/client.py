@@ -24,9 +24,10 @@ else:
 
 # - Turn off verify=False once certificates are correct
 
+
 L = logging.getLogger(__name__)
 requests.packages.urllib3.disable_warnings()
-REST_CACHE_TIMEOUT = 5  # in seconds
+_REST_CACHE_TIMEOUT = 5  # in seconds
 _HBP_REGISTRY_URL = ('https://hbp-unic.fz-juelich.de:7112'
                      '/HBP/rest/registries/default_registry')
 
@@ -39,22 +40,6 @@ _FACTORY_RE = r'''
 '''
 _FACTORY_RE = re.compile(_FACTORY_RE, re.VERBOSE)
 
-
-class TimedCache(object):
-    '''decorator so that calls are only made once per `timeout`'''
-    def __init__(self, timeout):
-        self._timeout = timedelta(seconds=timeout)
-        self._last_lookup = datetime.min
-        self._value = None
-
-    def __call__(self, func):
-        def wrap(*args, **kwargs):
-            now = datetime.now()
-            if self._timeout < now - self._last_lookup:
-                self._last_lookup = now
-                self._value = func(*args, **kwargs)
-            return self._value
-        return wrap
 
 def get_sites(transport, registry_url=_HBP_REGISTRY_URL):
     '''Get all sites from registery'''
@@ -126,12 +111,14 @@ class Transport(object):
         return req.json()
 
     def put(self, **kwargs):
+        '''do put'''
         headers = self._headers(kwargs)
         req = requests.put(headers=headers, verify=self.verify, **kwargs)
         req.raise_for_status()
         return req
 
     def post(self, **kwargs):
+        '''do post'''
         headers = self._headers(kwargs)
         req = requests.post(headers=headers, verify=self.verify, **kwargs)
         req.raise_for_status()
@@ -151,8 +138,7 @@ class Resource(object):
         self.transport = transport
         self.resource_url = resource_url
 
-    @property
-    @TimedCache(timeout=REST_CACHE_TIMEOUT)
+    @TimedCacheProperty(timeout=_REST_CACHE_TIMEOUT)
     def properties(self):
         return self.transport.get(url=self.resource_url)
 
@@ -201,13 +187,13 @@ class Client(object):
         >>> base_url = '...' # e.g. "https://localhost:8080/DEMO-SITE/rest/core"
         >>> token = '...'
         >>> transport = Transport(token)
-        >>> client = Client(transport, base_url)
+        >>> sites = get_sites(transport)
+        >>> client = Client(transport, sites['HBP_JULIA'])
         >>> # to get the jobs
-        >>> client.get_jobs()
+        >>> jobs = client.get_jobs()
         >>> # to start a new job:
         >>> job_description = {...}
         >>> job = client.new_job(job_description)
-
     '''
     
     def __init__(self, transport, site_url):
@@ -218,8 +204,7 @@ class Client(object):
             k: v['href']
             for k, v in self.transport.get(url=site_url)['_links'].items()}
 
-    @property
-    @TimedCache(timeout=REST_CACHE_TIMEOUT)
+    @TimedCacheProperty(timeout=_REST_CACHE_TIMEOUT)
     def properties(self):
         return self.transport.get(url=self.site_url)
 
@@ -237,6 +222,7 @@ class Client(object):
                 app += Application(self.transport, app)
 
     def get_jobs(self):
+        '''return a list of `Job` objects'''
         return [Job(self.transport, url)
                 for url in self.transport.get(url=self.site_urls['jobs'])['jobs']]
 
@@ -270,7 +256,7 @@ class Job(Resource):
     def __init__(self, transport, job_url):
         super(Job, self).__init__(transport, job_url)
 
-    @property
+    @TimedCacheProperty(timeout=3600)
     def working_dir(self):
         '''return the working directory'''
         return PathDir(
@@ -306,8 +292,8 @@ class Job(Resource):
     def poll(self):
         '''wait until job completes'''
         while self.properties['status'] in ('QUEUED', 'RUNNING'):
-            L.debug('Sleeping %s', REST_CACHE_TIMEOUT + 0.1)
-            time.sleep(REST_CACHE_TIMEOUT + 0.1)
+            L.debug('Sleeping %s', _REST_CACHE_TIMEOUT + 0.1)
+            time.sleep(_REST_CACHE_TIMEOUT + 0.1)
 
     def __repr__(self):
         return ('Job: %s: %s, submitted: %s running: %s' %
@@ -346,6 +332,11 @@ class Path(Resource):
         '''remove file or directory'''
         return self.transport.delete(url=self.path_urls['files']+"/"+name)
 
+    def __repr__(self):
+        return '%s: %s' % (self.__class__.__name__, self.name)
+
+    __str__ = __repr__
+
 
 class PathDir(Path):
     def __init__(self, transport, path_url, name):
@@ -358,8 +349,7 @@ class PathDir(Path):
 
     __str__ = __repr__
 
-    @property
-    @TimedCache(timeout=REST_CACHE_TIMEOUT)
+    @TimedCacheProperty(timeout=_REST_CACHE_TIMEOUT)
     def contents(self):
         return self.transport.get(url=self.path_urls['files'])
 
@@ -448,7 +438,7 @@ class PathFile(Path):
             then the contents will be write()
 
             max_size(int): if the file is larger than this, the file won't be
-            downloaded (only relevant if the target is file like)
+            downloaded
 
             You can also use the raw() method for data streaming purposes
 
