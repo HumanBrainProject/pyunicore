@@ -82,7 +82,24 @@ class Transport(object):
         req.raise_for_status()
 
 
-class Registry(object):
+class Resource(object):
+    ''' Base class for a UNICORE resource with properties and some common methods'''
+
+    def __init__(self, transport, resource_url):
+        super(Resource, self).__init__()
+        self.transport = transport
+        self.resource_url = resource_url
+
+    @property
+    @TimedCache(timeout=REST_CACHE_TIMEOUT)
+    def properties(self):
+        return self.transport.get(url=self.resource_url)
+
+    def delete(self):
+        self.transport.delete(url=self.resource_url)
+
+
+class Registry(Resource):
     ''' Client for a UNICORE service Registry 
 
         >>> base_url = '...' # e.g. "https://localhost:8080/REGISTRY/rest/registries/default_registry"
@@ -93,20 +110,13 @@ class Registry(object):
     Will collect the BASE URLs of all registered sites
     '''
 
-    def __init__(self, transport, site_url):
-        super(Registry, self).__init__()
-        self.transport = transport
-        self.site_url = site_url
+    def __init__(self, transport, url):
+        super(Registry, self).__init__(transport,url)
         self.refresh()
-
-    @property
-    @TimedCache(timeout=REST_CACHE_TIMEOUT)
-    def properties(self):
-        return self.transport.get(url=self.site_url)
     
     def refresh(self):
         self.site_urls = {}
-        for entry in self.transport.get(url=self.site_url)['entries']:
+        for entry in self.transport.get(url=self.resource_url)['entries']:
             try:
                 # just want the "core" URL and the site ID
                 href = entry['href']
@@ -122,6 +132,7 @@ class Registry(object):
         ''' Get a client object for the named site '''
         url = self.site_urls[name]
         return Client(self.transport, url)
+
 
 class Client(object):
     '''Entrypoint to UNICORE API at a site
@@ -154,6 +165,10 @@ class Client(object):
     def access_info(self):
         return self.properties['client']
 
+    def get_storages(self):
+        return [PathDir(self.transport, url)
+                for url in self.transport.get(url=self.site_urls['storages'])['storages']]
+
     def get_jobs(self):
         return [Job(self.transport, url)
                 for url in self.transport.get(url=self.site_urls['jobs'])['jobs']]
@@ -176,42 +191,16 @@ class Client(object):
         return Job(self.transport, job_url)
 
 
-class Site(object):
-    '''wrapper around a UNICORE site '''
-    def __init__(self, transport, site_url):
-        super(Site, self).__init__()
-        self.transport = transport
-        self.site_url = site_url
-
-    @property
-    @TimedCache(timeout=REST_CACHE_TIMEOUT)
-    def properties(self):
-        return self.transport.get(url=self.site_url)
-
-class Application(object):
-    '''wrapper around a UNICORE site '''
-    def __init__(self, transport, site_url):
-        super(Site, self).__init__()
-        self.transport = transport
-        self.site_url = site_url
-
-    @property
-    @TimedCache(timeout=REST_CACHE_TIMEOUT)
-    def properties(self):
-        return self.transport.get(url=self.site_url)
+class Application(Resource):
+    '''wrapper around a UNICORE application '''
+    def __init__(self, transport, app_url):
+        super(Application, self).__init__(transport, app_url)
 
 
-class Job(object):
+class Job(Resource):
     '''wrapper around UNICORE job'''
     def __init__(self, transport, job_url):
-        super(Job, self).__init__()
-        self.transport = transport
-        self.job_url = job_url
-
-    @property
-    @TimedCache(timeout=REST_CACHE_TIMEOUT)
-    def properties(self):
-        return self.transport.get(url=self.job_url)
+        super(Job, self).__init__(transport, job_url)
 
     @property
     def working_dir(self):
@@ -240,7 +229,7 @@ class Job(object):
     @property
     def job_id(self):
         '''get the UID of the job'''
-        return os.path.basename(self.job_url)
+        return os.path.basename(self.resource_url)
 
     def poll(self):
         '''wait until job completes'''
@@ -254,20 +243,13 @@ class Job(object):
     __str__ = __repr__
 
 
-class Path(object):
+class Path(Resource):
     def __init__(self, transport, path_url):
-        super(Path, self).__init__()
-        self.transport = transport
-        self.path_url = path_url
-
-    @property
-    @TimedCache(timeout=REST_CACHE_TIMEOUT)
-    def properties(self):
-        return self.transport.get(url=self.path_url)
+        super(Path, self).__init__(transport, path_url)
 
     @property
     def path_urls(self):
-        urls = self.transport.get(url=self.path_url)['_links']
+        urls = self.transport.get(url=self.resource_url)['_links']
         return {k: v['href'] for k, v in urls.items()}
 
     def isdir(self):
@@ -311,7 +293,7 @@ class PathDir(Path):
                    }
         with open(input_name, 'rb') as fd:
             resp = self.transport.put(
-                url=os.path.join(self.path_url, 'files', destination),
+                url=os.path.join(self.resource_url, 'files', destination),
                 headers=headers,
                 data=fd)
 
@@ -320,7 +302,7 @@ class PathDir(Path):
         
         assert self.isdir(), 'Not a directory'
         headers = {'Accept': 'application/octet-stream',}
-        url = os.path.join(self.path_url, 'files', remote_file)
+        url = os.path.join(self.resource_url, 'files', remote_file)
         if destination is None:
             destination = os.path.basename(remote_file)
         resp = self.transport.get(to_json=False, url=url, headers=headers, stream=True)
@@ -354,6 +336,10 @@ class PathDir(Path):
     def makedirs(self, name):
         self.mkdir(name)
 
+    def __repr__(self):
+        return 'Storage: %s' % (self.resource_url)
+
+    __str__ = __repr__
 
 class PathFile(Path):
     def __init__(self, transport, path_url):
@@ -363,7 +349,7 @@ class PathFile(Path):
         ''' read complete file into StringIO object, of maximum size `max_size`'''
         file_ = cStringIO.StringIO()
         with closing(
-            self.transport.get(url=self.path_url,
+            self.transport.get(url=self.resource_url,
                                to_json=False,
                                headers={'Accept': 'application/octet-stream'},
                                stream=True,
@@ -377,7 +363,7 @@ class PathFile(Path):
     def download(self, destination):
         ''' download file to the given local file '''
         headers = {'Accept': 'application/octet-stream',}
-        resp = self.transport.get(to_json=False, url=self.path_url, headers=headers, stream=True)
+        resp = self.transport.get(to_json=False, url=self.resource_url, headers=headers, stream=True)
         resp.raise_for_status()
         with open(destination, 'wb') as fd:
             for chunk in resp.iter_content(chunk_size=512):
@@ -386,7 +372,7 @@ class PathFile(Path):
     def raw(self):
         ''' access the raw http response for streaming purposes '''
         headers = {'Accept': 'application/octet-stream',}
-        resp = self.transport.get(to_json=False, url=self.path_url, headers=headers, stream=True)
+        resp = self.transport.get(to_json=False, url=self.resource_url, headers=headers, stream=True)
         resp.raise_for_status()
         return resp.raw
 
