@@ -11,6 +11,7 @@ import time
 import sys
 from contextlib import closing
 from datetime import datetime, timedelta
+from ftplib import FTP
 
 if sys.version_info < (3, 0):
     from types import StringType
@@ -477,3 +478,50 @@ class PathFile(Path):
 
     def isfile(self):
         return True
+
+
+class UFTP(Resource):
+    ''' authenticate UFTP transfers and use ftplib to interact with
+        the UFTP server
+    '''
+    uftp_session_tag = "___UFTP___MULTI___FILE___SESSION___MODE___"
+
+    def __init__(self, transport, base_url):
+        super(UFTP, self).__init__(transport, base_url)
+        self.refresh()
+
+    def refresh(self):
+        self.site_urls = {}
+        for entry in self.properties:
+            try:
+                self.site_urls[entry] = self.properties[entry]['href']
+            except Exception as e:
+                print("Error: %s" % e)
+
+    def open_session(self, server_name=None, base_dir="", **kwargs):
+        ''' open an FTP session at the given UFTP server
+        If 'basedir' is not given, the user's home directory is the base dir.
+        The ftplib FTP object is returned.
+        '''
+        if server_name is None:
+            url = self.site_urls.values()[0]
+        else:
+            url = self.site_urls[server_name]
+        req = {"serverPath": base_dir+self.uftp_session_tag}
+        params = self.transport.post(url=url, json=req).json()
+        port = params['serverPort']
+        host = params['serverHost']
+        pwd  = params['secret']
+        ftp = FTP()
+        ftp.connect(host,port)
+        ftp.login("anonymous", pwd)
+        return ftp
+
+    def download(self, remote_file, destination=None, server_name=None, base_dir="", **kwargs):
+        ''' download the given remote file, optionally renaming it '''
+        ftp = self.open_session(server_name, base_dir)
+        if destination is None:
+            destination = os.path.basename(remote_file)
+        ftp.retrbinary("RETR %s" % remote_file, open(destination, 'wb').write)
+        ftp.close()
+
