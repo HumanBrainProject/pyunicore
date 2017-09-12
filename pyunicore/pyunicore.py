@@ -197,6 +197,15 @@ def list_files(dir_url, auth, path="/"):
     return get_properties(dir_url+"/files"+path, auth)['children']
 
 
+def delete(resource, headers={}):
+    """ Delete (destroy) a resource """
+    my_headers = headers.copy()
+    my_headers['Accept']="application/json"
+    r = requests.delete(resource, headers=my_headers, verify=False)
+    if r.status_code>399:
+        raise RuntimeError("Error deleting: %s" % r.status_code)
+    r.close()
+
 def get_auth_header(token):
     """ returns Authorization HTTP header using the given token.
         For OIDC auth in the collaboratory, use "Bearer "+oauth.get_token()

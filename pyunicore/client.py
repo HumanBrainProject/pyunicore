@@ -90,7 +90,8 @@ class Transport(object):
         
         headers = {'Authorization': val,
                    'Accept': 'application/json',
-                   }
+                   'Content-Type': 'application/json',
+        }
 
         if 'headers' in kwargs:
             headers.update(kwargs['headers'])
@@ -524,4 +525,21 @@ class UFTP(Resource):
             destination = os.path.basename(remote_file)
         ftp.retrbinary("RETR %s" % remote_file, open(destination, 'wb').write)
         ftp.close()
+
+
+class Share(Resource):
+    ''' UFTP Data Sharing helper '''
+
+    ANONYMOUS = "CN=ANONYMOUS,O=UNKNOWN,OU=UNKNOWN"
+
+    def __init__(self, transport, base_url):
+        super(Share, self).__init__(transport, base_url)
+
+    def share(self, path, user, access="READ"):
+        ''' create or update a share '''
+        req = {"path": path}
+        req['access'] = access
+        req['user'] = user
+        res = self.transport.post(url=self.resource_url, json=req)
+        return res.headers['Location']
 
