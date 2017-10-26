@@ -1,8 +1,9 @@
-''' Client for UNICORE 
-    Based on https://sourceforge.net/p/unicore/wiki/REST_API/
+'''
+    Client for UNICORE using the REST API
+
+    For full info on the REST API, see https://sourceforge.net/p/unicore/wiki/REST_API/
 '''
 
-import cStringIO
 import logging
 import os
 import re
@@ -25,6 +26,7 @@ else:
 
 # - Turn off verify=False once certificates are correct
 
+# - Add feature to set preferences (xlogin, role, ...) on transport
 
 L = logging.getLogger(__name__)
 requests.packages.urllib3.disable_warnings()
@@ -214,7 +216,7 @@ class Client(object):
         return self.properties['client']
 
     def get_storages(self):
-        return [PathDir(self.transport, url, '/')
+        return [Storage(self.transport, url)
                 for url in self.transport.get(url=self.site_urls['storages'])['storages']]
 
     def get_applications(self):
@@ -255,16 +257,16 @@ class Application(object):
 
 class Job(Resource):
     '''wrapper around UNICORE job'''
+
     def __init__(self, transport, job_url):
         super(Job, self).__init__(transport, job_url)
 
     @TimedCacheProperty(timeout=3600)
     def working_dir(self):
-        '''return the working directory'''
-        return PathDir(
+        '''return the Storage for accessing the working directory '''
+        return Storage(
             self.transport,
-            self.properties['_links']['workingDirectory']['href'],
-            '/')
+            self.properties['_links']['workingDirectory']['href'])
 
     def is_running(self):
         '''checks whether a job is still running'''
@@ -307,17 +309,85 @@ class Job(Resource):
     __str__ = __repr__
 
 
-class Path(Resource):
-    ''' common base for files and directories '''
+class Storage(Resource):
+    ''' wrapper around a UNICORE Storage resource '''
 
-    def __init__(self, transport, path_url, name):
-        super(Path, self).__init__(transport, path_url)
-        self.name = name
+    def __init__(self, transport, storage_url):
+        super(Storage, self).__init__(transport, storage_url)
+        self.storage_url = storage_url
 
     @property
     def path_urls(self):
         urls = self.transport.get(url=self.resource_url)['_links']
         return {k: v['href'] for k, v in urls.items()}
+
+    def contents(self, path="/"):
+        return self.transport.get(url=self.path_urls['files']+'/'+path)
+
+    def stat(self, path):
+        ''' get a file/directory '''
+        path_url = self.path_urls['files'] + '/' + path
+        headers = {'Accept': 'application/json',}
+        props = self.transport.get(url=path_url, headers = headers)
+        if props['isDirectory']:
+            ret = PathDir(self, path_url, path)
+        else:
+            ret = PathFile(self, path_url, path)
+        return ret
+    
+    def listdir(self, base='/'):
+        ''' get a list of the files and directories in the given base directory '''
+        ret = {}
+        for path, meta in self.contents['content'].items():
+            path_url = self.path_urls['files'] + path
+            path = path[1:]  # strip leading '/'
+            if meta['isDirectory']:
+                ret[path] = PathDir(self, path_url, path)
+            else:
+                ret[path] = PathFile(self, path_url, path)
+        return ret
+
+    def rename(self, source, target):
+        '''rename a file on this storage'''
+        json = {'from': source,
+                'to': target,
+                }
+        return self.transport.post(url=self.path_urls['rename'], json=json)
+
+    def copy(self, source, target):
+        '''copy a file on this storage'''
+        json = {'from': source,
+                'to': target,
+                }
+        return self.transport.post(url=self.path_urls['copy'], json=json)
+
+    def mkdir(self, name):
+        return self.transport.post(url=self.path_urls['files']+"/"+name, json={})
+
+    def rmdir(self, name):
+        return self.transport.delete(url=self.path_urls['files']+"/"+name)
+
+    def rm(self, name):
+        return self.transport.delete(url=self.path_urls['files']+"/"+name)
+
+    def makedirs(self, name):
+        return self.mkdir(name)
+
+    def __repr__(self):
+        return ('Storage: %s' %
+                (self.storage_url,
+                ))
+
+    __str__ = __repr__
+
+
+class Path(Resource):
+    ''' common base for files and directories '''
+
+    def __init__(self, storage, path_url, name):
+        super(Path, self).__init__(storage.transport, path_url)
+        self.name = name
+        self.storage = storage
 
     def isdir(self):
         '''is a directory'''
@@ -327,12 +397,12 @@ class Path(Resource):
         '''is a file'''
         return False
 
-    #def get_metadata(self, name):
-    #    pass
+    def get_metadata(self, name):
+        return self.properties['metadata']['name']
     
     def remove(self):
         '''remove file or directory'''
-        return self.transport.delete(url=self.path_urls['files']+"/"+name)
+        return self.storage.rm(name)
 
     def __repr__(self):
         return '%s: %s' % (self.__class__.__name__, self.name)
@@ -341,19 +411,9 @@ class Path(Resource):
 
 
 class PathDir(Path):
-    def __init__(self, transport, path_url, name):
-        super(PathDir, self).__init__(transport, path_url, name)
-        self._last_contents_lookup = datetime.min
+    def __init__(self, storage, path_url, name):
+        super(PathDir, self).__init__(storage, path_url, name)
         self._cached_contents = {}
-
-    def __repr__(self):
-        return '%s: %s' % (self.__class__.__name__, self.name)
-
-    __str__ = __repr__
-
-    @TimedCacheProperty(timeout=_REST_CACHE_TIMEOUT)
-    def contents(self):
-        return self.transport.get(url=self.path_urls['files'])
 
     def upload(self, input_name, destination=None):
         '''upload path `input_name` to the directory, optionally renaming it to "destination" '''
@@ -383,53 +443,18 @@ class PathDir(Path):
             for chunk in resp.iter_content(chunk_size=512):
                 fd.write(chunk)
 
-    def listdir(self):
-        '''list the contents of the directory'''
-        ret = {}
-        for path, meta in self.contents['content'].items():
-            path_url = self.path_urls['files'] + path
-            path = path[1:]  # strip leading '/'
-            if meta['isDirectory']:
-                ret[path] = PathDir(self.transport, path_url, path)
-            else:
-                ret[path] = PathFile(self.transport, path_url, path)
-        return ret
-
     def isdir(self):
         return True
 
-    def rename(self, source, target):
-        '''rename file in directory'''
-        json = {'from': source,
-                'to': target,
-                }
-        return self.transport.post(url=self.path_urls['rename'], json=json)
-
-    def copy(self, source, target):
-        '''rename file in directory'''
-        json = {'from': source,
-                'to': target,
-                }
-        return self.transport.post(url=self.path_urls['copy'], json=json)
-
-    def mkdir(self, name):
-        return self.transport.post(url=self.path_urls['files']+"/"+name, json={})
-
-    def rmdir(self, name):
-        return self.transport.delete(url=self.path_urls['files']+"/"+name)
-
-    def makedirs(self, name):
-        return self.mkdir(name)
-
     def __repr__(self):
-        return 'Storage: %s' % (self.resource_url)
+        return 'PathDir: %s' % (self.name)
 
     __str__ = __repr__
 
 
 class PathFile(Path):
-    def __init__(self, transport, path_url, name):
-        super(PathFile, self).__init__(transport, path_url, name)
+    def __init__(self, storage, path_url, name):
+        super(PathFile, self).__init__(storage, path_url, name)
 
     def download(self, file_, max_size=10**6):
         '''download file
@@ -483,7 +508,7 @@ class PathFile(Path):
 
 class UFTP(Resource):
     ''' authenticate UFTP transfers and use ftplib to interact with
-        the UFTP server
+        the UFTPD server
     '''
     uftp_session_tag = "___UFTP___MULTI___FILE___SESSION___MODE___"
 
