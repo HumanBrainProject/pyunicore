@@ -338,7 +338,7 @@ class Storage(Resource):
     def listdir(self, base='/'):
         ''' get a list of the files and directories in the given base directory '''
         ret = {}
-        for path, meta in self.contents['content'].items():
+        for path, meta in self.contents()['content'].items():
             path_url = self.path_urls['files'] + path
             path = path[1:]  # strip leading '/'
             if meta['isDirectory']:
@@ -425,7 +425,7 @@ class PathDir(Path):
                    }
         with open(input_name, 'rb') as fd:
             resp = self.transport.put(
-                url=os.path.join(self.resource_url, 'files', destination),
+                url=os.path.join(self.resource_url, destination),
                 headers=headers,
                 data=fd)
 
@@ -434,7 +434,7 @@ class PathDir(Path):
         
         assert self.isdir(), 'Not a directory'
         headers = {'Accept': 'application/octet-stream',}
-        url = os.path.join(self.resource_url, 'files', remote_file)
+        url = os.path.join(self.resource_url, remote_file)
         if destination is None:
             destination = os.path.basename(remote_file)
         resp = self.transport.get(to_json=False, url=url, headers=headers, stream=True)
