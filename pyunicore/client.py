@@ -230,12 +230,22 @@ class Client(object):
         return [Job(self.transport, url)
                 for url in self.transport.get(url=self.site_urls['jobs'])['jobs']]
 
-    def new_job(self, job_description):
-        ''' run a batch job on the site '''
+    def new_job(self, job_description, inputs=[]):
+        ''' submit and start a batch job on the site, optionally uploading input data files '''
+        if len(inputs)>0:
+            job_description['haveClientStageIn'] = "true"
+
         resp = self.transport.post(url=self.site_urls['jobs'],
                                    json=job_description)
         job_url = resp.headers['Location']
-        return Job(self.transport, job_url)
+        job = Job(self.transport, job_url)
+
+        if len(inputs)>0:
+            working_dir = job.working_dir
+            for input in inputs:
+                working_dir.upload(input)
+        job.start()
+        return job
 
     def execute(self, cmd):
         ''' run a (non-batch) command on the site '''
@@ -373,6 +383,18 @@ class Storage(Resource):
     def makedirs(self, name):
         return self.mkdir(name)
 
+    def upload(self, input_name, destination=None):
+        '''upload file "input_name" '''
+        if destination is None:
+            destination = os.path.basename(input_name)
+
+        headers = {'Content-Type': 'application/octet-stream'}
+        with open(input_name, 'rb') as fd:
+            resp = self.transport.put(
+                url=os.path.join(self.resource_url, "files", destination),
+                headers=headers,
+                data=fd)
+
     def __repr__(self):
         return ('Storage: %s' %
                 (self.storage_url,
@@ -413,35 +435,6 @@ class Path(Resource):
 class PathDir(Path):
     def __init__(self, storage, path_url, name):
         super(PathDir, self).__init__(storage, path_url, name)
-        self._cached_contents = {}
-
-    def upload(self, input_name, destination=None):
-        '''upload path `input_name` to the directory, optionally renaming it to "destination" '''
-        assert self.isdir(), 'Not a directory'
-        if destination is None:
-            destination = os.path.basename(input_name)
-        
-        headers = {'Content-Type': 'application/octet-stream',
-                   }
-        with open(input_name, 'rb') as fd:
-            resp = self.transport.put(
-                url=os.path.join(self.resource_url, destination),
-                headers=headers,
-                data=fd)
-
-    def download(self, remote_file, destination=None):
-        ''' download remote_file to the current directory, optionally to the given local destination '''
-        
-        assert self.isdir(), 'Not a directory'
-        headers = {'Accept': 'application/octet-stream',}
-        url = os.path.join(self.resource_url, remote_file)
-        if destination is None:
-            destination = os.path.basename(remote_file)
-        resp = self.transport.get(to_json=False, url=url, headers=headers, stream=True)
-        resp.raise_for_status()
-        with open(destination, 'wb') as fd:
-            for chunk in resp.iter_content(chunk_size=512):
-                fd.write(chunk)
 
     def isdir(self):
         return True
@@ -461,8 +454,8 @@ class PathFile(Path):
 
         Args:
             file_(StringType or file-like): if a string, a file of that name
-            will be created, and filled with the download.  If it's a file-like,
-            then the contents will be write()
+            will be created, and filled with the download.  If it's file-like,
+            then the contents will be written via write()
 
             max_size(int): if the file is larger than this, the file won't be
             downloaded
@@ -476,9 +469,10 @@ class PathFile(Path):
             >>> print(foo.contents.getvalue())
         '''
 
+        hdr = {'Accept': 'application/octet-stream'}
         with closing(
             self.transport.get(url=self.resource_url,
-                               headers={'Accept': 'application/octet-stream'},
+                               headers=hdr,
                                stream=True,
                                to_json=False,
                                )) as resp:
@@ -495,9 +489,20 @@ class PathFile(Path):
                 for chunk in resp.iter_content(CHUNK_SIZE):
                     file_.write(chunk)
 
-    def raw(self):
-        ''' access the raw http response for streaming purposes '''
-        headers = {'Accept': 'application/octet-stream',}
+    def raw(self, offset=0, size=-1):
+        ''' access the raw http response for streaming purposes. 
+            The optional 'offset' and 'size' parameters allow to download only
+            part of the file
+        '''
+        headers = {'Accept': 'application/octet-stream'}
+        if offset<0:
+            raise ValueError("Offset must be positive")
+        if offset>0 or size>-1:
+            range = "bytes=%s-" % offset
+            if size>-1:
+                range += str(size+offset-1)
+            headers['Range']=range
+
         resp = self.transport.get(to_json=False, url=self.resource_url, headers=headers, stream=True)
         resp.raise_for_status()
         return resp.raw

@@ -5,7 +5,6 @@ from sys import argv, exit
 from stat import S_IFDIR, S_IFLNK, S_IFREG
 from os.path import basename
 
-#from time import mktime
 import time
 import logging
 #from dateutil.parser import parse as dateparse
@@ -15,12 +14,49 @@ import pyunicore.client as uc
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 from errno import ENOENT
 
+class FileHandle():
+    ''' Helper to minimize REST calls '''
+
+    position = 0
+    conn = None
+    ufile = None
+
+    def __init__(self, ufile, offset, size):
+        self.ufile = ufile
+        self._open(offset, size)
+
+    def _open(self, offset, size):
+        self.conn = self.ufile.raw(offset, size)
+        self.position = offset
+
+    def close(self):
+        if self.conn is not None:
+            try:
+                self.conn.close()
+            except:
+                pass
+
+    def read(self, offset, size):
+        if self.conn is None or self.conn.closed:
+            self._open(offset, size)
+        elif offset!=self.position:
+            self.close()
+            self._open(offset, size)
+
+        if size>=0:
+            x = self.conn.read(size)
+        else:
+            x = self.conn.read()
+
+        self.position += len(x)
+        return x
+
 class UFS(LoggingMixIn, Operations):
     '''
     A simple UNICORE REST-API filesystem (read-only for files)
     Needed: storage base URL and authentication header value (eg. an oauth token)
     '''
-    
+
     my_uid = 1000
     my_gid = 1000
 
@@ -67,22 +103,29 @@ class UFS(LoggingMixIn, Operations):
     def mkdir(self, path, mode):
         self.storage.mkdir(path)
 
+    def _open(self, path, size, offset):
+        pf = self.storage.stat(path)
+        return FileHandle(pf, offset, size)
+
     def open(self, path, flags):
-        f = self.storage.stat(path).raw()
+        f = self._open(path, -1, 0)
         self.fh += 1
         self.open_files[self.fh] = f
         return self.fh
+
+    def release(self, path, fh):
+        x = self.open_files[self.fh]
+        if x is not None:
+            x.close()
+        self.open_files[self.fh] = None
         
     def read(self, path, size, offset, fh):
         f = self.open_files.get(fh, None)
-        if f is None:
-            f = self.storage.stat(path).raw()
-        return f.read(size)
+        return f.read(offset, size)
 
     def readdir(self, path, fh):
         ls = []
         for name in self.storage.contents(path)["content"]:
-            self.log.debug(name)
             if name.endswith("/"):
                 name = name[:-1]
             ls.append(basename("/"+name))
@@ -90,7 +133,6 @@ class UFS(LoggingMixIn, Operations):
 
     def readlink(self, path):
         raise Exception("Not yet implemented")
-        return self.sftp.readlink(path)
 
     def rename(self, old, new):
         self.storage.rename(old, self.root + new)
@@ -111,12 +153,7 @@ class UFS(LoggingMixIn, Operations):
         raise Exception("Not yet implemented")
 
     def write(self, path, data, offset, fh):
-        raise Exception("Not yet implemented")
-        f = None #...open(path, 'r+')
-        f.seek(offset, 0)
-        f.write(data)
-        f.close()
-        return len(data)
+        raise Exception("Not implemented")
 
 
 if __name__ == '__main__':
