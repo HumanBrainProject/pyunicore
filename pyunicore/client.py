@@ -232,7 +232,7 @@ class Client(object):
 
     def new_job(self, job_description, inputs=[]):
         ''' submit and start a batch job on the site, optionally uploading input data files '''
-        if len(inputs)>0:
+        if len(inputs)>0 or job_description['haveClientStageIn'] is True :
             job_description['haveClientStageIn'] = "true"
 
         resp = self.transport.post(url=self.site_urls['jobs'],
@@ -244,7 +244,9 @@ class Client(object):
             working_dir = job.working_dir
             for input in inputs:
                 working_dir.upload(input)
-        job.start()
+        if job_description['haveClientStageIn'] != "true":
+            job.start()
+
         return job
 
     def execute(self, cmd):
