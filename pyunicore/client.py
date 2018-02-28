@@ -77,15 +77,21 @@ class TimedCacheProperty(object):
 
 class Transport(object):
     '''wrapper around requests to add authentication headers'''
-    def __init__(self, auth_token, oidc=True, verify=False):
+    def __init__(self, auth_token, oidc=True, verify=False, refresh_handler=None):
         super(Transport, self).__init__()
         self.auth_token = auth_token
         self.oidc = oidc
         # TODO: should default to True once certificates are correct
         self.verify = verify
+        self.refresh_handler = refresh_handler
 
     def _headers(self, kwargs):
         if self.oidc:
+            if refresh_handler:
+                try:
+                    self.auth_token = refresh_handler.get_valid_token()
+                except:
+                    pass
             val = 'Bearer %s' % self.auth_token
         else:
             val = 'Basic %s' % self.auth_token
