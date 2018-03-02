@@ -3,6 +3,7 @@ from __future__ import print_function, absolute_import, division
 
 from sys import argv, exit
 from stat import S_IFDIR, S_IFLNK, S_IFREG
+from os import getgid,getuid
 from os.path import basename
 
 import time
@@ -57,14 +58,14 @@ class UFS(LoggingMixIn, Operations):
     Needed: storage base URL and authentication header value (eg. an oauth token)
     '''
 
-    my_uid = 1000
-    my_gid = 1000
+    my_uid = getuid()
+    my_gid = getgid()
 
     fh = 0
     open_files = {}
     
-    def __init__(self, storage_url, auth_token, oidc=False, path="."):
-        self.transport = uc.Transport(auth_token, oidc=oidc)
+    def __init__(self, transport, storage_url, path="."):
+        self.transport = transport
         self.storage = uc.Storage(self.transport, storage_url)
         self.root = path
 
@@ -158,8 +159,9 @@ class UFS(LoggingMixIn, Operations):
 
 if __name__ == '__main__':
     if len(argv) < 4:
-        print('usage: %s <storage_url> <mountpoint> <auth_header_value> [DEBUG]' % argv[0])
+        print('usage: %s <storage_url> <mountpoint> <oauth_access_token> [DEBUG]' % argv[0])
         exit(1)
     if len(argv) > 4 and argv[4]=="DEBUG":
         logging.basicConfig(level=logging.DEBUG)
-    fuse = FUSE(UFS(argv[1], argv[3]), argv[2], foreground=True, nothreads=True)
+    transport = uc.Transport(argv[3], oidc=True)
+    fuse = FUSE(UFS(transport, argv[1]), argv[2], foreground=True, nothreads=True)
