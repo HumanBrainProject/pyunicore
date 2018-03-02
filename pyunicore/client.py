@@ -88,7 +88,7 @@ class RefreshHandler(object):
         self.refresh_config = refresh_config
         self.token = token
         if not token:
-            refresh()
+            self.refresh()
 
     def is_valid_token(self):
         '''
@@ -141,7 +141,7 @@ class Transport(object):
         if self.oidc:
             if self.refresh_handler:
                 try:
-                    self.auth_token = self.refresh_handler.get_valid_token()
+                    self.auth_token = self.refresh_handler.get_token()
                 except:
                     pass
             val = 'Bearer %s' % self.auth_token
