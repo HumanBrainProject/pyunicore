@@ -170,7 +170,9 @@ class Transport(object):
         req.raise_for_status()
         if not to_json:
             return req
-        return req.json()
+        json = req.json()
+        req.close()
+        return json
 
     def put(self, **kwargs):
         '''do put'''
@@ -188,8 +190,8 @@ class Transport(object):
 
     def delete(self, **kwargs):
         headers = self._headers(kwargs)
-        req = requests.delete(headers=headers, verify=self.verify, **kwargs)
-        req.raise_for_status()
+        with closing(requests.delete(headers=headers, verify=self.verify, **kwargs)) as req:
+            req.raise_for_status()
 
 
 class Resource(object):
@@ -293,9 +295,9 @@ class Client(object):
         if len(inputs)>0 or job_description.get('haveClientStageIn') is True :
             job_description['haveClientStageIn'] = "true"
 
-        resp = self.transport.post(url=self.site_urls['jobs'],
-                                   json=job_description)
-        job_url = resp.headers['Location']
+        with closing(self.transport.post(url=self.site_urls['jobs'], json=job_description)) as resp:
+            job_url = resp.headers['Location']
+        
         job = Job(self.transport, job_url)
 
         if len(inputs)>0:
@@ -312,9 +314,9 @@ class Client(object):
         job_description = {'Executable': cmd,
                            'Environment': {'UC_PREFER_INTERACTIVE_EXECUTION':'true'},
         }
-        resp = self.transport.post(url=self.site_urls['jobs'],
-                                   json=job_description)
-        job_url = resp.headers['Location']
+        with closing(self.transport.post(url=self.site_urls['jobs'], json=job_description)) as resp:
+            job_url = resp.headers['Location']
+        
         return Job(self.transport, job_url)
 
 

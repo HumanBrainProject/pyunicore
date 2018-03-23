@@ -2,6 +2,7 @@ import requests
 import json
 import time
 from re import match
+from contextlib import closing
 
 requests.packages.urllib3.disable_warnings()
 
@@ -61,13 +62,13 @@ def get_properties(resource, headers={}):
     """ get JSON properties of a resource """
     my_headers = headers.copy()
     my_headers['Accept']="application/json"
-    r = requests.get(resource, headers=my_headers, verify=False)
-    if r.status_code!=200:
-        raise RuntimeError("Error getting properties: %s" % r.status_code)
-    else:
-        return r.json()
+    with closing(requests.get(resource, headers=my_headers, verify=False)) as r:
+        if r.status_code!=200:
+            raise RuntimeError("Error getting properties: %s" % r.status_code)
+        else:
+            return r.json()
 
-    
+
 def get_working_directory(job, headers={}, properties=None):
     """ returns the URL of the working directory resource of a job """
     if properties is None:
@@ -79,10 +80,10 @@ def invoke_action(resource, action, headers, data={}):
     my_headers = headers.copy()
     my_headers['Content-Type']="application/json"
     action_url = get_properties(resource, headers)['_links']['action:'+action]['href']
-    r = requests.post(action_url,data=json.dumps(data), headers=my_headers, verify=False)
-    if r.status_code!=200:
-        raise RuntimeError("Error invoking action: %s" % r.status_code)
-    return r.json()
+    with closing(requests.post(action_url,data=json.dumps(data), headers=my_headers, verify=False)) as r:
+        if r.status_code!=200:
+            raise RuntimeError("Error invoking action: %s" % r.status_code)
+        return r.json()
 
 
 def upload(destination, file_desc, headers):
@@ -94,9 +95,9 @@ def upload(destination, file_desc, headers):
     name = file_desc['To']
     data = file_desc['Data']
     # TODO file_desc could refer to local file
-    r = requests.put(destination+"/"+name, data=data, headers=my_headers, verify=False)
-    if r.status_code!=204:
-        raise RuntimeError("Error uploading data: %s" % r.status_code)
+    with closing(requests.put(destination+"/"+name, data=data, headers=my_headers, verify=False)) as r:
+        if r.status_code!=204:
+            raise RuntimeError("Error uploading data: %s" % r.status_code)
 
 def download(source, destination, headers):
     """ download a file. The source is the full URL to the file, the destination
@@ -104,13 +105,13 @@ def download(source, destination, headers):
     """
     my_headers = headers.copy()
     my_headers['Accept']="application/octet-stream"
-    r = requests.get(source, headers=my_headers, stream=True, verify=False)
-    if r.status_code!=200:
-        raise RuntimeError("Error downloading data: %s" % r.status_code)
-    else:
-        with open(destination, 'wb') as fd:
-            for chunk in r.iter_content(chunk_size=512):
-                fd.write(chunk)
+    with requests.get(source, headers=my_headers, stream=True, verify=False) as r:
+        if r.status_code!=200:
+            raise RuntimeError("Error downloading data: %s" % r.status_code)
+        else:
+            with open(destination, 'wb') as fd:
+                for chunk in r.iter_content(chunk_size=512):
+                    fd.write(chunk)
 
 def submit(url, job, headers, inputs=[]):
     """
@@ -126,12 +127,12 @@ def submit(url, job, headers, inputs=[]):
         # make sure UNICORE does not start the job 
         # before we have uploaded data
         job['haveClientStageIn']='true'
-        
-    r = requests.post(url,data=json.dumps(job), headers=my_headers, verify=False)
-    if r.status_code!=201:
-        raise RuntimeError("Error submitting job: %s" % r.status_code)
-    else:
-        jobURL = r.headers['Location']
+
+    with closing(requests.post(url,data=json.dumps(job), headers=my_headers, verify=False)) as r:
+        if r.status_code!=201:
+            raise RuntimeError("Error submitting job: %s" % r.status_code)
+        else:
+            jobURL = r.headers['Location']
 
     #  upload input data and explicitely start job
     if len(inputs)>0:
@@ -201,10 +202,9 @@ def delete(resource, headers={}):
     """ Delete (destroy) a resource """
     my_headers = headers.copy()
     my_headers['Accept']="application/json"
-    r = requests.delete(resource, headers=my_headers, verify=False)
-    if r.status_code>399:
-        raise RuntimeError("Error deleting: %s" % r.status_code)
-    r.close()
+    with closing(requests.delete(resource, headers=my_headers, verify=False)) as r:
+        if r.status_code>399:
+            raise RuntimeError("Error deleting: %s" % r.status_code)
 
 def get_auth_header(token):
     """ returns Authorization HTTP header using the given token.
