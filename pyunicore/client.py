@@ -511,16 +511,13 @@ class PathFile(Path):
     def __init__(self, storage, path_url, name):
         super(PathFile, self).__init__(storage, path_url, name)
 
-    def download(self, file_, max_size=10**6):
+    def download(self, file_):
         '''download file
 
         Args:
             file_(StringType or file-like): if a string, a file of that name
             will be created, and filled with the download.  If it's file-like,
             then the contents will be written via write()
-
-            max_size(int): if the file is larger than this, the file won't be
-            downloaded
 
             You can also use the raw() method for data streaming purposes
 
@@ -539,9 +536,7 @@ class PathFile(Path):
                                to_json=False,
                                )) as resp:
             resp.raise_for_status()
-            if max_size < int(resp.headers['content-length']):
-                raise Exception('File too long')
-
+           
             CHUNK_SIZE = 10 * 1024
             if isinstance(file_, StringType):
                 with open(file_, 'wb') as fd:
@@ -554,7 +549,9 @@ class PathFile(Path):
     def raw(self, offset=0, size=-1):
         ''' access the raw http response for streaming purposes. 
             The optional 'offset' and 'size' parameters allow to download only
-            part of the file
+            part of the file.
+            NOTE: this is the raw response from the server and might not be 
+                  decoded appropriately!
         '''
         headers = {'Accept': 'application/octet-stream'}
         if offset<0:
