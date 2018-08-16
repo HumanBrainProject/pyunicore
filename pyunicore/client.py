@@ -304,10 +304,14 @@ class Client(object):
             working_dir = job.working_dir
             for input in inputs:
                 working_dir.upload(input)
-        if job_description['haveClientStageIn'] != "true":
-            job.start()
+        if job_description['haveClientStageIn'] == "true":
+            try:
+                job.start()
+            except:
+                pass
 
         return job
+
 
     def execute(self, cmd):
         ''' run a (non-batch) command on the site '''
