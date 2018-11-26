@@ -304,7 +304,7 @@ class Client(object):
             working_dir = job.working_dir
             for input in inputs:
                 working_dir.upload(input)
-        if job_description['haveClientStageIn'] == "true":
+        if job_description.get('haveClientStageIn', None) == "true":
             try:
                 job.start()
             except:
