@@ -159,6 +159,21 @@ class Transport(object):
 
         return headers
 
+    def checkError(self, res):
+        """ checks for error and extracts any error info sent by the server """
+        if 500 <= res.status_code < 600:
+            reason = res.reason
+            try:
+                json = res.json()
+                reason = json['errorMessage']
+            except Exception as e:
+                pass
+            msg =  u'%s Server Error: %s for url: %s' % (res.status_code, reason, res.url)
+            raise requests.HTTPError(msg, response=res)
+        else:
+            res.raise_for_status()
+
+                
     def get(self, to_json=True, **kwargs):
         '''do get
 
@@ -166,32 +181,32 @@ class Transport(object):
             For the complete response, set `to_json` to false
         '''
         headers = self._headers(kwargs)
-        req = requests.get(headers=headers, verify=self.verify, **kwargs)
-        req.raise_for_status()
+        res = requests.get(headers=headers, verify=self.verify, **kwargs)
+        self.checkError(res)
         if not to_json:
-            return req
-        json = req.json()
-        req.close()
+            return res
+        json = res.json()
+        res.close()
         return json
 
     def put(self, **kwargs):
         '''do put'''
         headers = self._headers(kwargs)
-        req = requests.put(headers=headers, verify=self.verify, **kwargs)
-        req.raise_for_status()
-        return req
+        res = requests.put(headers=headers, verify=self.verify, **kwargs)
+        self.checkError(res)
+        return res
 
     def post(self, **kwargs):
         '''do post'''
         headers = self._headers(kwargs)
-        req = requests.post(headers=headers, verify=self.verify, **kwargs)
-        req.raise_for_status()
-        return req
+        res = requests.post(headers=headers, verify=self.verify, **kwargs)
+        self.checkError(res)
+        return res
 
     def delete(self, **kwargs):
         headers = self._headers(kwargs)
-        with closing(requests.delete(headers=headers, verify=self.verify, **kwargs)) as req:
-            req.raise_for_status()
+        with closing(requests.delete(headers=headers, verify=self.verify, **kwargs)) as res:
+            self.checkError(res)
 
 
 class Resource(object):
@@ -435,7 +450,7 @@ class Storage(Resource):
         json = {'from': source,
                 'to': target,
                 }
-        return self.transport.post(url=self.path_urls['copy'], json=json)
+        return self.transport.post(url=self.path_urls['action:copy'], json=json)
 
     def mkdir(self, name):
         return self.transport.post(url=self.path_urls['files']+"/"+name, json={})
@@ -539,7 +554,6 @@ class PathFile(Path):
                                stream=True,
                                to_json=False,
                                )) as resp:
-            resp.raise_for_status()
            
             CHUNK_SIZE = 10 * 1024
             if isinstance(file_, StringType):
@@ -567,7 +581,6 @@ class PathFile(Path):
             headers['Range']=range
 
         resp = self.transport.get(to_json=False, url=self.resource_url, headers=headers, stream=True)
-        resp.raise_for_status()
         return resp.raw
 
     def isfile(self):
