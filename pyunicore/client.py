@@ -443,7 +443,7 @@ class Storage(Resource):
         json = {'from': source,
                 'to': target,
                 }
-        return self.transport.post(url=self.path_urls['rename'], json=json)
+        return self.transport.post(url=self.path_urls['action:rename'], json=json)
 
     def copy(self, source, target):
         '''copy a file on this storage'''
