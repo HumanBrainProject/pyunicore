@@ -296,9 +296,10 @@ class Client(object):
 
     def get_applications(self):
         apps = []
-        for url in self.transport.get(url=self.site_urls['factories']):
+        for url in self.transport.get(url=self.site_urls['factories'])['factories']:
             for app in self.transport.get(url=url)['applications']:
-                app += Application(self.transport, app)
+                apps.append(Application(self.transport, url+"/applications/"+app))
+        return apps
 
     def get_jobs(self):
         '''return a list of `Job` objects'''
@@ -331,6 +332,7 @@ class Client(object):
     def execute(self, cmd):
         ''' run a (non-batch) command on the site '''
         job_description = {'Executable': cmd,
+                           'Job type': 'INTERACTIVE',
                            'Environment': {'UC_PREFER_INTERACTIVE_EXECUTION':'true'},
         }
         with closing(self.transport.post(url=self.site_urls['jobs'], json=job_description)) as resp:
@@ -339,11 +341,25 @@ class Client(object):
         return Job(self.transport, job_url)
 
 
-class Application(object):
+class Application(Resource):
     '''wrapper around a UNICORE application '''
-    def __init__(self, name, version=None):
-        self.name = name
-        self.version = version
+    def __init__(self, transport, app_url, submit_url=None):
+        super(Application, self).__init__(transport, app_url)
+        if submit_url is None:
+            submit_url = app_url.split("/rest/core/factories/")[0]+"/rest/core/jobs"
+        self.submit_url = submit_url
+
+    @TimedCacheProperty(timeout=3600)
+    def name(self):
+        return self.properties['ApplicationName']
+
+    @TimedCacheProperty(timeout=3600)
+    def version(self):
+        return self.properties['ApplicationVersion']
+
+    @TimedCacheProperty(timeout=3600)
+    def options(self):
+        return self.properties['Options']
 
 
 class Job(Resource):
