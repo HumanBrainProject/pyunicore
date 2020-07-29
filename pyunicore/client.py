@@ -128,14 +128,25 @@ class RefreshHandler(object):
 
     
 class Transport(object):
-    '''wrapper around requests to add authentication headers'''
-    def __init__(self, auth_token, oidc=True, verify=False, refresh_handler=None):
+    '''wrapper around requests, which
+           - adds Authorization header (Basic or Bearer style)
+           - transparently handles security sessions
+           - handles user preferences
+           - can be configured with an OIDC refresh handler
+
+       see https://sourceforge.net/p/unicore/wiki/REST_API/#user-preferences
+       see https://sourceforge.net/p/unicore/wiki/REST_API/#security-session-handling
+    '''
+    def __init__(self, auth_token, oidc=True, verify=False, refresh_handler=None, use_security_sessions=True):
         super(Transport, self).__init__()
         self.auth_token = auth_token
         self.oidc = oidc
         # TODO: should default to True once certificates are correct
         self.verify = verify
         self.refresh_handler = refresh_handler
+        self.use_security_sessions = use_security_sessions
+        self.last_session_id = None
+        self.preferences = None
 
     def _headers(self, kwargs):
         if self.oidc:
@@ -152,6 +163,11 @@ class Transport(object):
                    'Accept': 'application/json',
                    'Content-Type': 'application/json',
         }
+        if self.use_security_sessions and self.last_session_id is not None:
+            headers['X-UNICORE-SecuritySession'] = self.last_session_id
+
+        if self.preferences is not None:
+            headers['X-UNICORE-User-Preferences'] = self.preferences
 
         if 'headers' in kwargs:
             headers.update(kwargs['headers'])
@@ -161,6 +177,9 @@ class Transport(object):
 
     def checkError(self, res):
         """ checks for error and extracts any error info sent by the server """
+        if self.use_security_sessions:
+            self.last_session_id = res.headers.get('X-UNICORE-SecuritySession', None)
+
         if 500 <= res.status_code < 600:
             reason = res.reason
             try:
@@ -173,7 +192,23 @@ class Transport(object):
         else:
             res.raise_for_status()
 
-                
+    def repeat_required(self, res, headers):
+        if self.use_security_sessions:
+            if 432 == res.status_code:
+                headers.pop('X-UNICORE-SecuritySession', None)
+                return True
+        return False
+
+    def _head(self, **kwargs):
+        '''do a HEAD request to make sure current security session is OK'''
+        if self.use_security_sessions:
+            headers = self._headers({})
+            res = requests.head(headers=headers, verify=self.verify, url=kwargs['url'])
+            if self.repeat_required(res, headers):
+                res = requests.head(headers=headers, verify=self.verify, url=kwargs['url'])
+            self.last_session_id = res.headers.get('X-UNICORE-SecuritySession', None)
+            res.close()
+
     def get(self, to_json=True, **kwargs):
         '''do get
 
@@ -182,6 +217,8 @@ class Transport(object):
         '''
         headers = self._headers(kwargs)
         res = requests.get(headers=headers, verify=self.verify, **kwargs)
+        if self.repeat_required(res, headers):
+            res = requests.get(headers=headers, verify=self.verify, **kwargs)
         self.checkError(res)
         if not to_json:
             return res
@@ -191,6 +228,7 @@ class Transport(object):
 
     def put(self, **kwargs):
         '''do put'''
+        self._head(**kwargs)
         headers = self._headers(kwargs)
         res = requests.put(headers=headers, verify=self.verify, **kwargs)
         self.checkError(res)
@@ -198,6 +236,7 @@ class Transport(object):
 
     def post(self, **kwargs):
         '''do post'''
+        self._head(**kwargs)
         headers = self._headers(kwargs)
         res = requests.post(headers=headers, verify=self.verify, **kwargs)
         self.checkError(res)
