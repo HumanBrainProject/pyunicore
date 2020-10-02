@@ -2,18 +2,25 @@
 # Python library for using the UNICORE REST API
 #
 
-See LICENSE file for licensing information
+This library covers part of the UNICORE REST API, making common tasks
+like job submission and file access more convenient, and integrates
+UNICORE features better with typical Python usage.
 
-For full documentation of the REST API, see https://sourceforge.net/p/unicore/wiki/REST_API
+For the full, up-to-date documentation of the REST API,
+see https://sourceforge.net/p/unicore/wiki/REST_API
+
+Development of this library was funded in part by the Human Brain Project
 
 For more information about the Human Brain Project, see https://www.humanbrainproject.eu/
+
+See LICENSE file for licensing information
 
 # Getting started with pyUNICORE
 
 Install from PyPI with
 
     pip install -U pyunicore
-  
+
 Sample code to create a client for a UNICORE site
 
     import pyunicore.client as unicore_client
@@ -46,3 +53,17 @@ Sample code to create a client for a UNICORE site
     content = stdout.raw().read()
     print(content)
     
+# Connecting to a Registry and listing all registered services
+
+    import pyunicore.client as unicore_client
+    import json, b64encode
+
+    registry_url = "https://localhosz:8080/REGISTRY/rest/registries/default_registry"
+
+    # authenticate with username/password
+    token = b64encode(b"demouser:test123").decode("ascii")
+    transport = unicore_client.Transport(token, oidc=False)
+
+    r = unicore_client.Registry(tr, registry_url)
+    print(r.site_urls)
+

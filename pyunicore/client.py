@@ -14,22 +14,12 @@ import time
 import sys
 from contextlib import closing
 from datetime import datetime, timedelta
-from ftplib import FTP
 from jwt import decode as jwt_decode, ExpiredSignatureError
 
 if sys.version_info < (3, 0):
     from types import StringType
 else:
     StringType = str  # pragma: no cover
-
-# TODO:
-# - Add Application discovery and launch creation
-#   >>> BSP = client.get_application('BSP')
-#   >>> BSP('foo', 'bar', 'baz')  # to launch it
-
-# - Turn off verify=False once certificates are correct
-
-# - Add feature to set preferences (xlogin, role, ...) on transport
 
 L = logging.getLogger(__name__)
 requests.packages.urllib3.disable_warnings()
@@ -44,7 +34,17 @@ _FACTORY_RE = r'''
 /rest/core/)
 .*                                # ignore the rest
 '''
+
 _FACTORY_RE = re.compile(_FACTORY_RE, re.VERBOSE)
+
+_WORKFLOWS_RE = r'''
+^                                 # start of line
+(?P<site_url>\s*https://.*/       # capture full url
+(?P<site_name>.*)                 # capture site name
+/rest/workflows)
+'''
+
+_WORKFLOWS_RE = re.compile(_WORKFLOWS_RE, re.VERBOSE)
 
 
 def get_sites(transport, registry_url=_HBP_REGISTRY_URL):
@@ -54,6 +54,17 @@ def get_sites(transport, registry_url=_HBP_REGISTRY_URL):
                  for prop in resp['entries']
                  if prop['type'] == 'TargetSystemFactory')
     sites = dict(reversed(_FACTORY_RE.match(site).groups())
+                 for site in site_urls)
+    return sites
+
+
+def get_workflow_services(transport, registry_url=_HBP_REGISTRY_URL):
+    '''Get all workflow services from registery'''
+    resp = transport.get(url=registry_url)
+    site_urls = (prop['href']
+                 for prop in resp['entries']
+                 if prop['type'] == 'WorkflowServices')
+    sites = dict(reversed(_WORKFLOWS_RE.match(site).groups())
                  for site in site_urls)
     return sites
 
@@ -281,6 +292,8 @@ class Registry(Resource):
     
     def refresh(self):
         self.site_urls = {}
+        self.workflow_services_urls = {}
+
         for entry in self.transport.get(url=self.resource_url)['entries']:
             try:
                 # just want the "core" URL and the site ID
@@ -290,6 +303,11 @@ class Registry(Resource):
                     base = re.match(r"(https://\S+/rest/core).*", href).group(1)
                     site_name = re.match(r"https://\S+/(\S+)/rest/core", href).group(1)
                     self.site_urls[site_name]=base
+                elif "WorkflowServices" == service_type:
+                    base = re.match(r"(https://\S+/rest/workflows).*", href).group(1)
+                    site_name = re.match(r"https://\S+/(\S+)/rest/workflows", href).group(1)
+                    self.workflow_services_urls[site_name]=base
+
             except Exception as e:
                 print(e)
 
@@ -297,6 +315,14 @@ class Registry(Resource):
         ''' Get a client object for the named site '''
         url = self.site_urls[name]
         return Client(self.transport, url)
+
+    def workflow_service(self, name=None):
+        ''' Get a client object for the named site, or the first in the list if no name is given '''
+        if name is None:
+            _, url = list(self.workflow_services_urls.items())[0]
+        else:
+            url = self.workflow_services_urls[name]
+        return WorkflowService(self.transport, url)
 
 
 class Client(object):
@@ -399,6 +425,15 @@ class Application(Resource):
     @TimedCacheProperty(timeout=3600)
     def options(self):
         return self.properties['Options']
+
+    def __repr__(self):
+        return ('Application %s %s @ %s' %
+                 (self.name(),
+                  self.version(),
+                  self.submit_url))
+
+    __str__ = __repr__
+
 
 
 class Job(Resource):
@@ -641,66 +676,70 @@ class PathFile(Path):
     def isfile(self):
         return True
 
+    
+class WorkflowService(object):
+    '''Entrypoint for the UNICORE Workflow API
 
-class UFTP(Resource):
-    ''' authenticate UFTP transfers and use ftplib to interact with
-        the UFTPD server
+        >>> workflows_url = '...' # e.g. "https://localhost:8080/WORKFLOW/rest/workflows"
+        >>> token = '...'
+        >>> transport = Transport(token)
+        >>> workflow_service = Client(transport, workflows_url)
+        >>> # to get the list of workflows
+        >>> workflows = client.get_workflows()
+        >>> # to start a new workflow:
+        >>> wf_description = {...}
+        >>> wf = workflow_service.new_workflow(wf_description)
     '''
-    uftp_session_tag = "___UFTP___MULTI___FILE___SESSION___MODE___"
+    
+    def __init__(self, transport, workflows_url):
+        super(WorkflowService, self).__init__()
+        self.transport = transport
+        self.workflows_url = workflows_url
 
-    def __init__(self, transport, base_url):
-        super(UFTP, self).__init__(transport, base_url)
-        self.refresh()
+    @TimedCacheProperty(timeout=_REST_CACHE_TIMEOUT)
+    def properties(self):
+        return self.transport.get(url=self.workflows_url)
 
-    def refresh(self):
-        self.site_urls = {}
-        for entry in self.properties:
-            try:
-                self.site_urls[entry] = self.properties[entry]['href']
-            except Exception as e:
-                print("Error: %s" % e)
+    def access_info(self):
+        return self.properties['client']
 
-    def open_session(self, server_name=None, base_dir="", **kwargs):
-        ''' open an FTP session at the given UFTP server
-        If 'basedir' is not given, the user's home directory is the base dir.
-        The ftplib FTP object is returned.
-        '''
-        if server_name is None:
-            url = self.site_urls.values()[0]
-        else:
-            url = self.site_urls[server_name]
-        req = {"serverPath": base_dir+self.uftp_session_tag}
-        params = self.transport.post(url=url, json=req).json()
-        port = params['serverPort']
-        host = params['serverHost']
-        pwd  = params['secret']
-        ftp = FTP()
-        ftp.connect(host,port)
-        ftp.login("anonymous", pwd)
-        return ftp
+    def get_workflows(self):
+        return [Workflow(self.transport, url)
+                for url in self.transport.get(url=self.workflows_url)['workflows']]
 
-    def download(self, remote_file, destination=None, server_name=None, base_dir="", **kwargs):
-        ''' download the given remote file, optionally renaming it '''
-        ftp = self.open_session(server_name, base_dir)
-        if destination is None:
-            destination = os.path.basename(remote_file)
-        ftp.retrbinary("RETR %s" % remote_file, open(destination, 'wb').write)
-        ftp.close()
+    def new_workflow(self, wf_description):
+        ''' submit a workflow '''
+        with closing(self.transport.post(url=self.workflows_url, json=wf_description)) as resp:
+            wf_url = resp.headers['Location']
+        return Workflow(self.transport, wf_url)
+       
 
+class Workflow(Resource):
+    '''wrapper around a UNICORE workflow'''
 
-class Share(Resource):
-    ''' UFTP Data Sharing helper '''
+    def __init__(self, transport, wf_url):
+        super(Workflow, self).__init__(transport, wf_url)
 
-    ANONYMOUS = "CN=ANONYMOUS,O=UNKNOWN,OU=UNKNOWN"
+    def is_running(self):
+        '''checks whether a workflow is still running'''
+        status = self.properties['status']
+        return status not in ('SUCCESSFUL', 'FAILED', )
 
-    def __init__(self, transport, base_url):
-        super(Share, self).__init__(transport, base_url)
+    def abort(self):
+        '''abort the workflow'''
+        url = self.properties['_links']['action:abort']['href']
+        return self.transport.post(url=url, json={})
 
-    def share(self, path, user, access="READ"):
-        ''' create or update a share '''
-        req = {"path": path}
-        req['access'] = access
-        req['user'] = user
-        res = self.transport.post(url=self.resource_url, json=req)
-        return res.headers['Location']
+    def resume(self, params={}):
+        '''resume a held workflow, optionally updating parameters'''
+        url = self.properties['_links']['action:resume']['href']
+        return self.transport.post(url=url, json={})
+
+    def __repr__(self):
+        return ('Workflow: %s submitted: %s running: %s' %
+                 (self.resource_url,
+                 self.properties['submissionTime'],
+                 self.is_running()))
+
+    __str__ = __repr__
 
