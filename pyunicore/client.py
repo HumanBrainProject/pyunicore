@@ -4,7 +4,6 @@
     For full info on the REST API, see https://sourceforge.net/p/unicore/wiki/REST_API/
 '''
 
-import logging
 import os
 import re
 import json
@@ -21,7 +20,6 @@ if sys.version_info < (3, 0):
 else:
     StringType = str  # pragma: no cover
 
-L = logging.getLogger(__name__)
 requests.packages.urllib3.disable_warnings()
 _REST_CACHE_TIMEOUT = 5  # in seconds
 _HBP_REGISTRY_URL = ('https://hbp-unic.fz-juelich.de:7112'
@@ -221,7 +219,7 @@ class Transport(object):
             res.close()
 
     def get(self, to_json=True, **kwargs):
-        '''do get
+        '''do get and return the response content as json
 
         Note:
             For the complete response, set `to_json` to false
@@ -238,7 +236,7 @@ class Transport(object):
         return json
 
     def put(self, **kwargs):
-        '''do put'''
+        '''do put and return the response '''
         self._head(**kwargs)
         headers = self._headers(kwargs)
         res = requests.put(headers=headers, verify=self.verify, **kwargs)
@@ -246,7 +244,7 @@ class Transport(object):
         return res
 
     def post(self, **kwargs):
-        '''do post'''
+        '''do post and return the response '''
         self._head(**kwargs)
         headers = self._headers(kwargs)
         res = requests.post(headers=headers, verify=self.verify, **kwargs)
@@ -270,10 +268,17 @@ class Resource(object):
     @TimedCacheProperty(timeout=_REST_CACHE_TIMEOUT)
     def properties(self):
         return self.transport.get(url=self.resource_url)
+    
+    @property
+    def links(self):
+        urls = self.transport.get(url=self.resource_url)['_links']
+        return {k: v['href'] for k, v in urls.items()}
 
     def delete(self):
         self.transport.delete(url=self.resource_url)
 
+    def set_properties(self, props):
+        return self.transport.put(url=self.resource_url, json=props).json()
 
 class Registry(Resource):
     ''' Client for a UNICORE service Registry 
@@ -344,39 +349,47 @@ class Client(object):
         super(Client, self).__init__()
         self.transport = transport
         self.site_url = site_url
-        self.site_urls = {
-            k: v['href']
-            for k, v in self.transport.get(url=site_url)['_links'].items()}
 
     @TimedCacheProperty(timeout=_REST_CACHE_TIMEOUT)
     def properties(self):
         return self.transport.get(url=self.site_url)
+
+    @property
+    def links(self):
+        urls = self.transport.get(url=self.site_url)['_links']
+        return {k: v['href'] for k, v in urls.items()}
 
     def access_info(self):
         return self.properties['client']
 
     def get_storages(self):
         return [Storage(self.transport, url)
-                for url in self.transport.get(url=self.site_urls['storages'])['storages']]
+                for url in self.transport.get(url=self.links['storages'])['storages']]
 
     def get_applications(self):
         apps = []
-        for url in self.transport.get(url=self.site_urls['factories'])['factories']:
+        for url in self.transport.get(url=self.links['factories'])['factories']:
             for app in self.transport.get(url=url)['applications']:
                 apps.append(Application(self.transport, url+"/applications/"+app))
         return apps
 
-    def get_jobs(self):
-        '''return a list of `Job` objects'''
+    def get_jobs(self, tags=[]):
+        '''return a list of `Job` objects. Use the optional tag list to filter the results.'''
+        j_url = self.links['jobs']
+        if len(tags)>0:
+            try:
+                j_url = j_url + "?tags=" + ','.join(map(str, tags))
+            except:
+                pass
         return [Job(self.transport, url)
-                for url in self.transport.get(url=self.site_urls['jobs'])['jobs']]
+                for url in self.transport.get(url=j_url)['jobs']]
 
     def new_job(self, job_description, inputs=[]):
         ''' submit and start a batch job on the site, optionally uploading input data files '''
         if len(inputs)>0 or job_description.get('haveClientStageIn') is True :
             job_description['haveClientStageIn'] = "true"
 
-        with closing(self.transport.post(url=self.site_urls['jobs'], json=job_description)) as resp:
+        with closing(self.transport.post(url=self.links['jobs'], json=job_description)) as resp:
             job_url = resp.headers['Location']
         
         job = Job(self.transport, job_url)
@@ -400,7 +413,7 @@ class Client(object):
                            'Job type': 'INTERACTIVE',
                            'Environment': {'UC_PREFER_INTERACTIVE_EXECUTION':'true'},
         }
-        with closing(self.transport.post(url=self.site_urls['jobs'], json=job_description)) as resp:
+        with closing(self.transport.post(url=self.links['jobs'], json=job_description)) as resp:
             job_url = resp.headers['Location']
         
         return Job(self.transport, job_url)
@@ -428,8 +441,8 @@ class Application(Resource):
 
     def __repr__(self):
         return ('Application %s %s @ %s' %
-                 (self.name(),
-                  self.version(),
+                 (self.name,
+                  self.version,
                   self.submit_url))
 
     __str__ = __repr__
@@ -442,12 +455,12 @@ class Job(Resource):
     def __init__(self, transport, job_url):
         super(Job, self).__init__(transport, job_url)
 
-    @TimedCacheProperty(timeout=3600)
+    @property
     def working_dir(self):
         '''return the Storage for accessing the working directory '''
         return Storage(
             self.transport,
-            self.properties['_links']['workingDirectory']['href'])
+            self.links['workingDirectory'])
 
     def is_running(self):
         '''checks whether a job is still running'''
@@ -456,17 +469,17 @@ class Job(Resource):
 
     def abort(self):
         '''abort the job'''
-        url = self.properties['_links']['action:abort']['href']
+        url = self.links['action:abort']
         return self.transport.post(url=url, json={})
 
     def restart(self):
         '''restart the job'''
-        url = self.properties['_links']['action:restart']['href']
+        url = self.links['action:restart']
         return self.transport.post(url=url, json={})
 
     def start(self):
         '''start the job - only required if client had to stage-in local files '''
-        url = self.properties['_links']['action:start']['href']
+        url = self.links['action:start']
         return self.transport.post(url=url, json={})
 
     @property
@@ -477,13 +490,11 @@ class Job(Resource):
     def poll(self):
         '''wait until job completes'''
         while self.properties['status'] in ('QUEUED', 'RUNNING'):
-            L.debug('Sleeping %s', _REST_CACHE_TIMEOUT + 0.1)
             time.sleep(_REST_CACHE_TIMEOUT + 0.1)
 
     def __repr__(self):
-        return ('Job: %s: %s, submitted: %s running: %s' %
-                (self.job_id,
-                 os.path.basename(self.properties['_links']['self']['href']),
+        return ('Job: %s submitted: %s running: %s' %
+                (self.resource_url,
                  self.properties['submissionTime'],
                  self.is_running()))
 
@@ -497,17 +508,12 @@ class Storage(Resource):
         super(Storage, self).__init__(transport, storage_url)
         self.storage_url = storage_url
 
-    @property
-    def path_urls(self):
-        urls = self.transport.get(url=self.resource_url)['_links']
-        return {k: v['href'] for k, v in urls.items()}
-
     def contents(self, path="/"):
-        return self.transport.get(url=self.path_urls['files']+'/'+path)
+        return self.transport.get(url=self.links['files']+'/'+path)
 
     def stat(self, path):
         ''' get a file/directory '''
-        path_url = self.path_urls['files'] + '/' + path
+        path_url = self.links['files'] + '/' + path
         headers = {'Accept': 'application/json',}
         props = self.transport.get(url=path_url, headers = headers)
         if props['isDirectory']:
@@ -520,7 +526,7 @@ class Storage(Resource):
         ''' get a list of the files and directories in the given base directory '''
         ret = {}
         for path, meta in self.contents()['content'].items():
-            path_url = self.path_urls['files'] + path
+            path_url = self.links['files'] + path
             path = path[1:]  # strip leading '/'
             if meta['isDirectory']:
                 ret[path] = PathDir(self, path_url, path)
@@ -533,23 +539,23 @@ class Storage(Resource):
         json = {'from': source,
                 'to': target,
                 }
-        return self.transport.post(url=self.path_urls['action:rename'], json=json)
+        return self.transport.post(url=self.links['action:rename'], json=json)
 
     def copy(self, source, target):
         '''copy a file on this storage'''
         json = {'from': source,
                 'to': target,
                 }
-        return self.transport.post(url=self.path_urls['action:copy'], json=json)
+        return self.transport.post(url=self.links['action:copy'], json=json)
 
     def mkdir(self, name):
-        return self.transport.post(url=self.path_urls['files']+"/"+name, json={})
+        return self.transport.post(url=self.links['files']+"/"+name, json={})
 
     def rmdir(self, name):
-        return self.transport.delete(url=self.path_urls['files']+"/"+name)
+        return self.transport.delete(url=self.links['files']+"/"+name)
 
     def rm(self, name):
-        return self.transport.delete(url=self.path_urls['files']+"/"+name)
+        return self.transport.delete(url=self.links['files']+"/"+name)
 
     def makedirs(self, name):
         return self.mkdir(name)
@@ -703,9 +709,17 @@ class WorkflowService(object):
     def access_info(self):
         return self.properties['client']
 
-    def get_workflows(self):
+    def get_workflows(self, tags=[]):
+        """ get the list of workflows, optionally filtered by the given tags """
+        w_url = self.workflows_url
+        if len(tags)>0:
+            try:
+                w_url = w_url + "?tags=" + ','.join(map(str, tags))
+            except:
+                pass
+
         return [Workflow(self.transport, url)
-                for url in self.transport.get(url=self.workflows_url)['workflows']]
+                for url in self.transport.get(url=w_url)['workflows']]
 
     def new_workflow(self, wf_description):
         ''' submit a workflow '''
@@ -734,6 +748,17 @@ class Workflow(Resource):
         '''resume a held workflow, optionally updating parameters'''
         url = self.properties['_links']['action:resume']['href']
         return self.transport.post(url=url, json={})
+
+    def get_files(self):
+        ''' get a dictionary of registered workflow files and their 
+            physical locations
+        '''
+        return self.transport.get(url=self.links['files'])
+
+    def get_jobs(self):
+        '''return the list of jobs submitted for this workflow '''
+        return [Job(self.transport, url)
+                for url in self.transport.get(url=self.links['jobs'])['jobs']]
 
     def __repr__(self):
         return ('Workflow: %s submitted: %s running: %s' %
