@@ -525,7 +525,7 @@ class Storage(Resource):
     def listdir(self, base='/'):
         ''' get a list of the files and directories in the given base directory '''
         ret = {}
-        for path, meta in self.contents()['content'].items():
+        for path, meta in self.contents(base)['content'].items():
             path_url = self.links['files'] + path
             path = path[1:]  # strip leading '/'
             if meta['isDirectory']:
