@@ -760,6 +760,12 @@ class Workflow(Resource):
         return [Job(self.transport, url)
                 for url in self.transport.get(url=self.links['jobs'])['jobs']]
 
+    def stat(self, path):
+        ''' lookup the named workflow file and return a PathFile object '''
+        physical_location = self.get_files()[path]
+        storage_url, name = physical_location.split("/files/",1)
+        return Storage(self.transport, storage_url).stat(name)
+
     def __repr__(self):
         return ('Workflow: %s submitted: %s running: %s' %
                  (self.resource_url,
