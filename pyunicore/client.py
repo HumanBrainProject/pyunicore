@@ -366,6 +366,16 @@ class Client(object):
         return [Storage(self.transport, url)
                 for url in self.transport.get(url=self.links['storages'])['storages']]
 
+    def get_transfers(self, tags=[]):
+        t_url = self.links['transfers']
+        if len(tags)>0:
+            try:
+                t_url = t_url + "?tags=" + ','.join(map(str, tags))
+            except:
+                pass        
+        return [Transfer(self.transport, url)
+                for url in self.transport.get(url=t_url)['transfers']]
+
     def get_applications(self):
         apps = []
         for url in self.transport.get(url=self.links['factories'])['factories']:
@@ -508,11 +518,14 @@ class Storage(Resource):
         super(Storage, self).__init__(transport, storage_url)
         self.storage_url = storage_url
 
+    def files_url(self):
+        return self.links['files']+'/'
+
     def contents(self, path="/"):
         return self.transport.get(url=self.links['files']+'/'+path)
 
     def stat(self, path):
-        ''' get a file/directory '''
+        ''' get a reference to a file/directory '''
         path_url = self.links['files'] + '/' + path
         headers = {'Accept': 'application/json',}
         props = self.transport.get(url=path_url, headers = headers)
@@ -523,7 +536,7 @@ class Storage(Resource):
         return ret
     
     def listdir(self, base='/'):
-        ''' get a list of the files and directories in the given base directory '''
+        ''' get a list of files and directories in the given base directory '''
         ret = {}
         for path, meta in self.contents(base)['content'].items():
             path_url = self.links['files'] + path
@@ -571,6 +584,43 @@ class Storage(Resource):
                 url=os.path.join(self.resource_url, "files", destination),
                 headers=headers,
                 data=fd)
+
+    def send_file(self, file_name, remote_url, protocol=None, scheduled=None, additional_parameters={}):
+        ''' server-to-server transfer: send a file from this storage to a remote location '''
+        
+        if protocol:
+            remote_url = protocol+":"+remote_url
+        if scheduled:
+            additional_parameters['scheduledStartTime'] = scheduled
+        json = {
+            "file": file_name,
+            "target": remote_url,
+            "extraParameters": additional_parameters
+        }
+        dest = self.links.get('transfers', self.storage_url+"/transfers")
+        with closing(self.transport.post(url=dest, json=json)) as resp:
+            tr_url = resp.headers['Location']
+        
+        return Transfer(self.transport, tr_url)
+
+    def receive_file(self, remote_url, file_name, protocol=None, scheduled=None, additional_parameters={}):
+        ''' server-to-server transfer: pull a file from a remote storage to this storage '''
+        
+        if protocol:
+            remote_url = protocol+":"+remote_url
+        if scheduled:
+            additional_parameters['scheduledStartTime'] = scheduled
+        json = {
+            "file": file_name,
+            "source": remote_url,
+            "extraParameters": additional_parameters
+        }
+
+        dest = self.links.get('transfers', self.storage_url+"/transfers")
+        with closing(self.transport.post(url=dest, json=json)) as resp:
+            tr_url = resp.headers['Location']
+        
+        return Transfer(self.transport, tr_url)
 
     def __repr__(self):
         return ('Storage: %s' %
@@ -682,7 +732,31 @@ class PathFile(Path):
     def isfile(self):
         return True
 
-    
+class Transfer(Resource):
+    '''wrapper around a UNICORE server-to-server transfer'''
+
+    def __init__(self, transport, tr_url):
+        super(Transfer, self).__init__(transport, tr_url)
+
+    def is_running(self):
+        '''checks whether a workflow is still running'''
+        status = self.properties['status']
+        return status not in ('DONE', 'FAILED', )
+
+    def abort(self):
+        '''abort the workflow'''
+        url = self.properties['_links']['action:abort']['href']
+        return self.transport.post(url=url, json={})
+
+    def __repr__(self):
+        return ('Transfer: %s running: %s' %
+                 (self.resource_url,
+                 self.is_running()))
+
+    __str__ = __repr__
+
+
+
 class WorkflowService(object):
     '''Entrypoint for the UNICORE Workflow API
 
