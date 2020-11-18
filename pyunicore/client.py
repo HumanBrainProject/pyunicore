@@ -587,15 +587,15 @@ class Storage(Resource):
 
     def send_file(self, file_name, remote_url, protocol=None, scheduled=None, additional_parameters={}):
         ''' server-to-server transfer: send a file from this storage to a remote location '''
-        
+        params = additional_parameters.copy()
         if protocol:
             remote_url = protocol+":"+remote_url
         if scheduled:
-            additional_parameters['scheduledStartTime'] = scheduled
+            params['scheduledStartTime'] = scheduled
         json = {
             "file": file_name,
             "target": remote_url,
-            "extraParameters": additional_parameters
+            "extraParameters": params
         }
         dest = self.links.get('transfers', self.storage_url+"/transfers")
         with closing(self.transport.post(url=dest, json=json)) as resp:
@@ -605,15 +605,15 @@ class Storage(Resource):
 
     def receive_file(self, remote_url, file_name, protocol=None, scheduled=None, additional_parameters={}):
         ''' server-to-server transfer: pull a file from a remote storage to this storage '''
-        
+        params = additional_parameters.copy()
         if protocol:
             remote_url = protocol+":"+remote_url
         if scheduled:
-            additional_parameters['scheduledStartTime'] = scheduled
+            params['scheduledStartTime'] = scheduled
         json = {
             "file": file_name,
             "source": remote_url,
-            "extraParameters": additional_parameters
+            "extraParameters": params
         }
 
         dest = self.links.get('transfers', self.storage_url+"/transfers")
