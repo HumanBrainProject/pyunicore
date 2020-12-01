@@ -24,7 +24,7 @@ Install from PyPI with
 Sample code to create a client for a UNICORE site
 
     import pyunicore.client as unicore_client
-    import json, 
+    import json
     from base64 import b64encode
    
     base_url = "https://localhost:8080/DEMO-SITE/rest/core"
