@@ -40,7 +40,7 @@ Sample code to create a client for a UNICORE site
 
     my_job = {'Executable': 'date'}
     
-    job = site.new_job(job_description=my_job, inputs=[])
+    job = client.new_job(job_description=my_job, inputs=[])
     print(json.dumps(job.properties, indent = 2))
     
     job.poll() # wait for job to finish
