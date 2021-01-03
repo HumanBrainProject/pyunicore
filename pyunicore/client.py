@@ -499,7 +499,7 @@ class Job(Resource):
 
     def poll(self):
         '''wait until job completes'''
-        while self.properties['status'] in ('READY', 'PENDING', 'QUEUED', 'RUNNING'):
+        while self.is_running():
             time.sleep(_REST_CACHE_TIMEOUT + 0.1)
 
     def __repr__(self):
