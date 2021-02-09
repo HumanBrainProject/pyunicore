@@ -267,6 +267,7 @@ class Resource(object):
 
     @TimedCacheProperty(timeout=_REST_CACHE_TIMEOUT)
     def properties(self):
+        '''get resource properties (these are cached for 5 seconds)'''
         return self.transport.get(url=self.resource_url)
     
     @property
@@ -275,9 +276,11 @@ class Resource(object):
         return {k: v['href'] for k, v in urls.items()}
 
     def delete(self):
+        '''delete/destroy this resource'''
         self.transport.delete(url=self.resource_url)
 
     def set_properties(self, props):
+        '''set/update resource properties'''
         return self.transport.put(url=self.resource_url, json=props).json()
 
 class Registry(Resource):
@@ -360,13 +363,16 @@ class Client(object):
         return {k: v['href'] for k, v in urls.items()}
 
     def access_info(self):
+        '''get authentication and authorization information about the current user'''
         return self.properties['client']
 
     def get_storages(self):
+        '''get a list of all Storages on this site'''
         return [Storage(self.transport, url)
                 for url in self.transport.get(url=self.links['storages'])['storages']]
 
     def get_transfers(self, tags=[]):
+        '''get a list of all Transfers. Use the optional tag list to filter the results.'''
         t_url = self.links['transfers']
         if len(tags)>0:
             try:
@@ -418,10 +424,9 @@ class Client(object):
 
 
     def execute(self, cmd):
-        ''' run a (non-batch) command on the site '''
+        ''' run a (non-batch) command on the site, executed on a login node '''
         job_description = {'Executable': cmd,
-                           'Job type': 'INTERACTIVE',
-                           'Environment': {'UC_PREFER_INTERACTIVE_EXECUTION':'true'},
+                           'Job type': 'INTERACTIVE'
         }
         with closing(self.transport.post(url=self.links['jobs'], json=job_description)) as resp:
             job_url = resp.headers['Location']
@@ -471,6 +476,10 @@ class Job(Resource):
         return Storage(
             self.transport,
             self.links['workingDirectory'])
+
+    def bss_details(self):
+        ''' return a JSON containing the low-level batch system details '''
+        return self.transport.get(url=self.links['details'])
 
     def is_running(self):
         '''checks whether a job is still running'''
@@ -522,6 +531,7 @@ class Storage(Resource):
         return self.links['files']+'/'
 
     def contents(self, path="/"):
+        '''get a simple list of files in the given directory '''
         return self.transport.get(url=self.links['files']+'/'+path)
 
     def stat(self, path):
@@ -562,15 +572,19 @@ class Storage(Resource):
         return self.transport.post(url=self.links['action:copy'], json=json)
 
     def mkdir(self, name):
+        '''create a directory'''
         return self.transport.post(url=self.links['files']+"/"+name, json={})
 
     def rmdir(self, name):
+        '''remove a directory and all its content'''
         return self.transport.delete(url=self.links['files']+"/"+name)
 
     def rm(self, name):
+        '''remove a file'''
         return self.transport.delete(url=self.links['files']+"/"+name)
 
     def makedirs(self, name):
+        '''create directory'''
         return self.mkdir(name)
 
     def upload(self, input_name, destination=None):
@@ -650,7 +664,7 @@ class Path(Resource):
         return self.properties['metadata']['name']
     
     def remove(self):
-        '''remove file or directory'''
+        '''remove this file or directory'''
         return self.storage.rm(name)
 
     def __repr__(self):
@@ -781,6 +795,7 @@ class WorkflowService(object):
         return self.transport.get(url=self.workflows_url)
 
     def access_info(self):
+        '''get authentication and authorization information about the current user'''
         return self.properties['client']
 
     def get_workflows(self, tags=[]):

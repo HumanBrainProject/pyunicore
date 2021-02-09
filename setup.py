@@ -7,7 +7,7 @@ import versioneer
 long_description = open("README.md").read()
 install_requires = [
     'PyJWT>=1.7',
-    'requests>=2.5',
+    'requests>=2.5'
 ]
 
 setup(
