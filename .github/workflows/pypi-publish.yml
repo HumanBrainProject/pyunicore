@@ -1,0 +1,32 @@
+# This workflow will upload a Python Package using Twine when a tag is created
+# the latest tag is used (via versioneer)
+
+name: Upload Python Package
+
+on:
+  push:
+    tags:
+      - *
+
+jobs:
+  deploy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install setuptools wheel twine
+    - name: Build and publish
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+      run: |
+        python setup.py sdist
+        twine upload dist/*
