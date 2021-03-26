@@ -665,7 +665,7 @@ class Path(Resource):
     
     def remove(self):
         '''remove this file or directory'''
-        return self.storage.rm(name)
+        return self.storage.rm(self.name)
 
     def __repr__(self):
         return '%s: %s' % (self.__class__.__name__, self.name)

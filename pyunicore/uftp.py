@@ -65,7 +65,7 @@ class Share(Resource):
     def __init__(self, transport, base_url):
         super(Share, self).__init__(transport, base_url)
 
-    def share(self, path, user, access="READ"):
+    def share(self, path, user = ANONYMOUS, access = "READ"):
         ''' create or update a share '''
         req = {"path": path}
         req['access'] = access
