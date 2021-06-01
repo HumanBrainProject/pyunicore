@@ -660,9 +660,12 @@ class Path(Resource):
         '''is a file'''
         return False
 
-    def get_metadata(self, name):
-        return self.properties['metadata']['name']
-    
+    def get_metadata(self, name=None):
+        if name:
+            return self.properties['metadata'][name]
+        else:
+            return self.properties['metadata']
+
     def remove(self):
         '''remove this file or directory'''
         return self.storage.rm(self.name)

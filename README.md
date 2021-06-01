@@ -1,6 +1,4 @@
-#
 # Python library for using the UNICORE REST API
-#
 
 This library covers part of the UNICORE REST API, making common tasks
 like file access, job submission and management, workflow submission
