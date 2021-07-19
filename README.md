@@ -2,7 +2,7 @@
 
 This library covers part of the UNICORE REST API, making common tasks
 like file access, job submission and management, workflow submission
-and management more convenient, and ingrating UNICORE features better
+and management more convenient, and integrating UNICORE features better
 with typical Python usage.
 
 For the full, up-to-date documentation of the REST API,
