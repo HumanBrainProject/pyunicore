@@ -283,6 +283,13 @@ class Resource(object):
         '''set/update resource properties'''
         return self.transport.put(url=self.resource_url, json=props).json()
 
+    def __repr__(self):
+        return ('Resource: %s' %
+                (self.resource_url,
+                ))
+
+    __str__ = __repr__
+
 class Registry(Resource):
     ''' Client for a UNICORE service Registry 
 
@@ -388,6 +395,13 @@ class Client(object):
             for app in self.transport.get(url=url)['applications']:
                 apps.append(Application(self.transport, url+"/applications/"+app))
         return apps
+
+    def get_resources(self):
+        '''get a list of all Resources'''
+        resources = []
+        for url in self.transport.get(url=self.links['factories'])['factories']:
+            resources.append(Resource(self.transport, url))
+        return resources
 
     def get_jobs(self, tags=[]):
         '''return a list of `Job` objects. Use the optional tag list to filter the results.'''
