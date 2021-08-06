@@ -396,11 +396,11 @@ class Client(object):
                 apps.append(Application(self.transport, url+"/applications/"+app))
         return apps
 
-    def get_resources(self):
-        '''get a list of all Resources'''
+    def get_compute(self):
+        '''get a list of all Compute resources'''
         resources = []
         for url in self.transport.get(url=self.links['factories'])['factories']:
-            resources.append(Resource(self.transport, url))
+            resources.append(Compute(self.transport, url))
         return resources
 
     def get_jobs(self, tags=[]):
@@ -533,6 +533,17 @@ class Job(Resource):
 
     __str__ = __repr__
 
+class Compute(Resource):
+    ''' wrapper around a UNICORE compute resource (a specific cluster with queues) '''
+    def __init__(self, transport, job_url):
+        super(Compute, self).__init__(transport, job_url)
+
+    def __repr__(self):
+        return ('Compute: %s' %
+                (self.resource_url,
+                ))
+
+    __str__ = __repr__
 
 class Storage(Resource):
     ''' wrapper around a UNICORE Storage resource '''
