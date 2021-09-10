@@ -189,7 +189,7 @@ class Transport(object):
         if self.use_security_sessions:
             self.last_session_id = res.headers.get('X-UNICORE-SecuritySession', None)
 
-        if 500 <= res.status_code < 600:
+        if 400 <= res.status_code < 600:
             reason = res.reason
             try:
                 json = res.json()
