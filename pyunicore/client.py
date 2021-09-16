@@ -835,8 +835,12 @@ class WorkflowService(object):
             except:
                 pass
 
-        return [Workflow(self.transport, url)
+        wfs = [Workflow(self.transport, url)
                 for url in self.transport.get(url=w_url)['workflows']]
+        
+        wfs.sort(key=lambda wf: datetime.datetime.strptime(wf.properties['submissionTime'], "%Y-%m-%dT%H:%M:%S%z"))
+    
+        return wfs
 
     def new_workflow(self, wf_description):
         ''' submit a workflow '''
