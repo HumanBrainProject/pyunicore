@@ -6,3 +6,4 @@ __pycache__/
 .pydevproject
 dist/
 pyunicore.egg-info/
+.settings

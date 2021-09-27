@@ -156,6 +156,7 @@ class Transport(object):
         self.use_security_sessions = use_security_sessions
         self.last_session_id = None
         self.preferences = None
+        self.timeout = 120
 
     def _headers(self, kwargs):
         if self.oidc:
@@ -186,9 +187,6 @@ class Transport(object):
 
     def checkError(self, res):
         """ checks for error and extracts any error info sent by the server """
-        if self.use_security_sessions:
-            self.last_session_id = res.headers.get('X-UNICORE-SecuritySession', None)
-
         if 400 <= res.status_code < 600:
             reason = res.reason
             try:
@@ -207,28 +205,25 @@ class Transport(object):
                 headers.pop('X-UNICORE-SecuritySession', None)
                 return True
         return False
-
-    def _head(self, **kwargs):
-        '''do a HEAD request to make sure current security session is OK'''
+    
+    def run_method(self, method, **args):
+        ''' performs the requested method, handling security sessions, timeouts etc '''
+        headers = self._headers(args)
+        res = method(headers=headers, verify=self.verify, timeout=self.timeout, **args)
+        if self.repeat_required(res, headers):
+            res = method(headers=headers, verify=self.verify, timeout=self.timeout, **args)
+        self.checkError(res)
         if self.use_security_sessions:
-            headers = self._headers({})
-            res = requests.head(headers=headers, verify=self.verify, url=kwargs['url'])
-            if self.repeat_required(res, headers):
-                res = requests.head(headers=headers, verify=self.verify, url=kwargs['url'])
             self.last_session_id = res.headers.get('X-UNICORE-SecuritySession', None)
-            res.close()
+        return res;
 
     def get(self, to_json=True, **kwargs):
-        '''do get and return the response content as json
+        '''do GET and return the response content as JSON
 
         Note:
-            For the complete response, set `to_json` to false
+            For the raw response, set `to_json` to false
         '''
-        headers = self._headers(kwargs)
-        res = requests.get(headers=headers, verify=self.verify, **kwargs)
-        if self.repeat_required(res, headers):
-            res = requests.get(headers=headers, verify=self.verify, **kwargs)
-        self.checkError(res)
+        res = self.run_method(requests.get, **kwargs)
         if not to_json:
             return res
         json = res.json()
@@ -236,25 +231,16 @@ class Transport(object):
         return json
 
     def put(self, **kwargs):
-        '''do put and return the response '''
-        self._head(**kwargs)
-        headers = self._headers(kwargs)
-        res = requests.put(headers=headers, verify=self.verify, **kwargs)
-        self.checkError(res)
-        return res
+        '''do a PUT and return the response '''
+        return self.run_method(requests.put, **kwargs)
 
     def post(self, **kwargs):
-        '''do post and return the response '''
-        self._head(**kwargs)
-        headers = self._headers(kwargs)
-        res = requests.post(headers=headers, verify=self.verify, **kwargs)
-        self.checkError(res)
-        return res
+        '''do a POST and return the response '''
+        return self.run_method(requests.post, **kwargs)
 
     def delete(self, **kwargs):
-        headers = self._headers(kwargs)
-        with closing(requests.delete(headers=headers, verify=self.verify, **kwargs)) as res:
-            self.checkError(res)
+        '''send a DELETE to the current endpoint '''
+        self.run_method(requests.delete, **kwargs).close()
 
 
 class Resource(object):

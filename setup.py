@@ -5,6 +5,9 @@ from setuptools import setup, find_packages
 import versioneer
 
 long_description = open("README.md").read()
+
+python_requires = '>=3'
+
 install_requires = [
     'PyJWT>=1.7',
     'requests>=2.5'
@@ -17,9 +20,10 @@ setup(
     packages=find_packages(),
     author="Bernd Schuller",
     author_email="b.schuller@fz-juelich.de",
-    description="Python helper functions for using the UNICORE REST API",
+    description="Python library for using the UNICORE REST API",
     long_description=long_description,
+    python_requires=python_requires,
     install_requires=install_requires,
     license="License :: OSI Approved :: BSD",
-    url='http://www.humanbrainproject.eu',
+    url='https://github.com/HumanBrainProject/pyunicore',
 )
