@@ -150,13 +150,20 @@ class Transport(object):
         super(Transport, self).__init__()
         self.auth_token = auth_token
         self.oidc = oidc
-        # TODO: should default to True once certificates are correct
         self.verify = verify
         self.refresh_handler = refresh_handler
         self.use_security_sessions = use_security_sessions
         self.last_session_id = None
         self.preferences = None
         self.timeout = 120
+
+    def _clone(self):
+        ''' create a copy of this transport, with the same initial settings '''
+        tr = Transport(self.auth_token, self.oidc, self.verify, self.refresh_handler, self.use_security_sessions)
+        tr.last_session_id = self.last_session_id
+        tr.preferences = self.preferences
+        tr.timeout = self.timeout
+        return tr
 
     def _headers(self, kwargs):
         if self.oidc:
@@ -248,7 +255,7 @@ class Resource(object):
 
     def __init__(self, transport, resource_url):
         super(Resource, self).__init__()
-        self.transport = transport
+        self.transport = transport._clone()
         self.resource_url = resource_url
 
     @TimedCacheProperty(timeout=_REST_CACHE_TIMEOUT)
@@ -333,7 +340,7 @@ class Client(object):
         >>> token = '...'
         >>> transport = Transport(token)
         >>> sites = get_sites(transport)
-        >>> client = Client(transport, sites['HBP_JULIA'])
+        >>> client = Client(transport, sites['JURECA'])
         >>> # to get the jobs
         >>> jobs = client.get_jobs()
         >>> # to start a new job:
@@ -341,10 +348,13 @@ class Client(object):
         >>> job = client.new_job(job_description)
     '''
     
-    def __init__(self, transport, site_url):
+    def __init__(self, transport, site_url, check_authentication=True):
         super(Client, self).__init__()
         self.transport = transport
         self.site_url = site_url
+        self.check_authentication = check_authentication
+        if self.check_authentication:
+            self.assert_authentication()
 
     @TimedCacheProperty(timeout=_REST_CACHE_TIMEOUT)
     def properties(self):
@@ -355,6 +365,11 @@ class Client(object):
         urls = self.transport.get(url=self.site_url)['_links']
         return {k: v['href'] for k, v in urls.items()}
 
+    def assert_authentication(self):
+        ''' Asserts that the remote role is not "anonymous" '''
+        if self.access_info()['role']['selected']=="anonymous":
+            raise Exception("Failure to authenticate at %s" % self.site_url)
+        
     def access_info(self):
         '''get authentication and authorization information about the current user'''
         return self.properties['client']
@@ -530,6 +545,16 @@ class Compute(Resource):
                 ))
 
     __str__ = __repr__
+    
+    def get_queues(self):
+        return self.properties['resources']
+
+    def get_applications(self):
+        apps = []
+        base_url = self.links['applications']
+        for app in self.properties['applications']:
+            apps.append(Application(self.transport, base_url+"/"+app))
+        return apps
 
 class Storage(Resource):
     ''' wrapper around a UNICORE Storage resource '''
