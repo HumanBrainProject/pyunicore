@@ -66,6 +66,18 @@ def get_workflow_services(transport, registry_url=_HBP_REGISTRY_URL):
                  for site in site_urls)
     return sites
 
+def _build_full_url(url, offset, num, tags):
+    ''' adds optional paging and tags as query to the url '''
+    q_params = []
+    if offset>0:
+        q_params.append("offset=%d" % offset)
+    if num is not None:
+        q_params.append("num=%d" % num)
+    if len(tags)>0:
+        q_params.append("tags=" + ','.join(map(str, tags)))
+    if len(q_params)>0:
+        url = url + "?" + "&".join(map(str, q_params))
+    return url
 
 class TimedCacheProperty(object):
     '''decorator to create get only property; values are fetched once per `timeout`'''
@@ -374,19 +386,21 @@ class Client(object):
         '''get authentication and authorization information about the current user'''
         return self.properties['client']
 
-    def get_storages(self):
-        '''get a list of all Storages on this site'''
+    def get_storages(self, offset=0, num=200, tags=[]):
+        '''get a list of all Storages on this site
+        Use the optional 'offset' and 'num' parameters to handle long result lists
+        (for long lists, the server might not return all results!).
+        Use the optional tag list to filter the results.'''
+        s_url = _build_full_url(self.links['storages'], offset, num, tags)
         return [Storage(self.transport, url)
-                for url in self.transport.get(url=self.links['storages'])['storages']]
+                for url in self.transport.get(url=s_url)['storages']]
 
-    def get_transfers(self, tags=[]):
-        '''get a list of all Transfers. Use the optional tag list to filter the results.'''
-        t_url = self.links['transfers']
-        if len(tags)>0:
-            try:
-                t_url = t_url + "?tags=" + ','.join(map(str, tags))
-            except:
-                pass        
+    def get_transfers(self, offset=0, num=200, tags=[]):
+        '''get a list of all Transfers.
+        Use the optional 'offset' and 'num' parameters to handle long result lists
+        (for long lists, the server might not return all results!).
+        Use the optional tag list to filter the results.'''
+        t_url = _build_full_url(self.links['transfers'], offset, num, tags)
         return [Transfer(self.transport, url)
                 for url in self.transport.get(url=t_url)['transfers']]
 
@@ -404,14 +418,12 @@ class Client(object):
             resources.append(Compute(self.transport, url))
         return resources
 
-    def get_jobs(self, tags=[]):
-        '''return a list of `Job` objects. Use the optional tag list to filter the results.'''
-        j_url = self.links['jobs']
-        if len(tags)>0:
-            try:
-                j_url = j_url + "?tags=" + ','.join(map(str, tags))
-            except:
-                pass
+    def get_jobs(self, offset=0, num=None, tags=[]):
+        '''return a list of `Job` objects.
+        Use the optional 'offset' and 'num' parameters to handle long result lists
+        (for long lists, the server might not return all results!).
+        Use the optional tag list to filter the results.'''
+        j_url = _build_full_url(self.links['jobs'], offset, num, tags)
         return [Job(self.transport, url)
                 for url in self.transport.get(url=j_url)['jobs']]
 
@@ -824,11 +836,14 @@ class WorkflowService(object):
         >>> wf = workflow_service.new_workflow(wf_description)
     '''
     
-    def __init__(self, transport, workflows_url):
+    def __init__(self, transport, workflows_url, check_authentication=True):
         super(WorkflowService, self).__init__()
         self.transport = transport
         self.workflows_url = workflows_url
-
+        self.check_authentication = check_authentication
+        if self.check_authentication:
+            self.assert_authentication()
+            
     @TimedCacheProperty(timeout=_REST_CACHE_TIMEOUT)
     def properties(self):
         return self.transport.get(url=self.workflows_url)
@@ -837,15 +852,17 @@ class WorkflowService(object):
         '''get authentication and authorization information about the current user'''
         return self.properties['client']
 
-    def get_workflows(self, tags=[]):
-        """ get the list of workflows, optionally filtered by the given tags """
-        w_url = self.workflows_url
-        if len(tags)>0:
-            try:
-                w_url = w_url + "?tags=" + ','.join(map(str, tags))
-            except:
-                pass
+    def assert_authentication(self):
+        ''' Asserts that the remote role is not "anonymous" '''
+        if self.access_info()['role']['selected']=="anonymous":
+            raise Exception("Failure to authenticate at %s" % self.workflows_url)
 
+    def get_workflows(self, offset=0, num=None, tags=[]):
+        ''' get the list of workflows.
+        Use the optional 'offset' and 'num' parameters to handle long result lists
+        (for long lists, the server might not return all results!).
+        Use the optional tag list to filter the results.'''
+        w_url = _build_full_url(self.workflows_url, offset, num, tags)
         return [Workflow(self.transport, url)
                 for url in self.transport.get(url=w_url)['workflows']]
 
@@ -854,7 +871,7 @@ class WorkflowService(object):
         with closing(self.transport.post(url=self.workflows_url, json=wf_description)) as resp:
             wf_url = resp.headers['Location']
         return Workflow(self.transport, wf_url)
-       
+
 
 class Workflow(Resource):
     '''wrapper around a UNICORE workflow'''
@@ -883,10 +900,14 @@ class Workflow(Resource):
         '''
         return self.transport.get(url=self.links['files'])
 
-    def get_jobs(self):
-        '''return the list of jobs submitted for this workflow '''
+    def get_jobs(self, offset=0, num=None):
+        '''return the list of jobs submitted for this workflow
+         Use the optional 'offset' and 'num' parameters to handle long result lists
+        (for long lists, the server might not return all results!).
+         '''
+        j_url = _build_full_url(self.links['jobs'], offset, num, [])
         return [Job(self.transport, url)
-                for url in self.transport.get(url=self.links['jobs'])['jobs']]
+                for url in self.transport.get(url=j_url)['jobs']]
 
     def stat(self, path):
         ''' lookup the named workflow file and return a PathFile object '''
