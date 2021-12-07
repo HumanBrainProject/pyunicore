@@ -149,7 +149,7 @@ class RefreshHandler(object):
 
     
 class Transport(object):
-    '''wrapper around requests, which
+    """wrapper around requests, which
            - adds Authorization header (Basic or Bearer style)
            - transparently handles security sessions
            - handles user preferences
@@ -157,8 +157,17 @@ class Transport(object):
 
        see https://sourceforge.net/p/unicore/wiki/REST_API/#user-preferences
        see https://sourceforge.net/p/unicore/wiki/REST_API/#security-session-handling
-    '''
-    def __init__(self, auth_token, oidc=True, verify=False, refresh_handler=None, use_security_sessions=True):
+
+       Args:
+           auth_token: the value of the auth token
+           oidc:       if true, the auth token is a Bearer token, resulting in "Authorization: Bearer <token_value>" header
+                       if false, the auth token is a Basic token, resulting in a "Authorization: Basic <auth_token>" header
+           refresh_handler: optional refresh handler the will be invoked to refresh the bearer token
+           timeout: timeout for HTTP calls (defaults to 120 seconds)
+           use_security_sessions: if true, UNICORE's security sessions mechanism will be used (to speed up request processing)
+           verify: if true, SSL verification of the server's certificate will be done
+    """
+    def __init__(self, auth_token, oidc=True, verify=False, refresh_handler=None, use_security_sessions=True, timeout=120):
         super(Transport, self).__init__()
         self.auth_token = auth_token
         self.oidc = oidc
@@ -167,14 +176,13 @@ class Transport(object):
         self.use_security_sessions = use_security_sessions
         self.last_session_id = None
         self.preferences = None
-        self.timeout = 120
+        self.timeout = timeout
 
     def _clone(self):
         ''' create a copy of this transport, with the same initial settings '''
-        tr = Transport(self.auth_token, self.oidc, self.verify, self.refresh_handler, self.use_security_sessions)
+        tr = Transport(self.auth_token, self.oidc, self.verify, self.refresh_handler, self.use_security_sessions, self.timeout)
         tr.last_session_id = self.last_session_id
         tr.preferences = self.preferences
-        tr.timeout = self.timeout
         return tr
 
     def _headers(self, kwargs):
@@ -346,7 +354,7 @@ class Registry(Resource):
 
 
 class Client(object):
-    '''Entrypoint to UNICORE API at a site
+    '''Entrypoint to the UNICORE API at a site
 
         >>> base_url = '...' # e.g. "https://localhost:8080/DEMO-SITE/rest/core"
         >>> token = '...'
@@ -648,7 +656,17 @@ class Storage(Resource):
                 data=fd)
 
     def send_file(self, file_name, remote_url, protocol=None, scheduled=None, additional_parameters={}):
-        ''' server-to-server transfer: send a file from this storage to a remote location '''
+        """ launch a server-to-server transfer: send a file from this storage to a remote location 
+
+        Args:
+            file_name : the file on this storage to send (supports wildcards)
+            remote_url: the destination (https://.../rest/core/storages/NAME/files/path_to_file_or_directory
+            protocol: optional protocol (e.g. "UFTP")
+            additional_parameters: any protocol-dependent additional settings
+
+        Returns:
+            a Transfer object
+        """
         params = additional_parameters.copy()
         if protocol:
             remote_url = protocol+":"+remote_url
@@ -666,7 +684,17 @@ class Storage(Resource):
         return Transfer(self.transport, tr_url)
 
     def receive_file(self, remote_url, file_name, protocol=None, scheduled=None, additional_parameters={}):
-        ''' server-to-server transfer: pull a file from a remote storage to this storage '''
+        """ launch a server-to-server transfer: pull a file from a remote storage to this storage
+
+        Args:
+            remote_url: the remote file (supports wildcards) (https://.../rest/core/storages/NAME/files/path_to_file
+            file_name : the file on this storage to write to
+            protocol: optional protocol (e.g. "UFTP")
+            additional_parameters: any protocol-dependent additional settings
+
+        Returns:
+            a Transfer object
+        """
         params = additional_parameters.copy()
         if protocol:
             remote_url = protocol+":"+remote_url
@@ -859,6 +887,7 @@ class WorkflowService(object):
 
     def get_workflows(self, offset=0, num=None, tags=[]):
         ''' get the list of workflows.
+
         Use the optional 'offset' and 'num' parameters to handle long result lists
         (for long lists, the server might not return all results!).
         Use the optional tag list to filter the results.'''
