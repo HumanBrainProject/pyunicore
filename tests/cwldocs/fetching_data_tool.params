@@ -1,0 +1,5 @@
+bucket_id: 123
+
+token: some_token
+
+object_name: my_container
