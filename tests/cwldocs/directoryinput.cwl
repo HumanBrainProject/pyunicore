@@ -2,10 +2,13 @@
 
 cwlVersion: v1.0
 class: CommandLineTool
-baseCommand: echo
+baseCommand: test_command
 inputs:
-  echo_line:
-    type: string
+  file_1:
+    type: Directory
     inputBinding:
+      prefix: --input=
+      separate: false
       position: 1
+
 outputs: []

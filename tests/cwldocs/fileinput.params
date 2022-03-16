@@ -1,0 +1,13 @@
+{
+
+"file_1": {
+   "class": "File",
+   "path": "test.sh"
+ },
+
+"file_2": {
+   "class": "File",
+   "path": "file2"
+ }
+
+}

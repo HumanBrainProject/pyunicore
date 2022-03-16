@@ -3,7 +3,10 @@
 """
 
 def convert_cmdline_tool(cwl_doc, inputs_object = {}, debug = False):
-    """ converts a CWL CommandLineTool into a UNICORE JSON job """
+    """ converts a CWL CommandLineTool into a UNICORE JSON job 
+    
+        Returns: UNICORE JSON job, list of local files
+    """
     if cwl_doc['class']!="CommandLineTool":
         raise Exception("Unsupported 'class' of CWL document, must be 'CommandLineTool'")
     unicore_job = {}
@@ -15,28 +18,31 @@ def convert_cmdline_tool(cwl_doc, inputs_object = {}, debug = False):
         print("Container mode: %s" % _is_container)
 
     if _is_container:
+        unicore_job['ApplicationName'] = "CONTAINER"
         docker_image = _hints['DockerRequirement']['dockerPull']
+        run_options = [ "--contain", "--ipc", "--bind $PWD", "--pwd $PWD"]
         params = {'IMAGE_URL': docker_image,
-                  'COMMAND': cwl_doc['baseCommand']
+                  'COMMAND': cwl_doc['baseCommand'],
+                  'RUN_OPTS': " ".join(run_options)
                   }
         unicore_job['Parameters'] = params
-        unicore_job['ApplicationName'] = "CONTAINER"
     else:
         unicore_job['Executable'] = cwl_doc['baseCommand']
 
     unicore_job["Arguments"] = build_argument_list(cwl_doc.get("inputs", {}), inputs_object, debug)
+    files = get_file_list(inputs_object)
 
-    return unicore_job
+    return unicore_job, files
 
 def build_argument_list(cwl_inputs, inputs_object = {}, debug = False):
     """ generate the argument list from the CWL inputs and an inputs_object containing values """
     render = {}
     for i in cwl_inputs:
-        input = cwl_inputs[i]
-        input_binding = input.get("inputBinding", None)
+        input_item = cwl_inputs[i]
+        input_binding = input_item.get("inputBinding", None)
         if input_binding is not None:
             pos = int(input_binding['position'])
-            value = render_value(i, input, inputs_object)
+            value = render_value(i, input_item, inputs_object)
             if value is not None:
                 render[pos] = value
     args = []
@@ -46,30 +52,40 @@ def build_argument_list(cwl_inputs, inputs_object = {}, debug = False):
 
 def render_value(name, input_spec, inputs_object={}):
     """ generate a concrete value for command-line argument """
-    type = input_spec.get("type", "string")
-    optional = False
-    prefix = input_spec.get("prefix", "")
     value = inputs_object.get(name, None)
-    result = None
-    if input_spec.get("separate", "true")=="true":
-        prefix = prefix + " "
-    
-    if type.endswith("?"):
-        type = type[:-1]
-        optional = True
-    
-    if value is None:
-        if optional:
+    parameter_type = input_spec.get("type", "string")
+    if parameter_type.endswith("?"):
+        parameter_type = parameter_type[:-1]
+        if value is None:
             return None
-        else:
-            raise Exception("Parameter value for parameter '%s' is missing in inputs object" % name)
-    
-    if type=="boolean":
+    elif value is None:
+        raise Exception("Parameter value for parameter '%s' is missing in inputs object" % name)    
+    input_binding = input_spec.get("inputBinding", {})
+    prefix = input_binding.get("prefix", "")
+    if prefix!="" and input_binding.get("separate", True) is True:
+        prefix = prefix + " "
+
+    if parameter_type=="boolean":
         if value=="true":
             result = prefix
+    elif parameter_type=="File" or parameter_type=="Directory":
+        result = prefix+value['path']
     else:
         result = prefix + str(value)
-        
+ 
     return result
 
-    
+def get_file_list(inputs_object={}):
+    file_list = []
+    for x in inputs_object:
+        input_item = inputs_object[x]
+        try:
+            if input_item.get("class", None)=="File":
+                file_list.append(input_item['path'])
+            elif input_item.get("class", None)=="Directory":
+                # TBD resolve
+                pass
+        except:
+            pass
+    return file_list
+

@@ -10,17 +10,15 @@ import json
 
 import requests
 import time
-import sys
 from contextlib import closing
 from datetime import datetime, timedelta
 from jwt import decode as jwt_decode, ExpiredSignatureError
 
-if sys.version_info < (3, 0):
-    from types import StringType
-else:
-    StringType = str  # pragma: no cover
+try:
+    requests.packages.urllib3.disable_warnings()
+except:
+    pass
 
-requests.packages.urllib3.disable_warnings()
 _REST_CACHE_TIMEOUT = 5  # in seconds
 _HBP_REGISTRY_URL = ('https://hbp-unic.fz-juelich.de:7112'
                      '/HBP/rest/registries/default_registry')
@@ -217,9 +215,8 @@ class Transport(object):
         if 400 <= res.status_code < 600:
             reason = res.reason
             try:
-                json = res.json()
-                reason = json['errorMessage']
-            except Exception as e:
+                reason = res.json()['errorMessage']
+            except:
                 pass
             msg =  u'%s Server Error: %s for url: %s' % (res.status_code, reason, res.url)
             raise requests.HTTPError(msg, response=res)
@@ -435,8 +432,8 @@ class Client(object):
         return [Job(self.transport, url)
                 for url in self.transport.get(url=j_url)['jobs']]
 
-    def new_job(self, job_description, inputs=[]):
-        ''' submit and start a batch job on the site, optionally uploading input data files '''
+    def new_job(self, job_description, inputs=[], autostart = True):
+        ''' submit and start a job on the site, optionally uploading input data files '''
         if len(inputs)>0 or job_description.get('haveClientStageIn') is True :
             job_description['haveClientStageIn'] = "true"
 
@@ -447,9 +444,9 @@ class Client(object):
 
         if len(inputs)>0:
             working_dir = job.working_dir
-            for input in inputs:
-                working_dir.upload(input)
-        if job_description.get('haveClientStageIn', None) == "true":
+            for input_item in inputs:
+                working_dir.upload(input_item)
+        if autostart and job_description.get('haveClientStageIn', None) == "true":
             try:
                 job.start()
             except:
@@ -643,14 +640,33 @@ class Storage(Resource):
         '''create directory'''
         return self.mkdir(name)
 
-    def upload(self, input_name, destination=None):
-        '''upload file "input_name" '''
-        if destination is None:
-            destination = os.path.basename(input_name)
+    def upload(self, input_file, destination=None):
+        """ upload file "input_file" to the remote file "destination".
 
+        Remote directories will be created automatically, if required. 
+        If "destination" is not given, it is derived from the local 
+        file path.
+        
+        Examples:
+        - input_file = "test.txt" -> upload to "test.txt" in the base directory 
+        of the storage
+        - input_file = "/tmp/test.txt" -> upload to "test.txt" in the base directory 
+        - input_file = "folder1/test.txt" -> upload to "folder1/test.txt", 
+          automatically creating the "folder1" subdirectory
+        
+        Args:
+            input_file : the path to the local file
+            destination: (optional) the remote file name / path
+
+        """
+        if destination is None:
+            if os.path.isabs(input_file):
+                destination = os.path.basename(input_file)
+            else:
+                destination = input_file
         headers = {'Content-Type': 'application/octet-stream'}
-        with open(input_name, 'rb') as fd:
-            resp = self.transport.put(
+        with open(input_file, 'rb') as fd:
+            self.transport.put(
                 url=os.path.join(self.resource_url, "files", destination),
                 headers=headers,
                 data=fd)
@@ -773,7 +789,7 @@ class PathFile(Path):
         '''download file
 
         Args:
-            file_(StringType or file-like): if a string, a file of that name
+            file_(str or file-like): if a string, a file of that name
             will be created, and filled with the download.  If it's file-like,
             then the contents will be written via write()
 
@@ -795,7 +811,7 @@ class PathFile(Path):
                                )) as resp:
            
             CHUNK_SIZE = 10 * 1024
-            if isinstance(file_, StringType):
+            if isinstance(file_, str):
                 with open(file_, 'wb') as fd:
                     for chunk in resp.iter_content(CHUNK_SIZE):
                         fd.write(chunk)
