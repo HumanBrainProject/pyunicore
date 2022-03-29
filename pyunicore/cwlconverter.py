@@ -3,9 +3,9 @@
 """
 
 def convert_cmdline_tool(cwl_doc, inputs_object = {}, debug = False):
-    """ converts a CWL CommandLineTool into a UNICORE JSON job 
-    
-        Returns: UNICORE JSON job, list of local files
+    """ converts a CWL CommandLineTool into a UNICORE JSON job
+
+        Returns: UNICORE JSON job, list of local files to upload,  list of output files
     """
     if cwl_doc['class']!="CommandLineTool":
         raise Exception("Unsupported 'class' of CWL document, must be 'CommandLineTool'")
@@ -31,8 +31,9 @@ def convert_cmdline_tool(cwl_doc, inputs_object = {}, debug = False):
 
     unicore_job["Arguments"] = build_argument_list(cwl_doc.get("inputs", {}), inputs_object, debug)
     files = get_file_list(inputs_object)
+    outputs = []
 
-    return unicore_job, files
+    return unicore_job, files, outputs
 
 def build_argument_list(cwl_inputs, inputs_object = {}, debug = False):
     """ generate the argument list from the CWL inputs and an inputs_object containing values """
@@ -59,7 +60,7 @@ def render_value(name, input_spec, inputs_object={}):
         if value is None:
             return None
     elif value is None:
-        raise Exception("Parameter value for parameter '%s' is missing in inputs object" % name)    
+        raise Exception("Parameter value for parameter '%s' is missing in inputs object" % name)
     input_binding = input_spec.get("inputBinding", {})
     prefix = input_binding.get("prefix", "")
     if prefix!="" and input_binding.get("separate", True) is True:
@@ -72,7 +73,7 @@ def render_value(name, input_spec, inputs_object={}):
         result = prefix+value['path']
     else:
         result = prefix + str(value)
- 
+
     return result
 
 def get_file_list(inputs_object={}):
@@ -88,4 +89,3 @@ def get_file_list(inputs_object={}):
         except:
             pass
     return file_list
-

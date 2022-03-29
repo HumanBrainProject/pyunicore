@@ -26,13 +26,13 @@ if __name__ == "__main__":
         "formatted description of the required input values for the given `cwl_document`.",)
     parser.add_argument('-d', '--debug', action='store_true', help="Debug mode")
     args = parser.parse_args()
-    
+
     cwl_doc_path = args.cwl_document
-    cwl_inputs_object_path = args.inputs_object    
+    cwl_inputs_object_path = args.inputs_object
     debug = args.debug
     cwl_doc, cwl_inputs_object = read_cwl_files(cwl_doc_path, cwl_inputs_object_path, debug)
 
-    unicore_job, file_list = converter.convert_cmdline_tool(cwl_doc, cwl_inputs_object, debug=debug)
+    unicore_job, file_list, outputs_list = cwlconverter.convert_cmdline_tool(cwl_doc, cwl_inputs_object, debug=debug)
     print(json.dumps(unicore_job, indent=2, sort_keys = True))
 
     sys.exit(0)

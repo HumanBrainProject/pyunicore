@@ -6,7 +6,6 @@
 
 import os
 import re
-import json
 
 import requests
 import time
@@ -643,17 +642,17 @@ class Storage(Resource):
     def upload(self, input_file, destination=None):
         """ upload file "input_file" to the remote file "destination".
 
-        Remote directories will be created automatically, if required. 
-        If "destination" is not given, it is derived from the local 
+        Remote directories will be created automatically, if required.
+        If "destination" is not given, it is derived from the local
         file path.
-        
+
         Examples:
-        - input_file = "test.txt" -> upload to "test.txt" in the base directory 
+        - input_file = "test.txt" -> upload to "test.txt" in the base directory
         of the storage
-        - input_file = "/tmp/test.txt" -> upload to "test.txt" in the base directory 
-        - input_file = "folder1/test.txt" -> upload to "folder1/test.txt", 
+        - input_file = "/tmp/test.txt" -> upload to "test.txt" in the base directory
+        - input_file = "folder1/test.txt" -> upload to "folder1/test.txt",
           automatically creating the "folder1" subdirectory
-        
+
         Args:
             input_file : the path to the local file
             destination: (optional) the remote file name / path
