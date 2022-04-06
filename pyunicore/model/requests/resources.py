@@ -23,6 +23,7 @@ class Resources(_api_object.ApiRequestObject):
     :param node_constraints: Batch system node constraints.
     :param qos:	Batch system QoS.
     """
+
     runtime: str = None
     queue: str = "batch"
     nodes: int = 1
