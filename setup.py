@@ -10,7 +10,8 @@ python_requires = '>=3'
 
 install_requires = [
     'PyJWT>=1.7',
-    'requests>=2.5'
+    'requests>=2.5',
+    'dataclasses>=0.8',
 ]
 
 setup(
