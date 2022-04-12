@@ -1,6 +1,6 @@
 import pytest
 
-import pyunicore.model.requests.data as data
+import pyunicore.helpers.requests.data as data
 
 
 class TestCredentials:
@@ -41,7 +41,12 @@ class TestImport:
                     to="there",
                     data="test",
                 ),
-                {"From": "here", "To": "there", "FailOnError": "true", "Data": "test"},
+                {
+                    "From": "here",
+                    "To": "there",
+                    "FailOnError": "true",
+                    "Data": "test",
+                },
             ),
             (
                 data.Import(

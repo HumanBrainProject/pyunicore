@@ -7,7 +7,9 @@ from . import _api_object
 
 def create_dict_with_not_none_values(**kwargs) -> Dict:
     return {
-        key: _convert_value(value) for key, value in kwargs.items() if value is not None
+        key: _convert_value(value)
+        for key, value in kwargs.items()
+        if value is not None
     }
 
 

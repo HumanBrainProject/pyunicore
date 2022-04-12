@@ -3,8 +3,8 @@ from typing import Dict
 
 import pytest
 
-import pyunicore.model.requests._dict_helper as dict_helper
-import pyunicore.model.requests._api_object as api_object
+import pyunicore.helpers.requests._dict_helper as dict_helper
+import pyunicore.helpers.requests._api_object as api_object
 
 
 @dataclasses.dataclass

@@ -10,18 +10,18 @@ from . import _dict_helper
 class Resources(_api_object.ApiRequestObject):
     """Resources to request on the remote system.
 
-    :param runtime: Job runtime (wall time).
-                    (in seconds, append "min", "h", or "d" for other units).
-    :param queue: Batch system queue/partition to use.
-                  Defaults to `"batch"`.
-    :param nodes: Number of nodes.
-                  Defaults to `1`.
-    :param cpus: Total number of CPUs.
-    :param cpus_per_node: Number of CPUs per node.
-    :param memory: Memory per node.
-    :param reservation: Batch system reservation ID.
-    :param node_constraints: Batch system node constraints.
-    :param qos:	Batch system QoS.
+    Args:
+        runtime (str, optional): Job runtime (wall time).
+            In seconds by default, append "min", "h", or "d" for other units.
+        queue (str, default="batch"): Batch system queue/partition to use.
+        nodes (int, default=1): Number of nodes.
+        cpus (int, optional): Total number of CPUs.
+        cpus_per_node (int, optional): Number of CPUs per node.
+        memory (str, optional): Memory per node.
+        reservation (str, optional): Batch system reservation ID.
+        node_constraints (str, optional): Batch system node constraints.
+        qos (str, optional): Batch system QoS.
+
     """
 
     runtime: str = None

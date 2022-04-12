@@ -10,8 +10,9 @@ from . import _dict_helper
 class Credentials(_api_object.ApiRequestObject):
     """Credentials for an external service a file might be imported from.
 
-    :param username: User name.
-    :param password: Password.
+    Args:
+        username (str): User name.
+        password (str): Password.
 
     """
 

@@ -17,34 +17,50 @@ from . import resources as resources_
 class JobDescription(_api_object.ApiRequestObject):
     """UNICORE's job description for submitting jobs.
 
-    :param application_name: Application name.
-    :param application_version: Application version.
-    :param executable: Command line.
-    :param arguments: Command line arguments.
-    :param environment: Environment values.
-    :param parameters: Application parameters.
-    :param stdout: Filename for the standard output (default: "stdout").
-    :param stderr: Filename for the standard error (default: "stderr").
-    :param stdin: Filename for the standard input (optional).
-    :param ignore_non_zero_exit_code: Don't fail the job if app exits with non-zero exit code (default: false).
-    :param user_precommand: Pre-processing.
-    :param run_user_precommand_on_login_node: Pre-processing is done on login node (default: true).
-    :param user_precommand_ignore_non_zero_exit_code: Don't fail job if pre-command fails (default: false).
-    :param user_postommand: Post-processing.
-    :param run_user_postcommand_on_login_node: Post-processing is done on login node (default: true).
-    :param user_postcommand_ignore_non_zero_exit_code: Don't fail job if post-command fails (default: false).
-    :param resources: The job's resource requests.
-    :param project: Accounting project.
-    :param imports: Stage-in / data import.
-    :param exports: Stage-out / data export.
-    :param have_client_stage_in: Tell the server that the client does / does not want to send any additional files.
-    :param job_type: 'normal', 'interactive', 'raw' 	Whether to run the job via the batch system ('normal', default) or on a login node ('interactive'), or as a batch job but with a user-specified file containing the batch system directives.
-    :param login_node: For 'interactive' jobs, select a login node (by name, as configured server side. Wildcards '*' and '?' can be used).
-    :param bss_file: For 'raw' jobs, specify the relative or absolute file name of a file containing batch system directives. UNICORE will append the user executable..
-    :param tags: Job tags.
-    :param notification: URL to send job status change notifications to (via HTTP POST).
-    :param user_email: User email to send notifications to (if the batch system supports it).
-    :param name: Job name.
+    Args:
+        application_name (str, optional): Application name.
+        application_version (str, optional): Application version.
+        executable (str) : Command line.
+        arguments (list[str], optional): Command line arguments.
+        environment (dict[str, str], optinal): Environment values.
+        parameters (str, optional): Application parameters.
+        stdout (str, default="stdout"): Filename for the standard output.
+        stderr (str, default="stderr"): Filename for the standard error.
+        stdin (str, optional): Filename for the standard input.
+        ignore_non_zero_exit_code (bool, default=False): Don't fail the job if
+            app exits with non-zero exit code.
+        user_precommand (str, optional): Pre-processing.
+        run_user_precommand_on_login_node (bool, default=True): Pre-processing
+            is done on login node.
+        user_precommand_ignore_non_zero_exit_code (bool, default=False): Don't
+            fail job if pre-command fails.
+        user_postommandFalse: Post-processing.
+        run_user_postcommand_on_login_node (bool, default=True): Post-processing
+            is done on login node.
+        user_postcommand_ignore_non_zero_exit_code (bool, default=False): Don't
+            fail job if post-command fails.
+        resources (Resources): The job's resource requests.
+        project (str): Accounting project.
+        imports (list[Import], optional): Stage-in / data import.
+        exports (list[Export], optional): Stage-out / data export.
+        have_client_stage_in (bool, default=False): Tell the server that the
+            client does / does not want to send any additional files.
+        job_type (str, default="normal): 'normal', 'interactive', 'raw'
+            Whether to run the job via the batch system ('normal', default) or
+            on a login node ('interactive'), or as a batch job but with a
+            user-specified file containing the batch system directives.
+        login_node (str, optional): For 'interactive' jobs, select a login node
+            (by name, as configured server side. Wildcards '*' and '?' can be
+            used).
+        bss_file (str, optional): For 'raw' jobs, specify the relative or
+            absolute file name of a file containing batch system directives.
+            UNICORE will append the user executable.
+        tags (list[str], optional): Job tags.
+        notification (str, optional): URL to send job status change
+            notifications to. Will be sent via HTTP POST.
+        user_email (str, optional): User email to send notifications to
+            Only works if the batch system supports it.
+        name (str, optional): Job name.
     """
 
     executable: str
@@ -84,7 +100,9 @@ class JobDescription(_api_object.ApiRequestObject):
             self.have_client_stage_in = True
 
         if self.job_type == "raw" and self.bss_file is None:
-            raise ValueError("If job type is 'raw', BSS file has to be specified")
+            raise ValueError(
+                "If job type is 'raw', BSS file has to be specified"
+            )
 
     def to_dict(self) -> Dict:
         pass
