@@ -3,10 +3,9 @@
 See https://sourceforge.net/p/unicore/wiki/Job_Description/
 
 """
+import dataclasses
 from typing import Dict
 from typing import List
-
-import dataclasses
 
 from . import _api_object
 from . import data
