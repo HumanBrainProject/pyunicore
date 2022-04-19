@@ -36,7 +36,7 @@ def connect_to_site(
 
     """
     logger.info("Attempting to connect to %s", site_api_url)
-    connection = _connect_to_cluster(
+    connection = _connect_to_site(
         api_url=site_api_url,
         user=user,
         password=password,
@@ -50,7 +50,7 @@ def connect_to_site(
     return connection
 
 
-def _connect_to_cluster(
+def _connect_to_site(
     api_url: str,
     user: str,
     password: str,
