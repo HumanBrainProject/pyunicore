@@ -14,7 +14,7 @@ For more information about the Human Brain Project, see https://www.humanbrainpr
 
 See LICENSE file for licensing information
 
-# Getting started with pyUNICORE
+## Getting started with pyUNICORE
 
 Install from PyPI with
 
@@ -35,7 +35,7 @@ Sample code to create a client for a UNICORE site
     client = unicore_client.Client(transport, base_url)
     print(json.dumps(client.properties, indent = 2))
     
-# Running a sample job and reading result data
+## Running a sample job and reading result data
 
     my_job = {'Executable': 'date'}
     
@@ -53,7 +53,7 @@ Sample code to create a client for a UNICORE site
     content = stdout.raw().read()
     print(content)
     
-# Connecting to a Registry and listing all registered services
+## Connecting to a Registry and listing all registered services
 
     import pyunicore.client as unicore_client
     import json, b64encode
@@ -67,47 +67,60 @@ Sample code to create a client for a UNICORE site
     r = unicore_client.Registry(tr, registry_url)
     print(r.site_urls)
 
-# Helpers
+## Helpers
 
 The `pyunicore.helpers` module provides a set of abstract APIs that allow e.g.
+
 - connecting to a site via a Registry URL
 - connecting to a site via its core URL
 - defining a job description as a dataclass and easily converting to a `dict` as required
   by `pyunicore.client.Client.new_job`
 
-## Connecting to a site via a Registry
-    from pyunicore import helpers
+### Connecting to a site via a Registry
 
-    registry_url = "https://localhost:8080/REGISTRY/rest/registries/default_registry"
-    
-    client = helpers.connect_to_site_from_registry(
-        registry_url=registry_url,
-        site_name="DEMO-SITE",
-        user="demouser",
-        password="test123",
-    )
-    print(json.dumps(client.properties, indent=2))
+```Python
+import json
+from pyunicore import helpers
 
-## Connecting to a site directly
-    from pyunicore import helpers
+registry_url = "https://localhost:8080/REGISTRY/rest/registries/default_registry"
 
-    base_url = "https://localhost:8080/DEMO-SITE/rest/core"
+client = helpers.connect_to_site_from_registry(
+    registry_url=registry_url,
+    site_name="DEMO-SITE",
+    user="demouser",
+    password="test123",
+)
+print(json.dumps(client.properties, indent=2))
 
-    client = helpers.connect_to_site_from_registry(
-        site_api_url=base_url,
-        user="demouser",
-        password="test123",
-    )
-    print(json.dumps(client.properties, indent=2))
+```
 
-## Defining a job
-    from pyunicore import helpers
+### Connecting to a site directly
 
-    client = ...
-    resources = helpers.Resources(nodes=4)
-    job = helpers.JobDescription(
-        executable="ls",
-        project="demoprojet",
-    )
-    
-    client.new_job(job.to_dict())
+```Python
+import json
+from pyunicore import helpers
+
+base_url = "https://localhost:8080/DEMO-SITE/rest/core"
+
+client = helpers.connect_to_site(
+    site_api_url=base_url,
+    user="demouser",
+    password="test123",
+)
+print(json.dumps(client.properties, indent=2))
+```
+
+### Defining a job
+
+```Python
+from pyunicore import helpers
+
+client = ...
+resources = helpers.Resources(nodes=4)
+job = helpers.JobDescription(
+    executable="ls",
+    project="demoprojet",
+)
+
+client.new_job(job.to_dict())
+```

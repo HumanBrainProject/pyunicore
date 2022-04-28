@@ -6,3 +6,4 @@ from .requests import Resources
 from .connect import create_transport
 from .connect import connect_to_site_from_registry
 from .connect import connect_to_site
+from .job_status import JobStatus
