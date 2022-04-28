@@ -30,7 +30,10 @@ def convert_cmdline_tool(cwl_doc, inputs_object = {}, debug = False):
         unicore_job['Executable'] = cwl_doc['baseCommand']
 
     unicore_job["Arguments"] = build_argument_list(cwl_doc.get("inputs", {}), inputs_object, debug)
-    files = get_file_list(inputs_object)
+    remote_files = get_remote_file_list(inputs_object)
+    if len(remote_files)>0:
+        unicore_job['Imports'] = remote_files
+    files = get_local_file_list(inputs_object)
     outputs = []
 
     return unicore_job, files, outputs
@@ -76,16 +79,42 @@ def render_value(name, input_spec, inputs_object={}):
 
     return result
 
-def get_file_list(inputs_object={}):
+def get_local_file_list(inputs_object={}):
     file_list = []
     for x in inputs_object:
         input_item = inputs_object[x]
         try:
             if input_item.get("class", None)=="File":
-                file_list.append(input_item['path'])
+                path = input_item.get('path', None)
+                if path is None:
+                    path = input_item.get('location')
+                    if not path.startswith("file:"):
+                        continue
+                    path = path[5:]
+                file_list.append(path)
             elif input_item.get("class", None)=="Directory":
                 # TBD resolve
                 pass
+        except:
+            pass
+    return file_list
+
+def get_remote_file_list(inputs_object={}):
+    file_list = []
+    for x in inputs_object:
+        input_item = inputs_object[x]
+        try:
+            if input_item.get("class", None)=="File":
+                path = input_item.get('path', None)
+                if path is not None:
+                    continue
+                path = input_item.get('location')
+                if path.startswith("file:"):
+                    continue
+                base_name = input_item.get('basename', None)
+                if base_name is None:
+                    base_name = path.split("/")[-1]
+                file_list.append({"From": path, "To": base_name})
         except:
             pass
     return file_list

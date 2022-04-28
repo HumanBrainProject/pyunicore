@@ -1,0 +1,24 @@
+{
+
+"file_1": {
+   "class": "File",
+   "path": "test.sh"
+ },
+
+"file_2": {
+   "class": "File",
+   "path": "file2"
+ },
+
+"file_3": {
+   "class": "File",
+   "location": "https://www.google.de",
+   "basename": "some_remote_file"
+ },
+ 
+ file_4": {
+   "class": "File",
+   "location": "https://www.foo.bar/file.txt",
+ }
+ 
+}
