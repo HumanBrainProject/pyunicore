@@ -6,15 +6,16 @@
 
 import os
 import re
-
 import requests
 import time
+
 from contextlib import closing
 from datetime import datetime, timedelta
 from jwt import decode as jwt_decode, ExpiredSignatureError
 
 try:
-    requests.packages.urllib3.disable_warnings()
+    from urllib3 import disable_warnings
+    disable_warnings()
 except:
     pass
 
