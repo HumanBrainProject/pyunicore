@@ -64,7 +64,7 @@ class JobDescription(_api_object.ApiRequestObject):
 
     executable: str
     project: str
-    Resources: resources_.Resources = dataclasses.field(
+    resources: resources_.Resources = dataclasses.field(
         default_factory=resources_.Resources
     )
     application_name: str = None
