@@ -120,6 +120,7 @@ resources = helpers.Resources(nodes=4)
 job = helpers.JobDescription(
     executable="ls",
     project="demoprojet",
+    resources=resources,
 )
 
 client.new_job(job.to_dict())
