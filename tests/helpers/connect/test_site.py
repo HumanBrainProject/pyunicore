@@ -1,9 +1,10 @@
 import functools
 
+import pytest
 import pyunicore.testing as testing
 import pyunicore.helpers.connect.site as _connect
-import pytest
 import pyunicore.client as pyunicore
+import pyunicore.helpers.connect.authorization as authorization
 
 
 @pytest.fixture()
@@ -21,7 +22,7 @@ def create_fake_client(login_successful: bool) -> functools.partial:
 @pytest.mark.parametrize(
     ("login_successful", "expected"),
     [
-        (False, _connect.AuthenticationFailedException()),
+        (False, _connect.AuthorizationFailedException()),
         (True, testing.FakeClient),
     ],
 )
@@ -34,14 +35,15 @@ def test_connect_to_site(monkeypatch, login_successful, expected):
     )
 
     api_url = "test-api-url"
-    user = "test_user"
-    password = "test_password"
+    auth = authorization.UserAuthorization(
+        user="test_user",
+        password="test_password",
+    )
 
     with testing.expect_raise_if_exception(expected):
         result = _connect.connect_to_site(
             site_api_url=api_url,
-            user=user,
-            password=password,
+            authorization=auth,
         )
 
         assert isinstance(result, expected)
@@ -54,10 +56,10 @@ def test_connect_to_site(monkeypatch, login_successful, expected):
         ({"test_login_info": "test_login"}, False),
     ],
 )
-def test_authentication_failed(login, expected):
+def test_authorization_failed(login, expected):
     client = testing.FakeClient()
     client.add_login_info(login)
 
-    result = _connect._authentication_failed(client)
+    result = _connect._authorization_failed(client)
 
     assert result == expected

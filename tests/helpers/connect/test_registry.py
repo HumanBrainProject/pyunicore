@@ -2,10 +2,12 @@ import functools
 from typing import Dict
 
 import pytest
-import pyunicore.client
 
+import pyunicore.client
 import pyunicore.testing as testing
 import pyunicore.helpers.connect.registry as _registry
+import pyunicore.helpers.connect.site as _site
+import pyunicore.helpers.connect.authorization as authorization
 
 
 @pytest.fixture()
@@ -30,7 +32,7 @@ def create_fake_client(login_successful: bool) -> functools.partial:
 @pytest.mark.parametrize(
     ("login_successful", "expected"),
     [
-        (False, ValueError()),
+        (False, _site.AuthorizationFailedException()),
         (True, testing.FakeClient),
     ],
 )
@@ -47,17 +49,18 @@ def test_connect_to_site_from_registry(monkeypatch, login_successful, expected):
         create_fake_client(login_successful=login_successful),
     )
 
-    site = "test_site"
-    user = "test_user"
-    password = "test_password"
     registry_url = "test_registry_url"
+    site = "test_site"
+    auth = authorization.UserAuthorization(
+        user="test_user",
+        password="test_password",
+    )
 
     with testing.expect_raise_if_exception(expected):
         result = _registry.connect_to_site_from_registry(
             registry_url=registry_url,
             site_name=site,
-            user=user,
-            password=password,
+            authorization=auth,
         )
 
         assert isinstance(result, expected)

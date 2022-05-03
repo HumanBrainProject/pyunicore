@@ -5,23 +5,51 @@ import pyunicore.client
 
 from . import transport as _transport
 from . import site as _site
+from . import authorization as _authorization
 
 logger = logging.getLogger(__name__)
+
+
+def connect_to_registry(
+    registry_url: str,
+    authorization: _authorization.Authorization,
+) -> pyunicore.client.Registry:
+    """Connect to a registry.
+
+    Args:
+        registry_url (str): URL to the UNICORE registry.
+        authorization (pyunicore.helpers.Authorization): Authorization method.
+
+    Returns:
+        pyunicore.client.Registry
+
+    """
+    logger.info("Attempting to connect to registry %s", registry_url)
+    transport = _transport.create_transport(authorization)
+    registry = _create_registry(transport=transport, registry_url=registry_url)
+    return registry
+
+
+def _create_registry(
+    transport: pyunicore.client.Transport, registry_url: str
+) -> pyunicore.client.Registry:
+    logger.debug("Creating registry connection %s", registry_url)
+    registry = pyunicore.client.Registry(transport=transport, url=registry_url)
+    logger.debug("Registry properties: %s", registry.properties)
+    return registry
 
 
 def connect_to_site_from_registry(
     registry_url: str,
     site_name: str,
-    user: str,
-    password: str,
+    authorization: _authorization.Authorization,
 ) -> pyunicore.client.Client:
     """Create a connection to a site's UNICORE API from the registry base URL.
 
     Args:
         registry_url (str): URL to the UNICORE registry.
         site_name (str): Name of the site to connect to.
-        user (str): JUDOOR user name.
-        password (str): Corresponding JUDOOR user password.
+        authorization (pyunicore.helpers.Authorization): Authorization method.
 
     Raises:
         ValueError: Site not available in the registry.
@@ -33,18 +61,17 @@ def connect_to_site_from_registry(
     logger.info(
         "Attempting to connect to %s from registry %s", site_name, registry_url
     )
-    transport = _transport.create_transport(user=user, password=password)
+    transport = _transport.create_transport(authorization)
     site_api_url = _get_site_api_url(
         site=site_name,
         registry_url=registry_url,
         transport=transport,
     )
-    connection = _site.connect_to_site(
+    client = _site.connect_to_site(
         site_api_url=site_api_url,
-        user=user,
-        password=password,
+        authorization=authorization,
     )
-    return connection
+    return client
 
 
 def _get_site_api_url(
@@ -79,12 +106,3 @@ def _get_api_urls(
     )
     registry = _create_registry(transport=transport, registry_url=registry_url)
     return registry.site_urls
-
-
-def _create_registry(
-    transport: pyunicore.client.Transport, registry_url: str
-) -> pyunicore.client.Registry:
-    logger.debug("Creating registry connection %s", registry_url)
-    registry = pyunicore.client.Registry(transport=transport, url=registry_url)
-    logger.debug("Registry properties: %s", registry.properties)
-    return registry

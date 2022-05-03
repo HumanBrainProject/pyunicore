@@ -6,10 +6,11 @@ See https://sourceforge.net/p/unicore/wiki/Job_Description/
 import dataclasses
 from typing import Dict
 from typing import List
+from typing import Optional
 
 from . import _api_object
 from . import data
-from . import resources as resources_
+from . import resources as _resources
 
 
 @dataclasses.dataclass
@@ -64,34 +65,34 @@ class JobDescription(_api_object.ApiRequestObject):
 
     executable: str
     project: str
-    resources: resources_.Resources = dataclasses.field(
-        default_factory=resources_.Resources
+    resources: _resources.Resources = dataclasses.field(
+        default_factory=_resources.Resources
     )
-    application_name: str = None
-    application_version: str = None
-    arguments: List[str] = None
-    environment: Dict[str, str] = None
-    parameters: Dict[str, str] = None
+    application_name: Optional[str] = None
+    application_version: Optional[str] = None
+    arguments: Optional[List[str]] = None
+    environment: Optional[Dict[str, str]] = None
+    parameters: Optional[Dict[str, str]] = None
     stdout: str = "stdout"
     stderr: str = "stderr"
-    stdin: str = None
+    stdin: Optional[str] = None
     ignore_non_zero_exit_code: bool = False
-    user_precommand: str = None
+    user_precommand: Optional[str] = None
     run_user_precommand_on_login_node: bool = True
     user_precommand_ignore_non_zero_exitcode: bool = False
-    user_postcommand: str = None
+    user_postcommand: Optional[str] = None
     run_user_postcommand_on_login_node: bool = True
     user_postcommand_ignore_non_zero_exit_code: bool = False
-    imports: List[data.Import] = None
-    exports: List[data.Export] = None
+    imports: Optional[List[data.Import]] = None
+    exports: Optional[List[data.Export]] = None
     have_client_stage_in: bool = False
     job_type: str = "normal"
-    login_node: str = None
-    bss_file: str = None
-    tags: List[str] = None
-    notification: str = None
-    user_email: str = None
-    name: str = None
+    login_node: Optional[str] = None
+    bss_file: Optional[str] = None
+    tags: Optional[List[str]] = None
+    notification: Optional[str] = None
+    user_email: Optional[str] = None
+    name: Optional[str] = None
 
     def __post_init__(self):
         """Set `have_client_stage_in=True` if any files have to be imported."""
@@ -103,5 +104,5 @@ class JobDescription(_api_object.ApiRequestObject):
                 "If job type is 'raw', BSS file has to be specified"
             )
 
-    def to_dict(self) -> Dict:
+    def _to_dict(self) -> Dict:
         pass

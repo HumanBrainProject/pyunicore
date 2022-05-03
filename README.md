@@ -34,7 +34,7 @@ Sample code to create a client for a UNICORE site
     
     client = unicore_client.Client(transport, base_url)
     print(json.dumps(client.properties, indent = 2))
-    
+
 ## Running a sample job and reading result data
 
     my_job = {'Executable': 'date'}
@@ -52,7 +52,7 @@ Sample code to create a client for a UNICORE site
   
     content = stdout.raw().read()
     print(content)
-    
+
 ## Connecting to a Registry and listing all registered services
 
     import pyunicore.client as unicore_client
@@ -69,29 +69,67 @@ Sample code to create a client for a UNICORE site
 
 ## Helpers
 
-The `pyunicore.helpers` module provides a set of abstract APIs that allow e.g.
+The `pyunicore.helpers` module provides a set of higher-level APIs:
 
-- connecting to a site via a Registry URL
-- connecting to a site via its core URL
-- defining a job description as a dataclass and easily converting to a `dict` as required
-  by `pyunicore.client.Client.new_job`
+- Different authorization methods:
+  1. user-password (`pyunicore.helpers.UserAuthorization`)
+  2. bearer token (`pyunicore.helpers.TokenAuthorization`)
+- Creating a `pyunicore.client.Transport` (`pyunicore.helpers.create_transport`).
+- Connecting to
+  - a registry (`pyunicore.helpers.connect_to_registry`).
+  - a site via a Registry URL (`pyunicore.helpers.connect_to_site_from_registry`).
+  - a site via its core URL (`pyunicore.helpers.connect_to_site`).
+- Defining a job description as a dataclass and easily converting to a `dict` as required
+  by `pyunicore.client.Client.new_job` (`pyunicore.helpers.JobDescription`).
+- All possible job statuses that may be returned by the jobs API (`pyunicore.helpers.JobStatus`).
 
-### Connecting to a site via a Registry
+### Creating a transport
+
+```Python
+import json
+from pyunicore import helpers
+
+authorization = helpers.UserAuthorization(user="demouser", password="test123")
+
+transport = helpers.create_transport(authorization )
+print(json.dumps(transport.properties, indent=2))
+```
+
+### Connecting to a registry
+
+```Python
+import json
+from pyunicore import helpers
+
+
+registry_url = "https://localhost:8080/REGISTRY/rest/registries/default_registry"
+
+authorization = helpers.UserAuthorization(user="demouser", password="test123")
+
+client = helpers.connect_to_registry(
+    registry_url=registry_url,
+    authorization=authorization,
+)
+print(json.dumps(client.properties, indent=2))
+```
+
+### Connecting to a site via a registry
 
 ```Python
 import json
 from pyunicore import helpers
 
 registry_url = "https://localhost:8080/REGISTRY/rest/registries/default_registry"
+site = "DEMO-SITE"
+
+authorization = helpers.UserAuthorization(user="demouser", password="test123")
 
 client = helpers.connect_to_site_from_registry(
     registry_url=registry_url,
-    site_name="DEMO-SITE",
-    user="demouser",
-    password="test123",
+    site_name=site,
+    authorization=authorization,
 )
 print(json.dumps(client.properties, indent=2))
-
 ```
 
 ### Connecting to a site directly
@@ -100,12 +138,13 @@ print(json.dumps(client.properties, indent=2))
 import json
 from pyunicore import helpers
 
-base_url = "https://localhost:8080/DEMO-SITE/rest/core"
+site_url = "https://localhost:8080/DEMO-SITE/rest/core"
+
+authorization = helpers.UserAuthorization(user="demouser", password="test123")
 
 client = helpers.connect_to_site(
-    site_api_url=base_url,
-    user="demouser",
-    password="test123",
+    site_api_url=site_url ,
+    authorization=authorization,
 )
 print(json.dumps(client.properties, indent=2))
 ```
@@ -116,10 +155,11 @@ print(json.dumps(client.properties, indent=2))
 from pyunicore import helpers
 
 client = ...
+
 resources = helpers.Resources(nodes=4)
 job = helpers.JobDescription(
     executable="ls",
-    project="demoprojet",
+    project="demoproject",
     resources=resources,
 )
 

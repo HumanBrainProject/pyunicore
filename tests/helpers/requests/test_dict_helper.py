@@ -11,7 +11,7 @@ import pyunicore.helpers.requests._api_object as api_object
 class ApiObject(api_object.ApiRequestObject):
     test: str = "test"
 
-    def to_dict(self) -> Dict:
+    def _to_dict(self) -> Dict:
         return dataclasses.asdict(self)
 
 

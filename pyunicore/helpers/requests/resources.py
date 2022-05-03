@@ -1,4 +1,5 @@
 from typing import Dict
+from typing import Optional
 
 import dataclasses
 
@@ -24,18 +25,17 @@ class Resources(_api_object.ApiRequestObject):
 
     """
 
-    runtime: str = None
+    runtime: Optional[str] = None
     queue: str = "batch"
     nodes: int = 1
-    cpus: int = None
-    cpus_per_node: int = None
-    memory: str = None
-    reservation: str = None
-    node_constraints: str = None
-    qos: str = None
+    cpus: Optional[int] = None
+    cpus_per_node: Optional[int] = None
+    memory: Optional[str] = None
+    reservation: Optional[str] = None
+    node_constraints: Optional[str] = None
+    qos: Optional[str] = None
 
-    def to_dict(self) -> Dict:
-        """Return as dict."""
+    def _to_dict(self) -> Dict:
         key_values = {
             "Runtime": self.runtime,
             "Queue": self.queue,

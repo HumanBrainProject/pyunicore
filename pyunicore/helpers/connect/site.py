@@ -3,59 +3,56 @@ import logging
 import pyunicore.client
 
 from . import transport as _transport
+from . import authorization as _authorization
 
 logger = logging.getLogger(__name__)
 
 
-class AuthenticationFailedException(Exception):
-    """User authentication has failed.
+class AuthorizationFailedException(Exception):
+    """User authorization has failed.
 
     Unfortunately the response by the server does not give any detailed
-    information why the authentication fails.
+    information why the authorization fails.
 
     """
 
 
 def connect_to_site(
     site_api_url: str,
-    user: str,
-    password: str,
+    authorization: _authorization.Authorization,
 ) -> pyunicore.client.Client:
     """Create a connection to a site's UNICORE API.
 
     Args:
         site_api_url (str): REST API URL to the cluster's UNICORE server.
-        user (str): JUDOOR user name.
-        password (str): Corresponding JUDOOR user password.
+        authorization (pyunicore.helpers.Authorization): authorization method
 
     Raises:
-        AuthenticationFailedException: Authentication on the cluster failed.
+        AuthorizationFailedException: Authorization on the cluster failed.
 
     Returns:
         pyunicore.client.Client
 
     """
     logger.info("Attempting to connect to %s", site_api_url)
-    connection = _connect_to_site(
+    client = _connect_to_site(
         api_url=site_api_url,
-        user=user,
-        password=password,
+        authorization=authorization,
     )
-    if _authentication_failed(connection):
-        raise AuthenticationFailedException(
+    if _authorization_failed(client):
+        raise AuthorizationFailedException(
             "Check if user and password are correct, and if the cluster name "
             "and registry URL are correct."
         )
     logger.info("Successfully connected to %s", site_api_url)
-    return connection
+    return client
 
 
 def _connect_to_site(
     api_url: str,
-    user: str,
-    password: str,
+    authorization: _authorization.Authorization,
 ) -> pyunicore.client.Client:
-    transport = _transport.create_transport(user=user, password=password)
+    transport = _transport.create_transport(authorization)
     client = _create_client(transport=transport, api_url=api_url)
     logger.debug("Connection properties: %s", client.properties)
     return client
@@ -70,7 +67,7 @@ def _create_client(
     return client
 
 
-def _authentication_failed(client: pyunicore.client.Client) -> bool:
+def _authorization_failed(client: pyunicore.client.Client) -> bool:
     logger.debug(
         "Connection login information: %s",
         client.properties["client"]["xlogin"],

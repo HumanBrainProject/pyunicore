@@ -1,4 +1,5 @@
 from typing import Dict
+from typing import Optional
 
 import dataclasses
 
@@ -19,8 +20,7 @@ class Credentials(_api_object.ApiRequestObject):
     username: str
     password: str
 
-    def to_dict(self) -> Dict[str, str]:
-        """Return as dict."""
+    def _to_dict(self) -> Dict[str, str]:
         return {
             "Username": self.username,
             "Password": self.password,
@@ -34,11 +34,10 @@ class Import(_api_object.ApiRequestObject):
     from_: str
     to: str
     fail_on_error: bool = True
-    data: str = None
-    credentials: Credentials = None
+    data: Optional[str] = None
+    credentials: Optional[Credentials] = None
 
-    def to_dict(self) -> Dict:
-        """Return as dict."""
+    def _to_dict(self) -> Dict:
         key_values = {
             "From": self.from_,
             "To": self.to,
@@ -56,8 +55,7 @@ class Export(_api_object.ApiRequestObject):
     from_: str
     to: str
 
-    def to_dict(self) -> Dict[str, str]:
-        """Return as dict."""
+    def _to_dict(self) -> Dict[str, str]:
         return {
             "From": self.from_,
             "To": self.to,

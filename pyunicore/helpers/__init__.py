@@ -6,4 +6,8 @@ from .requests import Resources
 from .connect import create_transport
 from .connect import connect_to_site_from_registry
 from .connect import connect_to_site
+from .connect import connect_to_registry
+from .connect import UserAuthorization
+from .connect import TokenAuthorization
+from .connect import AuthorizationFailedException
 from .job_status import JobStatus
