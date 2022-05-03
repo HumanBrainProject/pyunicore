@@ -30,6 +30,14 @@ def convert_cmdline_tool(cwl_doc, inputs_object = {}, debug = False):
         unicore_job['Executable'] = cwl_doc['baseCommand']
 
     unicore_job["Arguments"] = build_argument_list(cwl_doc.get("inputs", {}), inputs_object, debug)
+
+    if "stdout" in cwl_doc.keys():
+        unicore_job["Stdout"] = cwl_doc["stdout"]
+    if "stderr" in cwl_doc.keys():
+        unicore_job["Stderr"] = cwl_doc["stderr"]
+    if "stdin" in cwl_doc.keys():
+        unicore_job["Stdin"] = cwl_doc["stdin"]
+    
     remote_files = get_remote_file_list(inputs_object)
     if len(remote_files)>0:
         unicore_job['Imports'] = remote_files
@@ -58,25 +66,58 @@ def render_value(name, input_spec, inputs_object={}):
     """ generate a concrete value for command-line argument """
     value = inputs_object.get(name, None)
     parameter_type = input_spec.get("type", "string")
+    item_separator = input_spec.get("itemSeparator", None)
+    
+    is_array = False
+    if parameter_type.endswith("[]"):
+        is_array = True
+        parameter_type = parameter_type[:-2]
+    if parameter_type=="array":
+        is_array = True
+        parameter_type = input_spec["items"]
+    
     if parameter_type.endswith("?"):
         parameter_type = parameter_type[:-1]
         if value is None:
             return None
     elif value is None:
         raise Exception("Parameter value for parameter '%s' is missing in inputs object" % name)
+
     input_binding = input_spec.get("inputBinding", {})
     prefix = input_binding.get("prefix", "")
+
+    if parameter_type=="boolean":
+        if value=="true" or value==True:
+            return prefix
+        else:
+            return None
+
     if prefix!="" and input_binding.get("separate", True) is True:
         prefix = prefix + " "
 
-    if parameter_type=="boolean":
-        if value=="true":
-            result = prefix
-    elif parameter_type=="File" or parameter_type=="Directory":
-        result = prefix+value['path']
+    if is_array:
+        values = value
     else:
-        result = prefix + str(value)
-
+        values = [value]
+    first_value = True
+    result = ""
+    for v in values:
+        if parameter_type=="string" and " " in v:
+            current_value = '"' + v + '"'
+        elif parameter_type=="File" or parameter_type=="Directory":
+            current_value = get_filename_in_jobdir(v)
+        else:
+            current_value = str(v)
+        if item_separator is None:
+            if not first_value:
+                result += " "
+            result += prefix + current_value
+        else:
+            if not first_value:
+                result += item_separator
+            result += current_value
+        first_value = False
+        
     return result
 
 def get_local_file_list(inputs_object={}):
@@ -118,3 +159,11 @@ def get_remote_file_list(inputs_object={}):
         except:
             pass
     return file_list
+
+def get_filename_in_jobdir(input_item):
+    name = input_item.get('path', None)
+    if name is None:
+        name = input_item.get('basename', None)
+    if name is None:
+        name = input_item.get('location').split("/")[-1]
+    return name

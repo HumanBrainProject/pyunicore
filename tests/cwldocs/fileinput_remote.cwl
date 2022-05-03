@@ -16,5 +16,13 @@ inputs:
       prefix: --file2
       separate: true
       position: 2
+  file_3:
+    type: File
+    inputBinding:
+      position: 3
+  file_4:
+    type: File
+    inputBinding:
+      position: 4
 
 outputs: []

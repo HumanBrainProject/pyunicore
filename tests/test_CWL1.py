@@ -11,9 +11,17 @@ class TestCWL1(unittest.TestCase):
         cwl_doc, cwl_input_object = cwltool.read_cwl_files("tests/cwldocs/echo.cwl", "tests/cwldocs/echo.params") 
         u_job, files, outputs = cwlconverter.convert_cmdline_tool(cwl_doc, cwl_input_object)
         self.assertEqual("echo", u_job['Executable'])
-        self.assertEqual("hello world!", u_job['Arguments'][0])
+        self.assertEqual('"hello world!"', u_job['Arguments'][0])
+        self.assertEqual("two", u_job['Arguments'][1])
+        self.assertEqual("42", u_job['Arguments'][2])
+        self.assertEqual("1,2,3", u_job['Arguments'][3])
+        self.assertEqual("-x a -x b", u_job['Arguments'][4])
+        self.assertEqual("my_out", u_job['Stdout'])
+        self.assertEqual("my_err", u_job['Stderr'])
+        
         self.assertEqual(0, len(files))
-
+        print(u_job)
+ 
     def test_convert_fileparam(self):
         print("*** test_convert_fileparam")
         cwl_doc, cwl_input_object = cwltool.read_cwl_files("tests/cwldocs/fileinput.cwl", "tests/cwldocs/fileinput.params") 
@@ -31,6 +39,8 @@ class TestCWL1(unittest.TestCase):
         u_job, files, outputs = cwlconverter.convert_cmdline_tool(cwl_doc, cwl_input_object)
         self.assertEqual("--file1=test.sh", u_job['Arguments'][0])
         self.assertEqual("--file2 file2", u_job['Arguments'][1])
+        self.assertEqual("some_remote_file", u_job['Arguments'][2])
+        self.assertEqual("file.txt", u_job['Arguments'][3])
         self.assertEqual(2, len(files))
         self.assertTrue("test.sh" in files)
         self.assertTrue("file2" in files)
