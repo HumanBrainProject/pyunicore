@@ -4,7 +4,6 @@ from typing import Optional
 import dataclasses
 
 from . import _api_object
-from . import _dict_helper
 
 
 @dataclasses.dataclass
@@ -36,7 +35,7 @@ class Resources(_api_object.ApiRequestObject):
     qos: Optional[str] = None
 
     def _to_dict(self) -> Dict:
-        key_values = {
+        return {
             "Runtime": self.runtime,
             "Queue": self.queue,
             "Nodes": self.nodes,
@@ -47,4 +46,3 @@ class Resources(_api_object.ApiRequestObject):
             "NodeConstraints": self.node_constraints,
             "QoS": self.qos,
         }
-        return _dict_helper.create_dict_with_not_none_values(**key_values)

@@ -18,9 +18,11 @@ class JobDescription(_api_object.ApiRequestObject):
     """UNICORE's job description for submitting jobs.
 
     Args:
+        executable (str) : Command line.
+        project (str): Accounting project.
+        resources (Resources): The job's resource requests.
         application_name (str, optional): Application name.
         application_version (str, optional): Application version.
-        executable (str) : Command line.
         arguments (list[str], optional): Command line arguments.
         environment (dict[str, str], optinal): Environment values.
         parameters (str, optional): Application parameters.
@@ -39,8 +41,6 @@ class JobDescription(_api_object.ApiRequestObject):
             is done on login node.
         user_postcommand_ignore_non_zero_exit_code (bool, default=False): Don't
             fail job if post-command fails.
-        resources (Resources): The job's resource requests.
-        project (str): Accounting project.
         imports (list[Import], optional): Stage-in / data import.
         exports (list[Export], optional): Stage-out / data export.
         have_client_stage_in (bool, default=False): Tell the server that the
@@ -105,4 +105,41 @@ class JobDescription(_api_object.ApiRequestObject):
             )
 
     def _to_dict(self) -> Dict:
-        pass
+        return {
+            "ApplicationName": self.application_name,
+            "ApplicationVersion": self.application_version,
+            "Executable": self.executable,
+            "Arguments": self.arguments,
+            "Environment": self.environment,
+            "Parameters": self.parameters,
+            "Stdout": self.stdout,
+            "Stderr": self.stderr,
+            "Stdin": self.stdin,
+            "IgnoreNonZeroExitCode": self.ignore_non_zero_exit_code,
+            "User precommand": self.user_precommand,
+            "RunUserPrecommandOnLoginNode": (
+                self.run_user_precommand_on_login_node
+            ),
+            "UserPrecommandIgnoreNonZeroExitcode": (
+                self.user_precommand_ignore_non_zero_exitcode
+            ),
+            "User postcommand": self.user_postcommand,
+            "RunUserPostcommandOnLoginNode": (
+                self.run_user_postcommand_on_login_node
+            ),
+            "UserPostcommandIgnoreNonZeroExitcode": (
+                self.user_postcommand_ignore_non_zero_exit_code
+            ),
+            "Project": self.project,
+            "Resources": self.resources,
+            "Imports": self.imports,
+            "Exports": self.exports,
+            "haveClientStageIn": self.have_client_stage_in,
+            "Job type": self.job_type,
+            "Login node": self.login_node,
+            "BSS file": self.bss_file,
+            "Tags": self.tags,
+            "Notification": self.notification,
+            "User email": self.user_email,
+            "Name": self.name,
+        }

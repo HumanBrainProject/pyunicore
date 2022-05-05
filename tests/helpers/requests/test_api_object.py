@@ -3,7 +3,6 @@ from typing import Dict
 
 import pytest
 
-import pyunicore.helpers.requests._dict_helper as dict_helper
 import pyunicore.helpers.requests._api_object as api_object
 
 
@@ -42,6 +41,6 @@ class ApiObject(api_object.ApiRequestObject):
     ],
 )
 def test_create_dict_with_not_none_values(kwargs, expected):
-    result = dict_helper.create_dict_with_not_none_values(**kwargs)
+    result = api_object._create_dict_with_not_none_values(kwargs)
 
     assert result == expected

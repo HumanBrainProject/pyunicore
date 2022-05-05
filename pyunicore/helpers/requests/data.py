@@ -4,7 +4,6 @@ from typing import Optional
 import dataclasses
 
 from . import _api_object
-from . import _dict_helper
 
 
 @dataclasses.dataclass
@@ -38,14 +37,13 @@ class Import(_api_object.ApiRequestObject):
     credentials: Optional[Credentials] = None
 
     def _to_dict(self) -> Dict:
-        key_values = {
+        return {
             "From": self.from_,
             "To": self.to,
             "FailOnError": self.fail_on_error,
             "Data": self.data,
             "Credentials": self.credentials,
         }
-        return _dict_helper.create_dict_with_not_none_values(**key_values)
 
 
 @dataclasses.dataclass
