@@ -1,11 +1,11 @@
-import pyunicore.helpers.requests.job_description as job_description
-import pyunicore.helpers.requests.resources as resources
+import pyunicore.helpers.jobs.description as description
+import pyunicore.helpers.jobs.resources as resources
 
 
 class TestJobDescription:
     def test_to_dict(self):
         res = resources.Resources(nodes=2)
-        job = job_description.JobDescription(
+        job = description.Description(
             executable="test-executable",
             project="test-project",
             resources=res,

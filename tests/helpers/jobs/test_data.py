@@ -1,6 +1,6 @@
 import pytest
 
-import pyunicore.helpers.requests.data as data
+import pyunicore.helpers.jobs.data as data
 
 
 class TestCredentials:

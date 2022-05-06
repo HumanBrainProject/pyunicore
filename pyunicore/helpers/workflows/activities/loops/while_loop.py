@@ -2,7 +2,7 @@ import dataclasses
 from typing import Dict
 from typing import List
 
-from pyunicore.helpers.requests.workflows import variable
+from pyunicore.helpers.workflows import variable
 from . import _loop
 
 

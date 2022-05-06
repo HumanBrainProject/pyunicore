@@ -8,19 +8,19 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from pyunicore.helpers.requests import _api_object
+from pyunicore.helpers import _api_object
 from . import variable
 from . import transition
-from .activity import activity
+from .activities import activity
 
 
 @dataclasses.dataclass
-class WorkflowDescription(_api_object.ApiRequestObject):
+class Description(_api_object.ApiRequestObject):
     """UNICORE's workflow description for submitting workflows.
 
     Args:
         activities (list):
-        subworkflows (list, optional):
+        subworkflows (list(Description), optional):
         transitions (list):
         variables (list):
         notification (str, optional): URL to send notifications to.
@@ -42,7 +42,7 @@ class WorkflowDescription(_api_object.ApiRequestObject):
     activities: List[activity.Activity]
     transitions: List[transition.Transition]
     variables: List[variable.Variable]
-    subworkflows: Optional[List["WorkflowDescription"]] = None
+    subworkflows: Optional[List["Description"]] = None
     notification: Optional[str] = None
     tags: Optional[List[str]] = None
 

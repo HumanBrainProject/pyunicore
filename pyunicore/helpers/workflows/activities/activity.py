@@ -2,7 +2,7 @@ import abc
 import dataclasses
 from typing import Dict
 
-from pyunicore.helpers.requests import _api_object
+from pyunicore.helpers import _api_object
 
 
 @dataclasses.dataclass

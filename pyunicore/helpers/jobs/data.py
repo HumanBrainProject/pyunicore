@@ -3,7 +3,7 @@ from typing import Optional
 
 import dataclasses
 
-from . import _api_object
+from pyunicore.helpers import _api_object
 
 
 @dataclasses.dataclass

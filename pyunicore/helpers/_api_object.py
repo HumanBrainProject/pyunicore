@@ -26,7 +26,11 @@ def _create_dict_with_not_none_values(kwargs) -> Dict:
 
 
 def _convert_value(value: Union[Any, ApiRequestObject]) -> Any:
-    if isinstance(value, ApiRequestObject):
+    if isinstance(value, dict):
+        return _create_dict_with_not_none_values(value)
+    elif isinstance(value, (list, tuple, set)):
+        return list(map(_convert_value, value))
+    elif isinstance(value, ApiRequestObject):
         return value.to_dict()
     elif isinstance(value, bool):
         return str(value).lower()

@@ -1,4 +1,4 @@
-class JobStatus:
+class Status:
     """All possible job statuses returned by the UNICORE API."""
 
     STAGING_IN = "STAGINGIN"

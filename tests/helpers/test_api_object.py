@@ -3,7 +3,7 @@ from typing import Dict
 
 import pytest
 
-import pyunicore.helpers.requests._api_object as api_object
+import pyunicore.helpers._api_object as api_object
 
 
 @dataclasses.dataclass

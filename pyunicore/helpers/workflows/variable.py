@@ -3,7 +3,7 @@ from typing import Dict
 from typing import Tuple
 from typing import Type as tType
 
-from pyunicore.helpers.requests import _api_object
+from pyunicore.helpers import _api_object
 
 
 class _VariableType:

@@ -5,8 +5,8 @@ from typing import List
 from typing import Type
 from typing import Optional
 
-from pyunicore.helpers.requests import _api_object
-from pyunicore.helpers.requests import job_description
+from pyunicore.helpers import _api_object
+from pyunicore.helpers import jobs
 from . import activity
 
 
@@ -97,7 +97,7 @@ class Job(activity.Activity):
     class UserPreferences(_JobUserPreferences):
         """A user preference."""
 
-    job: job_description.JobDescription
+    job: jobs.Description
     site_name: str
     user_preferences: Optional[UserPreferences] = None
     options: Optional[List[Option]] = None

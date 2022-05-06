@@ -1,6 +1,6 @@
 import dataclasses
 
-from pyunicore.helpers.requests.workflows.activity import activity
+from pyunicore.helpers.workflows.activities import activity
 from . import body
 
 

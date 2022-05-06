@@ -8,13 +8,13 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from . import _api_object
+from pyunicore.helpers import _api_object
 from . import data
 from . import resources as _resources
 
 
 @dataclasses.dataclass
-class JobDescription(_api_object.ApiRequestObject):
+class Description(_api_object.ApiRequestObject):
     """UNICORE's job description for submitting jobs.
 
     Args:
