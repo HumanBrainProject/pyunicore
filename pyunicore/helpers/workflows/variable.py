@@ -58,7 +58,7 @@ class Variable(_api_object.ApiRequestObject):
 
     def _check_for_correct_type(self):
         allowed_types = self.Type.get_types()
-        if not self.type in allowed_types:
+        if self.type not in allowed_types:
             raise ValueError(
                 f"{self.type} is not a valid variable type. "
                 f"Allowed variable types: {allowed_types}"

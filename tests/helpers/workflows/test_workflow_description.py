@@ -33,5 +33,4 @@ class TestWorkflowDescription:
 
         result = workflow.to_dict()
 
-        breakpoint()
         assert result == expected
