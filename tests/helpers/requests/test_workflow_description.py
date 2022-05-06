@@ -7,9 +7,9 @@ class TestWorkflowDescription:
         transitions = [
             workflows.Transition(
                 from_="here",
-                to="there",   
+                to="there",
             )
-            ]
+        ]
         variables = [
             workflows.Variable(
                 name="test-variable",
@@ -20,12 +20,10 @@ class TestWorkflowDescription:
 
         workflow = workflows.WorkflowDescription(
             activities=activities,
-            transitions=transitions, 
+            transitions=transitions,
             variables=variables,
         )
-        expected = {
-            
-        }
+        expected = {}
 
         result = workflow.to_dict()
 
