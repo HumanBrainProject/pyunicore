@@ -1,10 +1,31 @@
-import pyunicore.helpers.requests.workflow_description as workflow_description
+import pyunicore.helpers.requests.workflows as workflows
 
 
 class TestWorkflowDescription:
     def test_to_dict(self):
-        workflow = workflow_description.WorkflowDescription()
-        expected = {}
+        activities = [workflows.Activity.Start]
+        transitions = [
+            workflows.Transition(
+                from_="here",
+                to="there",   
+            )
+            ]
+        variables = [
+            workflows.Variable(
+                name="test-variable",
+                type=workflows.Variable.Type.Integer,
+                initial_value=1,
+            )
+        ]
+
+        workflow = workflows.WorkflowDescription(
+            activities=activities,
+            transitions=transitions, 
+            variables=variables,
+        )
+        expected = {
+            
+        }
 
         result = workflow.to_dict()
 
