@@ -18,15 +18,16 @@ inputs:
       position: 3
   param_4:
     type: int[]
-    itemSeparator: ","
     inputBinding:
+      itemSeparator: ","
       position: 4 
   param_5:
-    type: array
-    items: int
+    type: 
+      type: array
+      items: int
+      inputBinding:
+        prefix: "-x"
     inputBinding:
-      prefix: "-x"
-      separate: true
       position: 5
 
 outputs: []

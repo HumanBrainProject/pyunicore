@@ -59,22 +59,31 @@ def build_argument_list(cwl_inputs, inputs_object = {}, debug = False):
                 render[pos] = value
     args = []
     for index, value in sorted(render.items(), key = lambda x: x[0]):
-        args.append(value)
+        for x in value:
+            args.append(x)
     return args
 
 def render_value(name, input_spec, inputs_object={}):
     """ generate a concrete value for command-line argument """
     value = inputs_object.get(name, None)
-    parameter_type = input_spec.get("type", "string")
-    item_separator = input_spec.get("itemSeparator", None)
-    
+    parameter_type = input_spec["type"]
+    input_binding = input_spec.get("inputBinding", {})
+
     is_array = False
-    if parameter_type.endswith("[]"):
+    is_nested_array = False
+    
+    if isinstance(parameter_type, dict):
+        is_array = True
+        is_nested_array = True
+        input_binding = parameter_type.get("inputBinding", {})
+        parameter_type = parameter_type["items"]
+    elif parameter_type.endswith("[]"):
         is_array = True
         parameter_type = parameter_type[:-2]
-    if parameter_type=="array":
-        is_array = True
-        parameter_type = input_spec["items"]
+    
+    prefix = input_binding.get("prefix", "")
+    item_separator = input_binding.get("itemSeparator", None)
+    separate = prefix!="" and input_binding.get("separate", True)
     
     if parameter_type.endswith("?"):
         parameter_type = parameter_type[:-1]
@@ -83,24 +92,21 @@ def render_value(name, input_spec, inputs_object={}):
     elif value is None:
         raise Exception("Parameter value for parameter '%s' is missing in inputs object" % name)
 
-    input_binding = input_spec.get("inputBinding", {})
-    prefix = input_binding.get("prefix", "")
-
     if parameter_type=="boolean":
-        if value=="true" or value==True:
+        if value==True or value=="true":
             return prefix
         else:
             return None
 
-    if prefix!="" and input_binding.get("separate", True) is True:
-        prefix = prefix + " "
-
     if is_array:
+        if not isinstance(value, list):
+            raise Exception("Parameter '%s' is declared as 'array of %s', but value is not a list" % (name, parameter_type))
         values = value
     else:
         values = [value]
-    first_value = True
-    result = ""
+
+    resolved_values = []
+
     for v in values:
         if parameter_type=="string" and " " in v:
             current_value = '"' + v + '"'
@@ -108,16 +114,35 @@ def render_value(name, input_spec, inputs_object={}):
             current_value = get_filename_in_jobdir(v)
         else:
             current_value = str(v)
-        if item_separator is None:
-            if not first_value:
-                result += " "
-            result += prefix + current_value
+        resolved_values.append(current_value)
+    
+    if item_separator is not None:
+        resolved_values = [item_separator.join(resolved_values)]
+    
+    first = True
+    result = []
+    for v in resolved_values:
+        if first:
+            if prefix!="":
+                if not separate:
+                    result.append(prefix+v)
+                else:
+                    result.append(prefix)
+                    result.append(v)
+            else:
+                result.append(v)
         else:
-            if not first_value:
-                result += item_separator
-            result += current_value
-        first_value = False
-        
+            if prefix!="":
+                if not separate:
+                    result.append(prefix+v)
+                else:
+                    if is_nested_array:
+                        result.append(prefix)
+                    result.append(v)
+            else:
+                result.append(v)
+        first = False
+
     return result
 
 def get_local_file_list(inputs_object={}):
