@@ -5,46 +5,46 @@ from typing import Tuple
 
 import pyunicore.client
 
-from . import authorization as _authorization
+from pyunicore.helpers.connect import authentication as _authentication
 
 logger = logging.getLogger(__name__)
 
 
 def create_transport(
-    authorization: _authorization.Authorization,
+    authentication: _authentication.Authentication,
 ) -> pyunicore.client.Transport:
-    """Create a `pyunicore.client.Transport` for authorization.
+    """Create a `pyunicore.client.Transport` for authentication.
 
     Args:
-        authorization (pyunicore.helpers.Authorization): authorization method
+        authentication (pyunicore.helpers.Authentication): authentication method
 
     Returns:
         pyunicore.client.Transport
 
     """
-    token, is_bearer_token = _create_token(authorization)
+    token, is_bearer_token = _create_token(authentication)
     return pyunicore.client.Transport(auth_token=token, oidc=is_bearer_token)
 
 
 @functools.singledispatch
 def _create_token(
-    authorization: _authorization.Authorization,
+    authentication: _authentication.Authentication,
 ) -> Tuple[str, bool]:
-    raise NotImplementedError("Unsupported authorization method")
+    raise NotImplementedError("Unsupported authentication method")
 
 
-@_create_token.register(_authorization.UserAuthorization)
+@_create_token.register(_authentication.UserAuthentication)
 def _create_token_for_user_auth(
-    authorization: _authorization.UserAuthorization,
+    authentication: _authentication.UserAuthentication,
 ) -> Tuple[str, bool]:
-    token = f"{authorization.user}:{authorization.password}".encode()
+    token = f"{authentication.user}:{authentication.password}".encode()
     is_bearer_token = False
     return base64.b64encode(token).decode("ascii"), is_bearer_token
 
 
-@_create_token.register(_authorization.TokenAuthorization)
+@_create_token.register(_authentication.TokenAuthentication)
 def _create_token_for_token_auth(
-    authorization: _authorization.TokenAuthorization,
+    authentication: _authentication.TokenAuthentication,
 ) -> Tuple[str, bool]:
     is_bearer_token = True
-    return authorization.token, is_bearer_token
+    return authentication.token, is_bearer_token

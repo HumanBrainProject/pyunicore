@@ -71,9 +71,9 @@ Sample code to create a client for a UNICORE site
 
 The `pyunicore.helpers` module provides a set of higher-level APIs:
 
-- Different authorization methods:
-  1. user-password (`pyunicore.helpers.UserAuthorization`)
-  2. bearer token (`pyunicore.helpers.TokenAuthorization`)
+- Different authentication methods:
+  1. user-password (`pyunicore.helpers.UserAuthentication`)
+  2. bearer token (`pyunicore.helpers.TokenAuthentication`)
 - Creating a `pyunicore.client.Transport` (`pyunicore.helpers.create_transport`).
 - Connecting to
   - a registry (`pyunicore.helpers.connect_to_registry`).
@@ -89,9 +89,9 @@ The `pyunicore.helpers` module provides a set of higher-level APIs:
 import json
 from pyunicore import helpers
 
-authorization = helpers.UserAuthorization(user="demouser", password="test123")
+authentication = helpers.UserAuthentication(user="demouser", password="test123")
 
-transport = helpers.create_transport(authorization )
+transport = helpers.create_transport(authentication )
 print(json.dumps(transport.properties, indent=2))
 ```
 
@@ -104,11 +104,11 @@ from pyunicore import helpers
 
 registry_url = "https://localhost:8080/REGISTRY/rest/registries/default_registry"
 
-authorization = helpers.UserAuthorization(user="demouser", password="test123")
+authentication = helpers.UserAuthentication(user="demouser", password="test123")
 
 client = helpers.connect_to_registry(
     registry_url=registry_url,
-    authorization=authorization,
+    authentication=authentication,
 )
 print(json.dumps(client.properties, indent=2))
 ```
@@ -122,12 +122,12 @@ from pyunicore import helpers
 registry_url = "https://localhost:8080/REGISTRY/rest/registries/default_registry"
 site = "DEMO-SITE"
 
-authorization = helpers.UserAuthorization(user="demouser", password="test123")
+authentication = helpers.UserAuthentication(user="demouser", password="test123")
 
 client = helpers.connect_to_site_from_registry(
     registry_url=registry_url,
     site_name=site,
-    authorization=authorization,
+    authentication=authentication,
 )
 print(json.dumps(client.properties, indent=2))
 ```
@@ -140,11 +140,11 @@ from pyunicore import helpers
 
 site_url = "https://localhost:8080/DEMO-SITE/rest/core"
 
-authorization = helpers.UserAuthorization(user="demouser", password="test123")
+authentication = helpers.UserAuthentication(user="demouser", password="test123")
 
 client = helpers.connect_to_site(
     site_api_url=site_url ,
-    authorization=authorization,
+    authentication=authentication,
 )
 print(json.dumps(client.properties, indent=2))
 ```

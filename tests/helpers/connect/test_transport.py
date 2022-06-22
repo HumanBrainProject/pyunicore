@@ -1,21 +1,21 @@
 import pytest
 
 import pyunicore.helpers.connect.transport as transport
-import pyunicore.helpers.connect.authorization as authorization
+import pyunicore.helpers.connect.authentication as authentication
 
 
 @pytest.mark.parametrize(
     ("auth", "expected"),
     [
         (
-            authorization.UserAuthorization(
+            authentication.UserAuthentication(
                 user="test_user",
                 password="test_password",
             ),
             ("dGVzdF91c2VyOnRlc3RfcGFzc3dvcmQ=", False),
         ),
         (
-            authorization.TokenAuthorization(token="test-token"),
+            authentication.TokenAuthentication(token="test-token"),
             ("test-token", True),
         ),
     ],

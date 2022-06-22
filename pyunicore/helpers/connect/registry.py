@@ -3,29 +3,29 @@ from typing import Dict
 
 import pyunicore.client
 
-from . import transport as _transport
-from . import site as _site
-from . import authorization as _authorization
+from pyunicore.helpers.connect import transport as _transport
+from pyunicore.helpers.connect import site as _site
+from pyunicore.helpers.connect import authentication as _authentication
 
 logger = logging.getLogger(__name__)
 
 
 def connect_to_registry(
     registry_url: str,
-    authorization: _authorization.Authorization,
+    authentication: _authentication.Authentication,
 ) -> pyunicore.client.Registry:
     """Connect to a registry.
 
     Args:
         registry_url (str): URL to the UNICORE registry.
-        authorization (pyunicore.helpers.Authorization): Authorization method.
+        authentication (pyunicore.helpers.Authentication): Authentication method.
 
     Returns:
         pyunicore.client.Registry
 
     """
     logger.info("Attempting to connect to registry %s", registry_url)
-    transport = _transport.create_transport(authorization)
+    transport = _transport.create_transport(authentication)
     registry = _create_registry(transport=transport, registry_url=registry_url)
     return registry
 
@@ -42,14 +42,14 @@ def _create_registry(
 def connect_to_site_from_registry(
     registry_url: str,
     site_name: str,
-    authorization: _authorization.Authorization,
+    authentication: _authentication.Authentication,
 ) -> pyunicore.client.Client:
     """Create a connection to a site's UNICORE API from the registry base URL.
 
     Args:
         registry_url (str): URL to the UNICORE registry.
         site_name (str): Name of the site to connect to.
-        authorization (pyunicore.helpers.Authorization): Authorization method.
+        authentication (pyunicore.helpers.Authentication): Authentication method.
 
     Raises:
         ValueError: Site not available in the registry.
@@ -61,7 +61,7 @@ def connect_to_site_from_registry(
     logger.info(
         "Attempting to connect to %s from registry %s", site_name, registry_url
     )
-    transport = _transport.create_transport(authorization)
+    transport = _transport.create_transport(authentication)
     site_api_url = _get_site_api_url(
         site=site_name,
         registry_url=registry_url,
@@ -69,7 +69,7 @@ def connect_to_site_from_registry(
     )
     client = _site.connect_to_site(
         site_api_url=site_api_url,
-        authorization=authorization,
+        authentication=authentication,
     )
     return client
 

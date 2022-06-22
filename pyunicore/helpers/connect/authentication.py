@@ -2,8 +2,8 @@ import abc
 import dataclasses
 
 
-class Authorization(abc.ABC):
-    """Represents an HTTP authorization method."""
+class Authentication(abc.ABC):
+    """Represents an HTTP authentication method."""
 
     def __str__(self) -> str:
         """Mask credentials when formatted as string."""
@@ -15,8 +15,8 @@ class Authorization(abc.ABC):
 
 
 @dataclasses.dataclass(repr=False)
-class UserAuthorization(Authorization):
-    """Authorization  with user and password.
+class UserAuthentication(Authentication):
+    """Authentication  with user and password.
 
     Args:
         user (str): JUDOOR user name.
@@ -29,8 +29,8 @@ class UserAuthorization(Authorization):
 
 
 @dataclasses.dataclass(repr=False)
-class TokenAuthorization(Authorization):
-    """Authorization with a bearer token.
+class TokenAuthentication(Authentication):
+    """Authentication with a bearer token.
 
     Args:
         token (str): The bearer token.
