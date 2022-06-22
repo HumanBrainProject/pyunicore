@@ -1,12 +1,14 @@
 import dataclasses
 from typing import Dict
 from typing import Tuple
+from typing import Union
+from typing import Any
 from typing import Type as PythonType
 
 from pyunicore.helpers import _api_object
 
 
-class _VariableType:
+class Type:
     """Accepted variable types for workflow variables."""
 
     String = str
@@ -27,10 +29,10 @@ class _VariableType:
     @classmethod
     def _types(cls) -> Dict[PythonType, str]:
         return {
-            str: "STRING",
-            int: "INTEGER",
-            float: "FLOAT",
-            bool: "BOOLEAN",
+            cls.String: "STRING",
+            cls.Integer: "INTEGER",
+            cls.Float: "FLOAT",
+            cls.Boolean: "BOOLEAN",
         }
 
 
@@ -40,24 +42,21 @@ class Variable(_api_object.ApiRequestObject):
 
     Args:
         name (str): Name of the variable.
-        type (VariableType): Type of the variable.
+        type (Type): Type of the variable.
         initial_value: Initial value of the variable.
 
     """
 
-    class Type(_VariableType):
-        """Accepted variable types for workflow variables."""
-
     name: str
-    type: Type
-    initial_value: PythonType
+    type: Union[Type, Any]
+    initial_value: Any
 
     def __post_init__(self) -> None:
         self._check_for_correct_type()
         self._check_initial_value_for_correct_type()
 
     def _check_for_correct_type(self):
-        allowed_types = self.Type.get_types()
+        allowed_types = Type.get_types()
         if self.type not in allowed_types:
             raise ValueError(
                 f"{self.type} is not a valid variable type. "
@@ -68,17 +67,18 @@ class Variable(_api_object.ApiRequestObject):
         if not isinstance(self.initial_value, self.type):
             actual_type = type(self.initial_value)
             raise ValueError(
-                f"Initial value of {self._instance_name} has incorrect type "
+                f"Initial value of {self} has incorrect type "
                 f"{actual_type}, expected {self.type}"
             )
-
-    @property
-    def _instance_name(self) -> str:
-        return f"{self.__class__.__name__}(name={self.name})"
 
     def _to_dict(self) -> Dict:
         return {
             "name": self.name,
-            "type": self.Type.get_type_name(self.type),
-            "initial_value": self.initial_value,
+            "type": Type.get_type_name(self.type),
+            "initial_value": self._convert_value(),
         }
+
+    def _convert_value(self) -> Any:
+        if self.type == Type.Boolean:
+            return str(self.initial_value).lower()
+        return self.initial_value
