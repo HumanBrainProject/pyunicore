@@ -1,7 +1,7 @@
 import dataclasses
 from typing import Dict
 
-from . import activity
+from pyunicore.helpers.workflows.activities import activity
 
 
 @dataclasses.dataclass

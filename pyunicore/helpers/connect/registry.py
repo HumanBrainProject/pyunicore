@@ -18,7 +18,8 @@ def connect_to_registry(
 
     Args:
         registry_url (str): URL to the UNICORE registry.
-        authentication (pyunicore.helpers.Authentication): Authentication method.
+        authentication (pyunicore.helpers.Authentication): Authentication
+            method.
 
     Returns:
         pyunicore.client.Registry
@@ -49,7 +50,8 @@ def connect_to_site_from_registry(
     Args:
         registry_url (str): URL to the UNICORE registry.
         site_name (str): Name of the site to connect to.
-        authentication (pyunicore.helpers.Authentication): Authentication method.
+        authentication (pyunicore.helpers.Authentication): Authentication
+            method.
 
     Raises:
         ValueError: Site not available in the registry.

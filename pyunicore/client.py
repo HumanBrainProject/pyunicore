@@ -148,7 +148,7 @@ class RefreshHandler(object):
     
 class Transport(object):
     """wrapper around requests, which
-           - adds Authorization header (Basic or Bearer style)
+           - adds Authentication header (Basic or Bearer style)
            - transparently handles security sessions
            - handles user preferences
            - can be configured with an OIDC refresh handler
@@ -158,8 +158,8 @@ class Transport(object):
 
        Args:
            auth_token: the value of the auth token
-           oidc:       if true, the auth token is a Bearer token, resulting in "Authorization: Bearer <token_value>" header
-                       if false, the auth token is a Basic token, resulting in a "Authorization: Basic <auth_token>" header
+           oidc:       if true, the auth token is a Bearer token, resulting in "Authentication: Bearer <token_value>" header
+                       if false, the auth token is a Basic token, resulting in a "Authentication: Basic <auth_token>" header
            refresh_handler: optional refresh handler the will be invoked to refresh the bearer token
            timeout: timeout for HTTP calls (defaults to 120 seconds)
            use_security_sessions: if true, UNICORE's security sessions mechanism will be used (to speed up request processing)
@@ -194,7 +194,7 @@ class Transport(object):
         else:
             val = 'Basic %s' % self.auth_token
         
-        headers = {'Authorization': val,
+        headers = {'Authentication': val,
                    'Accept': 'application/json',
                    'Content-Type': 'application/json',
         }
@@ -388,7 +388,7 @@ class Client(object):
             raise Exception("Failure to authenticate at %s" % self.site_url)
         
     def access_info(self):
-        '''get authentication and authorization information about the current user'''
+        '''get authentication and authentication information about the current user'''
         return self.properties['client']
 
     def get_storages(self, offset=0, num=200, tags=[]):
@@ -893,7 +893,7 @@ class WorkflowService(object):
         return self.transport.get(url=self.workflows_url)
 
     def access_info(self):
-        '''get authentication and authorization information about the current user'''
+        '''get authentication and authentication information about the current user'''
         return self.properties['client']
 
     def assert_authentication(self):

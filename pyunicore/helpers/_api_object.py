@@ -15,7 +15,7 @@ class ApiRequestObject(abc.ABC):
 
     @abc.abstractmethod
     def _to_dict(self) -> Dict:
-        ...
+        """Return as dict."""
 
 
 def _create_dict_with_not_none_values(kwargs: Dict) -> Dict:

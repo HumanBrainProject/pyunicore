@@ -9,9 +9,9 @@ from typing import List
 from typing import Optional
 
 from pyunicore.helpers import _api_object
-from . import variable
-from . import transition
-from .activities import activity
+from pyunicore.helpers.workflows import variable
+from pyunicore.helpers.workflows import transition
+from pyunicore.helpers.workflows.activities import activity
 
 
 @dataclasses.dataclass

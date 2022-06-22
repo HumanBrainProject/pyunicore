@@ -3,7 +3,7 @@ from typing import Dict
 from typing import List
 
 from pyunicore.helpers.workflows import variable
-from . import _loop
+from pyunicore.helpers.workflows.activities.loops import _loop
 
 
 @dataclasses.dataclass

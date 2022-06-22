@@ -1,7 +1,7 @@
 import dataclasses
 from typing import Dict
 from typing import Tuple
-from typing import Type as tType
+from typing import Type as PythonType
 
 from pyunicore.helpers import _api_object
 
@@ -15,17 +15,17 @@ class _VariableType:
     Boolean = bool
 
     @classmethod
-    def get_types(cls) -> Tuple[tType]:
+    def get_types(cls) -> Tuple[PythonType]:
         """Return all available types."""
         return tuple(cls._types().keys())
 
     @classmethod
-    def get_type_name(cls, type: tType) -> str:
+    def get_type_name(cls, type: PythonType) -> str:
         """Get the UNICORE name for the type."""
         return cls._types()[type]
 
     @classmethod
-    def _types(cls) -> Dict[tType, str]:
+    def _types(cls) -> Dict[PythonType, str]:
         return {
             str: "STRING",
             int: "INTEGER",
@@ -50,7 +50,7 @@ class Variable(_api_object.ApiRequestObject):
 
     name: str
     type: Type
-    initial_value: tType
+    initial_value: PythonType
 
     def __post_init__(self) -> None:
         self._check_for_correct_type()

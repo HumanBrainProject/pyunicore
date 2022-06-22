@@ -1,6 +1,6 @@
 import dataclasses
 
-from . import while_loop
+from pyunicore.helpers.workflows.activities.loops import while_loop
 
 
 @dataclasses.dataclass

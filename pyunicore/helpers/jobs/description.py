@@ -9,8 +9,8 @@ from typing import List
 from typing import Optional
 
 from pyunicore.helpers import _api_object
-from . import data
-from . import resources as _resources
+from pyunicore.helpers.jobs import data
+from pyunicore.helpers.jobs import resources as _resources
 
 
 @dataclasses.dataclass

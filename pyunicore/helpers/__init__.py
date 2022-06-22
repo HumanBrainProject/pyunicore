@@ -1,3 +1,3 @@
-from . import jobs
-from . import workflows
-from . import connect
+from pyunicore.helpers import jobs
+from pyunicore.helpers import workflows
+from pyunicore.helpers import connect

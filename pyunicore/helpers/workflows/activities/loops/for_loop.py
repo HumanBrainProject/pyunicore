@@ -5,7 +5,7 @@ from typing import Optional
 
 from pyunicore.helpers import _api_object
 from pyunicore.helpers.workflows import variable
-from . import _loop
+from pyunicore.helpers.workflows.activities.loops import _loop
 
 
 @dataclasses.dataclass

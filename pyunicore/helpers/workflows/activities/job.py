@@ -7,7 +7,7 @@ from typing import Optional
 
 from pyunicore.helpers import _api_object
 from pyunicore.helpers import jobs
-from . import activity
+from pyunicore.helpers.workflows.activities import activity
 
 
 class _JobOption:
