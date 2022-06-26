@@ -3,12 +3,12 @@ from typing import Dict
 from typing import Tuple
 from typing import Union
 from typing import Any
-from typing import Type as PythonType
+from typing import Type
 
 from pyunicore.helpers import _api_object
 
 
-class Type:
+class VariableType:
     """Accepted variable types for workflow variables."""
 
     String = str
@@ -17,17 +17,17 @@ class Type:
     Boolean = bool
 
     @classmethod
-    def get_types(cls) -> Tuple[PythonType]:
+    def get_types(cls) -> Tuple[Type]:
         """Return all available types."""
         return tuple(cls._types().keys())
 
     @classmethod
-    def get_type_name(cls, type: PythonType) -> str:
+    def get_type_name(cls, type: Type) -> str:
         """Get the UNICORE name for the type."""
         return cls._types()[type]
 
     @classmethod
-    def _types(cls) -> Dict[PythonType, str]:
+    def _types(cls) -> Dict[Type, str]:
         return {
             cls.String: "STRING",
             cls.Integer: "INTEGER",
@@ -42,13 +42,13 @@ class Variable(_api_object.ApiRequestObject):
 
     Args:
         name (str): Name of the variable.
-        type (Type): Type of the variable.
+        type (VariableType): Type of the variable.
         initial_value: Initial value of the variable.
 
     """
 
     name: str
-    type: Union[Type, Any]
+    type: Union[VariableType, Any]
     initial_value: Any
 
     def __post_init__(self) -> None:
@@ -56,7 +56,7 @@ class Variable(_api_object.ApiRequestObject):
         self._check_initial_value_for_correct_type()
 
     def _check_for_correct_type(self):
-        allowed_types = Type.get_types()
+        allowed_types = VariableType.get_types()
         if self.type not in allowed_types:
             raise ValueError(
                 f"{self.type} is not a valid variable type. "
@@ -74,11 +74,11 @@ class Variable(_api_object.ApiRequestObject):
     def _to_dict(self) -> Dict:
         return {
             "name": self.name,
-            "type": Type.get_type_name(self.type),
+            "type": VariableType.get_type_name(self.type),
             "initial_value": self._convert_value(),
         }
 
     def _convert_value(self) -> Any:
-        if self.type == Type.Boolean:
+        if self.type == VariableType.Boolean:
             return str(self.initial_value).lower()
         return self.initial_value

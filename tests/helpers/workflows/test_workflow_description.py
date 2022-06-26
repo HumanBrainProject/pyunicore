@@ -13,7 +13,7 @@ class TestWorkflowDescription:
         variables = [
             workflows.Variable(
                 name="test-variable",
-                type=workflows.Variable.Type.Integer,
+                type=workflows.VariableType.Integer,
                 initial_value=1,
             )
         ]
