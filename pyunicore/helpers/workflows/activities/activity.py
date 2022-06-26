@@ -12,7 +12,6 @@ class Activity(_api_object.ApiRequestObject):
     Args:
         id (str): ID of the activity.
             Must be unique within the workflow.
-        type (ActivityType): Type of the activity.
 
     """
 

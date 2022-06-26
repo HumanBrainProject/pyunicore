@@ -66,7 +66,7 @@ class _JobUserPreferences(_api_object.ApiRequestObject):
     group: str
     supplementary_groups: str
 
-    def _to_dict(self) -> str:
+    def _to_dict(self) -> dict:
         return {
             "role": self.role,
             "uid": self.uid,
@@ -97,7 +97,7 @@ class Job(activity.Activity):
     class UserPreferences(_JobUserPreferences):
         """A user preference."""
 
-    job: jobs.Description
+    description: jobs.Description
     site_name: str
     user_preferences: Optional[UserPreferences] = None
     options: Optional[List[Option]] = None
@@ -108,7 +108,7 @@ class Job(activity.Activity):
     def _activity_to_dict(self) -> Dict:
         return {
             "job": {
-                **self.job.to_dict(),
+                **self.description.to_dict(),
                 "Site name": self.site_name,
                 "User preferences": self.user_preferences,
             },
