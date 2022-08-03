@@ -1,8 +1,11 @@
 '''
-    Client for UNICORE using the REST API
+    Client library for UNICORE
 
-    For full info on the REST API, see https://sourceforge.net/p/unicore/wiki/REST_API/
+    For full info on the UNICORE REST API, see
+    https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api/index.html
 '''
+
+import credentials
 
 import os
 import re
@@ -11,13 +14,13 @@ import time
 
 from contextlib import closing
 from datetime import datetime, timedelta
-from jwt import decode as jwt_decode, ExpiredSignatureError
 
 try:
     from urllib3 import disable_warnings
     disable_warnings()
 except:
     pass
+
 
 _REST_CACHE_TIMEOUT = 5  # in seconds
 _HBP_REGISTRY_URL = ('https://hbp-unic.fz-juelich.de:7112'
@@ -97,104 +100,52 @@ class TimedCacheProperty(object):
         return self
 
 
-class RefreshHandler(object):
-    ''' helper to refresh an OAuth token '''
-    def __init__(self, refresh_config, token = None):
-        '''
-        token: initial access token (can be None)
-        refresh_config: a dict containing url, client_id, client_secret, refresh_token
-        '''
-        self.refresh_config = refresh_config
-        self.token = token
-        if not token:
-            self.refresh()
-
-    def is_valid_token(self):
-        '''
-        check if the given token is still valid
-        TODO check whether token was revoked
-        '''
-        try:
-            jwt_decode(self.token, options={'verify_signature': False,
-                                   'verify_nbf': False,
-                                   'verify_exp': True,
-                                   'verify_aud': False})
-            return True
-        except ExpiredSignatureError as ex:
-            return False
-
-    def refresh(self):
-        ''' refresh the token '''
-        params = dict(
-            client_id=self.refresh_config['client_id'],
-            client_secret=self.refresh_config['client_secret'],
-            refresh_token=self.refresh_config['refresh_token'],
-            grant_type='refresh_token'
-        )
-        url = "%stoken" % self.refresh_config['url']
-        
-        res = requests.post(url,headers={"Accept": "application/json"}, data=params)
-        res.raise_for_status()
-        self.token = res.json()['access_token']
-        return self.token
- 
-    def get_token(self):
-        ''' get a valid access token. If necessary, refresh it.
-        '''
-        if not self.is_valid_token():
-            self.refresh()
-        return self.token
-
     
 class Transport(object):
     """wrapper around requests, which
-           - adds Authorization header (Basic or Bearer style)
+           - adds HTTP Authorization header
            - transparently handles security sessions
            - handles user preferences
            - can be configured with an OIDC refresh handler
 
-       see https://sourceforge.net/p/unicore/wiki/REST_API/#user-preferences
-       see https://sourceforge.net/p/unicore/wiki/REST_API/#security-session-handling
+       see also
+           https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api/index.html#user-preferences
+           https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api/index.html#security-session-handling
 
        Args:
-           auth_token: the value of the auth token
-           oidc:       if true, the auth token is a Bearer token, resulting in "Authorization: Bearer <token_value>" header
-                       if false, the auth token is a Basic token, resulting in a "Authorization: Basic <auth_token>" header
-           refresh_handler: optional refresh handler the will be invoked to refresh the bearer token
+           credential: the credential
            timeout: timeout for HTTP calls (defaults to 120 seconds)
            use_security_sessions: if true, UNICORE's security sessions mechanism will be used (to speed up request processing)
            verify: if true, SSL verification of the server's certificate will be done
     """
-    def __init__(self, auth_token, oidc=True, verify=False, refresh_handler=None, use_security_sessions=True, timeout=120):
+    def __init__(self, credential, oidc=True, verify=False, refresh_handler=None, use_security_sessions=True, timeout=120):
         super(Transport, self).__init__()
-        self.auth_token = auth_token
-        self.oidc = oidc
+        if type(credential)==str:
+            """ stay backwards compatible """
+            if oidc:
+                self.credential = credentials.OIDCToken(credential, refresh_handler)
+            else:
+                self.credential = credentials.BasicToken(credential)
+        else:
+            self.credential = credential
         self.verify = verify
-        self.refresh_handler = refresh_handler
         self.use_security_sessions = use_security_sessions
         self.last_session_id = None
         self.preferences = None
         self.timeout = timeout
 
     def _clone(self):
-        ''' create a copy of this transport, with the same initial settings '''
-        tr = Transport(self.auth_token, self.oidc, self.verify, self.refresh_handler, self.use_security_sessions, self.timeout)
-        tr.last_session_id = self.last_session_id
+        ''' create a copy of this transport '''
+        tr = Transport(self.credential)
         tr.preferences = self.preferences
+        tr.use_security_sessions = self.use_security_sessions
+        tr.last_session_id = self.last_session_id
+        tr.timeout = self.timeout
+        tr.verify = self.verify
         return tr
 
     def _headers(self, kwargs):
-        if self.oidc:
-            if self.refresh_handler:
-                try:
-                    self.auth_token = self.refresh_handler.get_token()
-                except:
-                    pass
-            val = 'Bearer %s' % self.auth_token
-        else:
-            val = 'Basic %s' % self.auth_token
-        
-        headers = {'Authorization': val,
+        headers = {'Authorization': self.credential.get_auth_header(),
                    'Accept': 'application/json',
                    'Content-Type': 'application/json',
         }
@@ -354,15 +305,15 @@ class Client(object):
     '''Entrypoint to the UNICORE API at a site
 
         >>> base_url = '...' # e.g. "https://localhost:8080/DEMO-SITE/rest/core"
-        >>> token = '...'
-        >>> transport = Transport(token)
+        >>> credential = credentials.UsernamePassword("demouser", "test123")
+        >>> transport = client.Transport(credential)
         >>> sites = get_sites(transport)
-        >>> client = Client(transport, sites['JURECA'])
+        >>> site_client = client.Client(transport, sites['JURECA'])
         >>> # to get the jobs
-        >>> jobs = client.get_jobs()
+        >>> jobs = site_client.get_jobs()
         >>> # to start a new job:
         >>> job_description = {...}
-        >>> job = client.new_job(job_description)
+        >>> job = site_client.new_job(job_description)
     '''
     
     def __init__(self, transport, site_url, check_authentication=True):
@@ -967,4 +918,3 @@ class Workflow(Resource):
                  self.is_running()))
 
     __str__ = __repr__
-

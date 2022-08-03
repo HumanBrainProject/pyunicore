@@ -62,10 +62,10 @@ class TestCWL1(unittest.TestCase):
         u_job, files, outputs = cwlconverter.convert_cmdline_tool(cwl_doc, cwl_input_object)
         print(json.dumps(u_job, indent=2))
         args = u_job["Arguments"]
-        self.assertEquals(8, len(args))
-        self.assertEquals(["-A", "one", "two", "three"], args[0:4])
-        self.assertEquals(["-B=four", "-B=five", "-B=six"], args[4:7])
-        self.assertEquals("-C=seven,eight,nine", args[7])
+        self.assertEqual(8, len(args))
+        self.assertEqual(["-A", "one", "two", "three"], args[0:4])
+        self.assertEqual(["-B=four", "-B=five", "-B=six"], args[4:7])
+        self.assertEqual("-C=seven,eight,nine", args[7])
 
     def test_resolve_input_files(self):
         print("*** test_resolve_input_files")        
