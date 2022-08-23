@@ -5,7 +5,7 @@
     https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api/index.html
 '''
 
-import credentials
+import pyunicore.credentials
 
 import os
 import re
@@ -123,9 +123,9 @@ class Transport(object):
         if type(credential)==str:
             """ stay backwards compatible """
             if oidc:
-                self.credential = credentials.OIDCToken(credential, refresh_handler)
+                self.credential = pyunicore.credentials.OIDCToken(credential, refresh_handler)
             else:
-                self.credential = credentials.BasicToken(credential)
+                self.credential = pyunicore.credentials.BasicToken(credential)
         else:
             self.credential = credential
         self.verify = verify

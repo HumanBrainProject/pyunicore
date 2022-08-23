@@ -3,7 +3,6 @@ import json, unittest
 import credentials
 from client import Transport
 from base64 import b64encode
-from builtins import object
         
 class TestCredentials(unittest.TestCase):
     def setUp(self):

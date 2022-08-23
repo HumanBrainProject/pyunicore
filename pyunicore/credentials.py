@@ -4,7 +4,8 @@
 
 from abc import ABCMeta, abstractmethod
 from base64 import b64encode
-from jwt import decode as jwt_decode, ExpiredSignatureError
+from jwt import decode as jwt_decode, encode as jwt_encode, ExpiredSignatureError
+import datetime
 import requests
 
 try:
@@ -123,3 +124,41 @@ class BasicToken(Credential):
     
     def get_auth_header(self):
         return "Basic "+self.token
+    
+class JWTToken(Credential):
+    """
+    Produces a signed JWT token ("Bearer <auth_token>")
+    uses pyjwt
+
+    Args:
+        subject - the subject user name or user X.500 DN
+        issuer - the issuer of the token
+        secret - a private key or 
+        algorithm - signing algorithm
+        
+        lifetime - token validity time in seconds
+        etd - for delegation tokens (servers / services authenticating users), this must be 'True'.
+              For end users authenticating, set to 'False'
+    """
+    
+    def __init__(self, subject, issuer, secret, algorithm = "RS256", lifetime = 300, etd=False):
+        self.subject= subject
+        self.issuer = issuer
+        self.lifetime = lifetime
+        self.algorithm = algorithm
+        self.secret = secret
+        self.etd = etd
+
+    def create_token(self):
+        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        payload = {
+            "etd": str(self.etd).lower(),
+            "sub": self.subject,
+            "iss": self.issuer,
+            "iat": now,
+            "exp": now + datetime.timedelta(seconds=self.lifetime),
+        }
+        return jwt_encode(payload, self.secret, algorithm=self.algorithm)
+
+    def get_auth_header(self):
+        return "Bearer "+self.create_token()

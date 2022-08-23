@@ -22,18 +22,18 @@ Install from PyPI with
 
 Sample code to create a client for a UNICORE site
 
-    import pyunicore.client as unicore_client
-    import pyunicore.credentials
+    import pyunicore.client as uc_client
+    import pyunicore.credentials as uc_credentials
     
     import json
    
     base_url = "https://localhost:8080/DEMO-SITE/rest/core"
 
     # authenticate with username/password
-    credential = credentials.UsernamePassword("demouser", "test123")
-    transport = unicore_client.Transport(credential)
+    credential = uc_credentials.UsernamePassword("demouser", "test123")
+    transport  = uc_client.Transport(credential)
     
-    client = unicore_client.Client(transport, base_url)
+    client = uc_client.Client(transport, base_url)
     print(json.dumps(client.properties, indent = 2))
     
 # Running a sample job and reading result data
@@ -56,17 +56,16 @@ Sample code to create a client for a UNICORE site
     
 # Connecting to a Registry and listing all registered services
 
-    import pyunicore.client as unicore_client
-    import pyunicore.credentials
+    import pyunicore.client as uc_client
+    import pyunicore.credentials as uc_credentials
     
     import json
 
     registry_url = "https://localhosz:8080/REGISTRY/rest/registries/default_registry"
 
     # authenticate with username/password
-    credential = credentials.UsernamePassword("demouser", "test123")
-    transport = unicore_client.Transport(credential)
+    credential = uc_credentials.UsernamePassword("demouser", "test123")
+    transport = uc_client.Transport(credential)
     
-    r = unicore_client.Registry(tr, registry_url)
+    r = uc_client.Registry(tr, registry_url)
     print(r.site_urls)
-
