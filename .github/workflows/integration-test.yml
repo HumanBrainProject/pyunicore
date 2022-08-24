@@ -10,10 +10,11 @@ jobs:
   
     runs-on: ubuntu-latest
 
-    container:
-      image: ghcr.io/unicore-eu/unicore-testing-all:8.3.0
-      ports:
-        - 8080:8080
+    services:
+      unicore:
+        image: ghcr.io/unicore-eu/unicore-testing-all:8.3.0
+        ports:
+          - 8080:8080
 
     steps:
     - uses: actions/checkout@v2
@@ -24,8 +25,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install jwt
-    - name: Tests
+	pip install setuptools wheel
+	pip install .
+    - name: Run tests
       run: |
         curl -k -u demouser:test123 -H "Accept: application/json" https://localhost:8080/DEMO-SITE/rest/core
-
