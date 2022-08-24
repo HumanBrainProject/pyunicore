@@ -61,7 +61,7 @@ Sample code to create a client for a UNICORE site
     
     import json
 
-    registry_url = "https://localhosz:8080/REGISTRY/rest/registries/default_registry"
+    registry_url = "https://localhost:8080/REGISTRY/rest/registries/default_registry"
 
     # authenticate with username/password
     credential = uc_credentials.UsernamePassword("demouser", "test123")
