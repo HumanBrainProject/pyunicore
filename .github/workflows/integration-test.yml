@@ -15,11 +15,6 @@ jobs:
         image: ghcr.io/unicore-eu/unicore-testing-all:8.3.0
         ports:
           - 8080:8080
-        options: >-
-          --health-cmd 'curl -k https://localhost:8080/DEMO-SITE/rest/core'
-          --health-interval 10s
-          --health-timeout 10s
-          --health-retries 10
 
     steps:
     - uses: actions/checkout@v2
