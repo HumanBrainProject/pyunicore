@@ -3,7 +3,7 @@
 
 name: Integration tests
 
-on: workflow-dispatch
+on: workflow_dispatch
 
 jobs:
   integration-test:
