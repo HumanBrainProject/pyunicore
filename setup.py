@@ -4,7 +4,11 @@
 from setuptools import setup, find_packages
 import versioneer
 
-long_description = open("README.md").read()
+long_description = """
+This library provides a Python wrapper for the UNICORE REST API, making common tasks like file access, job submission and management, workflow submission and management more convenient, and integrating UNICORE features better with typical Python usage.
+
+Visit https://github.com/HumanBrainProject/pyunicore for more information.
+"""
 
 python_requires = '>=3'
 

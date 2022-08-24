@@ -1,12 +1,12 @@
 # Python library for using the UNICORE REST API
 
-This library covers part of the UNICORE REST API, making common tasks
-like file access, job submission and management, workflow submission
-and management more convenient, and integrating UNICORE features better
+This library covers the UNICORE REST API, making common tasks like
+file access, job submission and management, workflow submission and
+management more convenient, and integrating UNICORE features better
 with typical Python usage.
 
 For the full, up-to-date documentation of the REST API,
-see https://sourceforge.net/p/unicore/wiki/REST_API
+see https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api
 
 Development of this library was funded in part by the Human Brain Project
 
@@ -40,7 +40,7 @@ Sample code to create a client for a UNICORE site
 
     my_job = {'Executable': 'date'}
     
-    job = client.new_job(job_description=my_job, inputs=[])
+    job = uc_client.new_job(job_description=my_job, inputs=[])
     print(json.dumps(job.properties, indent = 2))
     
     job.poll() # wait for job to finish
