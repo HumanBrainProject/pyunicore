@@ -29,4 +29,4 @@ jobs:
         pip install .
     - name: Run tests
       run: |
-        curl -k -u demouser:test123 -H "Accept: application/json" https://localhost:8080/DEMO-SITE/rest/core
+        curl -k -u demouser:test123 -H "Accept: application/json" https://unicore:8080/DEMO-SITE/rest/core
