@@ -2,17 +2,17 @@
     Credentials for authenticating
 """
 
-from abc import ABCMeta, abstractmethod
-from base64 import b64encode
-from jwt import decode as jwt_decode, encode as jwt_encode, ExpiredSignatureError
-import datetime
-import requests
-
 try:
     from urllib3 import disable_warnings
     disable_warnings()
 except:
     pass
+
+from abc import ABCMeta, abstractmethod
+from base64 import b64encode
+from jwt import decode as jwt_decode, encode as jwt_encode, ExpiredSignatureError
+import datetime
+import requests
 
 
 class Credential(object):

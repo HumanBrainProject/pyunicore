@@ -3,7 +3,9 @@
 
 name: Integration tests
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  push:
 
 jobs:
   integration-test:
@@ -29,4 +31,5 @@ jobs:
         pip install .
     - name: Run tests
       run: |
-        curl -k -u demouser:test123 -H "Accept: application/json" https://localhost:8080/DEMO-SITE/rest/core
+        make integration-test
+

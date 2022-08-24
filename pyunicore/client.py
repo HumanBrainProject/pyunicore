@@ -5,6 +5,12 @@
     https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api/index.html
 '''
 
+try:
+    from urllib3 import disable_warnings
+    disable_warnings()
+except:
+    pass
+
 import pyunicore.credentials
 
 import os
@@ -14,12 +20,6 @@ import time
 
 from contextlib import closing
 from datetime import datetime, timedelta
-
-try:
-    from urllib3 import disable_warnings
-    disable_warnings()
-except:
-    pass
 
 
 _REST_CACHE_TIMEOUT = 5  # in seconds

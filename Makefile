@@ -1,15 +1,24 @@
 TESTS = $(wildcard tests/test_*.py)
-export PYTHONPATH := pyunicore:tests
+INTEGRATIONTESTS = $(wildcard integration-tests/test_*.py)
+export PYTHONPATH := pyunicore
 PYTHON=python3
 
 test: runtest
 
-.PHONY: runtest $(TESTS)
+integration-test: runintegrationtest
+
+.PHONY: runtest $(TESTS) runintegrationtest $(INTEGRATIONTESTS)
 
 runtest: $(TESTS)
 
 $(TESTS):
 	@echo "\n** Running test $@"
+	@${PYTHON} $@
+
+runintegrationtest: $(INTEGRATIONTESTS)
+
+$(INTEGRATIONTESTS):
+	@echo "\n** Running integration test $@"
 	@${PYTHON} $@
 
 clean:
