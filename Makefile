@@ -1,6 +1,6 @@
 TESTS = $(wildcard tests/test_*.py)
 INTEGRATIONTESTS = $(wildcard integration-tests/test_*.py)
-export PYTHONPATH := pyunicore
+export PYTHONPATH := .
 PYTHON=python3
 
 test: runtest
@@ -25,3 +25,4 @@ clean:
 	@find -name "*~" -delete
 	@find -name "*.pyc" -delete
 	@find -name "__pycache__" -delete
+	@rm -rf build/

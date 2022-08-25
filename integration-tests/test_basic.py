@@ -22,6 +22,8 @@ class TestBasic(unittest.TestCase):
         client = self.get_client()
         job_desc = {"Executable": "date"}
         job = client.new_job(job_desc)
+        print(job)
+        job.cache_time = 0
         job.poll()
         exit_code = int(job.properties['exitCode'])
         self.assertEqual(0, exit_code)
