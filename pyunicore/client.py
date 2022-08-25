@@ -11,18 +11,18 @@ try:
 except:
     pass
 
-import pyunicore.credentials
+from contextlib import closing
+from datetime import datetime, timedelta
 
 import os
 import re
 import requests
 import time
 
-from contextlib import closing
-from datetime import datetime, timedelta
+import pyunicore.credentials
 
+_DEFAULT_CACHE_TIME = 5  # in seconds
 
-_REST_CACHE_TIMEOUT = 5  # in seconds
 _HBP_REGISTRY_URL = ('https://hbp-unic.fz-juelich.de:7112'
                      '/HBP/rest/registries/default_registry')
 
@@ -46,27 +46,6 @@ _WORKFLOWS_RE = r'''
 _WORKFLOWS_RE = re.compile(_WORKFLOWS_RE, re.VERBOSE)
 
 
-def get_sites(transport, registry_url=_HBP_REGISTRY_URL):
-    '''Get all sites from registery'''
-    resp = transport.get(url=registry_url)
-    site_urls = (prop['href']
-                 for prop in resp['entries']
-                 if prop['type'] == 'TargetSystemFactory')
-    sites = dict(reversed(_FACTORY_RE.match(site).groups())
-                 for site in site_urls)
-    return sites
-
-
-def get_workflow_services(transport, registry_url=_HBP_REGISTRY_URL):
-    '''Get all workflow services from registery'''
-    resp = transport.get(url=registry_url)
-    site_urls = (prop['href']
-                 for prop in resp['entries']
-                 if prop['type'] == 'WorkflowServices')
-    sites = dict(reversed(_WORKFLOWS_RE.match(site).groups())
-                 for site in site_urls)
-    return sites
-
 def _build_full_url(url, offset, num, tags):
     ''' adds optional paging and tags as query to the url '''
     q_params = []
@@ -79,26 +58,6 @@ def _build_full_url(url, offset, num, tags):
     if len(q_params)>0:
         url = url + "?" + "&".join(map(str, q_params))
     return url
-
-class TimedCacheProperty(object):
-    '''decorator to create get only property; values are fetched once per `timeout`'''
-    def __init__(self, timeout):
-        self._timeout = timedelta(seconds=timeout)
-        self._func = None
-        self._values = {}
-
-    def __get__(self, instance, cls):
-        last_lookup, value = self._values.get(instance, (datetime.min, None))
-        now = datetime.now()
-        if self._timeout < now - last_lookup:
-            value = self._func(instance)
-            self._values[instance] = now, value
-        return value
-
-    def __call__(self, func):
-        self._func = func
-        return self
-
 
     
 class Transport(object):
@@ -183,10 +142,10 @@ class Transport(object):
     
     def run_method(self, method, **args):
         ''' performs the requested method, handling security sessions, timeouts etc '''
-        headers = self._headers(args)
-        res = method(headers=headers, verify=self.verify, timeout=self.timeout, **args)
-        if self.repeat_required(res, headers):
-            res = method(headers=headers, verify=self.verify, timeout=self.timeout, **args)
+        _headers = self._headers(args)
+        res = method(headers=_headers, verify=self.verify, timeout=self.timeout, **args)
+        if self.repeat_required(res, _headers):
+            res = method(headers=_headers, verify=self.verify, timeout=self.timeout, **args)
         self.checkError(res)
         if self.use_security_sessions:
             self.last_session_id = res.headers.get('X-UNICORE-SecuritySession', None)
@@ -219,18 +178,27 @@ class Transport(object):
 
 
 class Resource(object):
-    ''' Base class for a UNICORE resource with properties and some common methods'''
+    ''' Base class for accessing a UNICORE REST endpoint with (cached)
+        properties and some common methods
+    '''
 
-    def __init__(self, transport, resource_url):
+    def __init__(self, transport, resource_url, cache_time = _DEFAULT_CACHE_TIME):
         super(Resource, self).__init__()
         self.transport = transport._clone()
         self.resource_url = resource_url
+        self.cache_time = cache_time
+        self._last_properties = None
+        self._last_retrieved = datetime.min
 
-    @TimedCacheProperty(timeout=_REST_CACHE_TIMEOUT)
+    @property
     def properties(self):
-        '''get resource properties (these are cached for 5 seconds)'''
-        return self.transport.get(url=self.resource_url)
-    
+        '''get resource properties (these are cached for cache_time seconds)'''
+        now = datetime.now()
+        if self.cache_time <= 0 or (timedelta(seconds = self.cache_time) < now - self._last_retrieved):
+            self._last_properties = self.transport.get(url=self.resource_url)
+            self._last_retrieved = now
+        return self._last_properties
+
     @property
     def links(self):
         urls = self.transport.get(url=self.resource_url)['_links']
@@ -262,8 +230,8 @@ class Registry(Resource):
     Will collect the BASE URLs of all registered sites
     '''
 
-    def __init__(self, transport, url):
-        super(Registry, self).__init__(transport,url)
+    def __init__(self, transport, url, cache_time = _DEFAULT_CACHE_TIME):
+        super(Registry, self).__init__(transport, url, cache_time)
         self.refresh()
     
     def refresh(self):
@@ -275,7 +243,7 @@ class Registry(Resource):
                 # just want the "core" URL and the site ID
                 href = entry['href']
                 service_type = entry['type']
-                if "TargetSystemFactory" == service_type:
+                if "CoreServices" == service_type:
                     base = re.match(r"(https://\S+/rest/core).*", href).group(1)
                     site_name = re.match(r"https://\S+/(\S+)/rest/core", href).group(1)
                     self.site_urls[site_name]=base
@@ -289,8 +257,7 @@ class Registry(Resource):
 
     def site(self, name):
         ''' Get a client object for the named site '''
-        url = self.site_urls[name]
-        return Client(self.transport, url)
+        return Client(self.transport, self.site_urls[name])
 
     def workflow_service(self, name=None):
         ''' Get a client object for the named site, or the first in the list if no name is given '''
@@ -301,7 +268,7 @@ class Registry(Resource):
         return WorkflowService(self.transport, url)
 
 
-class Client(object):
+class Client(Resource):
     '''Entrypoint to the UNICORE API at a site
 
         >>> base_url = '...' # e.g. "https://localhost:8080/DEMO-SITE/rest/core"
@@ -316,27 +283,16 @@ class Client(object):
         >>> job = site_client.new_job(job_description)
     '''
     
-    def __init__(self, transport, site_url, check_authentication=True):
-        super(Client, self).__init__()
-        self.transport = transport
-        self.site_url = site_url
+    def __init__(self, transport, site_url, check_authentication=True, cache_time = _DEFAULT_CACHE_TIME):
+        super(Client, self).__init__(transport, site_url, cache_time)
         self.check_authentication = check_authentication
         if self.check_authentication:
             self.assert_authentication()
 
-    @TimedCacheProperty(timeout=_REST_CACHE_TIMEOUT)
-    def properties(self):
-        return self.transport.get(url=self.site_url)
-
-    @property
-    def links(self):
-        urls = self.transport.get(url=self.site_url)['_links']
-        return {k: v['href'] for k, v in urls.items()}
-
     def assert_authentication(self):
         ''' Asserts that the remote role is not "anonymous" '''
         if self.access_info()['role']['selected']=="anonymous":
-            raise Exception("Failure to authenticate at %s" % self.site_url)
+            raise Exception("Failure to authenticate at %s" % self.resource_url)
         
     def access_info(self):
         '''get authentication and authorization information about the current user'''
@@ -419,21 +375,21 @@ class Client(object):
 
 class Application(Resource):
     '''wrapper around a UNICORE application '''
-    def __init__(self, transport, app_url, submit_url=None):
-        super(Application, self).__init__(transport, app_url)
+    def __init__(self, transport, app_url, submit_url=None, cache_time = _DEFAULT_CACHE_TIME):
+        super(Application, self).__init__(transport, app_url, cache_time)
         if submit_url is None:
             submit_url = app_url.split("/rest/core/factories/")[0]+"/rest/core/jobs"
         self.submit_url = submit_url
 
-    @TimedCacheProperty(timeout=3600)
+    @property
     def name(self):
         return self.properties['ApplicationName']
 
-    @TimedCacheProperty(timeout=3600)
+    @property
     def version(self):
         return self.properties['ApplicationVersion']
 
-    @TimedCacheProperty(timeout=3600)
+    @property
     def options(self):
         return self.properties['Options']
 
@@ -450,12 +406,12 @@ class Application(Resource):
 class Job(Resource):
     '''wrapper around UNICORE job'''
 
-    def __init__(self, transport, job_url):
-        super(Job, self).__init__(transport, job_url)
+    def __init__(self, transport, job_url, cache_time = _DEFAULT_CACHE_TIME):
+        super(Job, self).__init__(transport, job_url, cache_time)
 
     @property
     def working_dir(self):
-        '''return the Storage for accessing the working directory '''
+        '''return the Storage for accessing this job's working directory '''
         return Storage(
             self.transport,
             self.links['workingDirectory'])
@@ -465,34 +421,33 @@ class Job(Resource):
         return self.transport.get(url=self.links['details'])
 
     def is_running(self):
-        '''checks whether a job is still running'''
-        status = self.properties['status']
-        return status not in ('SUCCESSFUL', 'FAILED', )
+        '''checks whether this job is still running'''
+        return self.properties['status'] not in ( 'SUCCESSFUL', 'FAILED' )
 
     def abort(self):
-        '''abort the job'''
+        '''abort this job'''
         url = self.links['action:abort']
         return self.transport.post(url=url, json={})
 
     def restart(self):
-        '''restart the job'''
+        '''restart this job'''
         url = self.links['action:restart']
         return self.transport.post(url=url, json={})
 
     def start(self):
-        '''start the job - only required if client had to stage-in local files '''
+        '''start this job - only required if client had to stage-in local files '''
         url = self.links['action:start']
         return self.transport.post(url=url, json={})
 
     @property
     def job_id(self):
-        '''get the UID of the job'''
+        '''get the UID of this job'''
         return os.path.basename(self.resource_url)
 
     def poll(self):
-        '''wait until job completes'''
+        '''wait until this job completes'''
         while self.is_running():
-            time.sleep(_REST_CACHE_TIMEOUT + 0.1)
+            time.sleep(max(2, self.cache_time + 1))
 
     def __repr__(self):
         return ('Job: %s submitted: %s running: %s' %
@@ -504,8 +459,8 @@ class Job(Resource):
 
 class Compute(Resource):
     ''' wrapper around a UNICORE compute resource (a specific cluster with queues) '''
-    def __init__(self, transport, job_url):
-        super(Compute, self).__init__(transport, job_url)
+    def __init__(self, transport, job_url, cache_time = _DEFAULT_CACHE_TIME):
+        super(Compute, self).__init__(transport, job_url, cache_time)
 
     def __repr__(self):
         return ('Compute: %s' %
@@ -527,9 +482,8 @@ class Compute(Resource):
 class Storage(Resource):
     ''' wrapper around a UNICORE Storage resource '''
 
-    def __init__(self, transport, storage_url):
-        super(Storage, self).__init__(transport, storage_url)
-        self.storage_url = storage_url
+    def __init__(self, transport, storage_url, cache_time = _DEFAULT_CACHE_TIME):
+        super(Storage, self).__init__(transport, storage_url, cache_time)
 
     def files_url(self):
         return self.links['files']+'/'
@@ -615,11 +569,11 @@ class Storage(Resource):
                 destination = os.path.basename(input_file)
             else:
                 destination = input_file
-        headers = {'Content-Type': 'application/octet-stream'}
+        _headers = {'Content-Type': 'application/octet-stream'}
         with open(input_file, 'rb') as fd:
             self.transport.put(
-                url=os.path.join(self.resource_url, "files", destination),
-                headers=headers,
+                url = os.path.join(self.resource_url, "files", destination),
+                headers = _headers,
                 data=fd)
 
     def send_file(self, file_name, remote_url, protocol=None, scheduled=None, additional_parameters={}):
@@ -644,7 +598,7 @@ class Storage(Resource):
             "target": remote_url,
             "extraParameters": params
         }
-        dest = self.links.get('transfers', self.storage_url+"/transfers")
+        dest = self.links.get('transfers', self.resource_url+"/transfers")
         with closing(self.transport.post(url=dest, json=json)) as resp:
             tr_url = resp.headers['Location']
         
@@ -673,7 +627,7 @@ class Storage(Resource):
             "extraParameters": params
         }
 
-        dest = self.links.get('transfers', self.storage_url+"/transfers")
+        dest = self.links.get('transfers', self.resource_url+"/transfers")
         with closing(self.transport.post(url=dest, json=json)) as resp:
             tr_url = resp.headers['Location']
         
@@ -681,7 +635,7 @@ class Storage(Resource):
 
     def __repr__(self):
         return ('Storage: %s' %
-                (self.storage_url,
+                (self.resource_url,
                 ))
 
     __str__ = __repr__
@@ -690,8 +644,8 @@ class Storage(Resource):
 class Path(Resource):
     ''' common base for files and directories '''
 
-    def __init__(self, storage, path_url, name):
-        super(Path, self).__init__(storage.transport, path_url)
+    def __init__(self, storage, path_url, name, cache_time = _DEFAULT_CACHE_TIME):
+        super(Path, self).__init__(storage.transport, path_url, cache_time)
         self.name = name
         self.storage = storage
 
@@ -720,8 +674,8 @@ class Path(Resource):
 
 
 class PathDir(Path):
-    def __init__(self, storage, path_url, name):
-        super(PathDir, self).__init__(storage, path_url, name)
+    def __init__(self, storage, path_url, name, cache_time = _DEFAULT_CACHE_TIME):
+        super(PathDir, self).__init__(storage, path_url, name, cache_time)
 
     def isdir(self):
         return True
@@ -733,10 +687,10 @@ class PathDir(Path):
 
 
 class PathFile(Path):
-    def __init__(self, storage, path_url, name):
-        super(PathFile, self).__init__(storage, path_url, name)
+    def __init__(self, storage, path_url, name, cache_time = _DEFAULT_CACHE_TIME):
+        super(PathFile, self).__init__(storage, path_url, name, cache_time)
 
-    def download(self, file_):
+    def download(self, file):
         '''download file
 
         Args:
@@ -753,22 +707,22 @@ class PathFile(Path):
             >>> print(foo.contents.getvalue())
         '''
 
-        hdr = {'Accept': 'application/octet-stream'}
+        _headers = {'Accept': 'application/octet-stream'}
         with closing(
             self.transport.get(url=self.resource_url,
-                               headers=hdr,
+                               headers=_headers,
                                stream=True,
                                to_json=False,
                                )) as resp:
            
             CHUNK_SIZE = 10 * 1024
-            if isinstance(file_, str):
-                with open(file_, 'wb') as fd:
+            if isinstance(file, str):
+                with open(file, 'wb') as fd:
                     for chunk in resp.iter_content(CHUNK_SIZE):
                         fd.write(chunk)
             else:
                 for chunk in resp.iter_content(CHUNK_SIZE):
-                    file_.write(chunk)
+                    file.write(chunk)
 
     def raw(self, offset=0, size=-1):
         ''' access the raw http response for streaming purposes. 
@@ -777,16 +731,16 @@ class PathFile(Path):
             NOTE: this is the raw response from the server and might not be 
                   decoded appropriately!
         '''
-        headers = {'Accept': 'application/octet-stream'}
+        _headers = {'Accept': 'application/octet-stream'}
         if offset<0:
             raise ValueError("Offset must be positive")
         if offset>0 or size>-1:
-            range = "bytes=%s-" % offset
+            _range = "bytes=%s-" % offset
             if size>-1:
-                range += str(size+offset-1)
-            headers['Range']=range
+                _range += str(size+offset-1)
+            _headers['Range'] = _range
 
-        resp = self.transport.get(to_json=False, url=self.resource_url, headers=headers, stream=True)
+        resp = self.transport.get(to_json=False, url=self.resource_url, headers=_headers, stream=True)
         return resp.raw
 
     def isfile(self):
@@ -795,16 +749,15 @@ class PathFile(Path):
 class Transfer(Resource):
     '''wrapper around a UNICORE server-to-server transfer'''
 
-    def __init__(self, transport, tr_url):
-        super(Transfer, self).__init__(transport, tr_url)
+    def __init__(self, transport, tr_url, cache_time = _DEFAULT_CACHE_TIME):
+        super(Transfer, self).__init__(transport, tr_url, cache_time)
 
     def is_running(self):
-        '''checks whether a workflow is still running'''
-        status = self.properties['status']
-        return status not in ('DONE', 'FAILED', )
+        '''checks whether this transfer is still running'''
+        return self.properties['status'] not in ('DONE', 'FAILED', )
 
     def abort(self):
-        '''abort the workflow'''
+        '''abort this transfer'''
         url = self.properties['_links']['action:abort']['href']
         return self.transport.post(url=url, json={})
 
@@ -817,13 +770,13 @@ class Transfer(Resource):
 
 
 
-class WorkflowService(object):
+class WorkflowService(Resource):
     '''Entrypoint for the UNICORE Workflow API
 
         >>> workflows_url = '...' # e.g. "https://localhost:8080/WORKFLOW/rest/workflows"
-        >>> token = '...'
-        >>> transport = Transport(token)
-        >>> workflow_service = Client(transport, workflows_url)
+        >>> credemtial = ...
+        >>> transport = Transport(credential)
+        >>> workflow_service = WorkflowService(transport, workflows_url)
         >>> # to get the list of workflows
         >>> workflows = client.get_workflows()
         >>> # to start a new workflow:
@@ -831,17 +784,11 @@ class WorkflowService(object):
         >>> wf = workflow_service.new_workflow(wf_description)
     '''
     
-    def __init__(self, transport, workflows_url, check_authentication=True):
-        super(WorkflowService, self).__init__()
-        self.transport = transport
-        self.workflows_url = workflows_url
+    def __init__(self, transport, workflows_url, check_authentication=True, cache_time = _DEFAULT_CACHE_TIME):
+        super(WorkflowService, self).__init__(transport, workflows_url, cache_time)
         self.check_authentication = check_authentication
         if self.check_authentication:
             self.assert_authentication()
-            
-    @TimedCacheProperty(timeout=_REST_CACHE_TIMEOUT)
-    def properties(self):
-        return self.transport.get(url=self.workflows_url)
 
     def access_info(self):
         '''get authentication and authorization information about the current user'''
@@ -850,7 +797,7 @@ class WorkflowService(object):
     def assert_authentication(self):
         ''' Asserts that the remote role is not "anonymous" '''
         if self.access_info()['role']['selected']=="anonymous":
-            raise Exception("Failure to authenticate at %s" % self.workflows_url)
+            raise Exception("Failure to authenticate at %s" % self.resource_url)
 
     def get_workflows(self, offset=0, num=None, tags=[]):
         ''' get the list of workflows.
@@ -858,13 +805,13 @@ class WorkflowService(object):
         Use the optional 'offset' and 'num' parameters to handle long result lists
         (for long lists, the server might not return all results!).
         Use the optional tag list to filter the results.'''
-        w_url = _build_full_url(self.workflows_url, offset, num, tags)
+        w_url = _build_full_url(self.resource_url, offset, num, tags)
         return [Workflow(self.transport, url)
                 for url in self.transport.get(url=w_url)['workflows']]
 
     def new_workflow(self, wf_description):
         ''' submit a workflow '''
-        with closing(self.transport.post(url=self.workflows_url, json=wf_description)) as resp:
+        with closing(self.transport.post(url=self.resource_url, json=wf_description)) as resp:
             wf_url = resp.headers['Location']
         return Workflow(self.transport, wf_url)
 
@@ -872,23 +819,31 @@ class WorkflowService(object):
 class Workflow(Resource):
     '''wrapper around a UNICORE workflow'''
 
-    def __init__(self, transport, wf_url):
-        super(Workflow, self).__init__(transport, wf_url)
+    def __init__(self, transport, wf_url, cache_time = _DEFAULT_CACHE_TIME):
+        super(Workflow, self).__init__(transport, wf_url, cache_time)
 
     def is_running(self):
-        '''checks whether a workflow is still running'''
-        status = self.properties['status']
-        return status not in ('SUCCESSFUL', 'FAILED', )
+        '''checks whether this workflow is still running'''
+        return self.properties['status'] not in ( 'SUCCESSFUL', 'FAILED' )
+
+    def is_held(self):
+        '''checks whether this workflow is in HELD state'''
+        return self.is_running() and self.properties['status'] == 'HELD'
+
+    def poll(self):
+        '''wait until this workflow completes'''
+        while self.is_running():
+            time.sleep(max(2, self.cache_time + 1))
 
     def abort(self):
-        '''abort the workflow'''
+        '''abort this workflow'''
         url = self.properties['_links']['action:abort']['href']
         return self.transport.post(url=url, json={})
 
     def resume(self, params={}):
-        '''resume a held workflow, optionally updating parameters'''
-        url = self.properties['_links']['action:resume']['href']
-        return self.transport.post(url=url, json={})
+        '''resume this workflow (from "HELD" state), optionally updating parameters'''
+        url = self.properties['_links']['action:continue']['href']
+        return self.transport.post(url=url, json=params)
 
     def get_files(self):
         ''' get a dictionary of registered workflow files and their 

@@ -20,11 +20,18 @@ Install from PyPI with
 
     pip install -U pyunicore
 
-Sample code to create a client for a UNICORE site
+
+Additional packages may be required for your use case:
+
+* Using the UFTP fuse driver requires "fusepy"
+* Creating JWT tokens signed with keys requires the "cryptography" package
+
+# Example
+
+## Sample code to create a client for a UNICORE site
 
     import pyunicore.client as uc_client
     import pyunicore.credentials as uc_credentials
-    
     import json
    
     base_url = "https://localhost:8080/DEMO-SITE/rest/core"
@@ -36,8 +43,8 @@ Sample code to create a client for a UNICORE site
     client = uc_client.Client(transport, base_url)
     print(json.dumps(client.properties, indent = 2))
     
-# Running a sample job and reading result data
-
+## Running a sample job and reading result data
+   
     my_job = {'Executable': 'date'}
     
     job = uc_client.new_job(job_description=my_job, inputs=[])
@@ -54,12 +61,7 @@ Sample code to create a client for a UNICORE site
     content = stdout.raw().read()
     print(content)
     
-# Connecting to a Registry and listing all registered services
-
-    import pyunicore.client as uc_client
-    import pyunicore.credentials as uc_credentials
-    
-    import json
+## Connecting to a Registry and listing all registered services
 
     registry_url = "https://localhost:8080/REGISTRY/rest/registries/default_registry"
 
@@ -69,3 +71,7 @@ Sample code to create a client for a UNICORE site
     
     r = uc_client.Registry(tr, registry_url)
     print(r.site_urls)
+
+ ## Further reading
+ 
+More example code can be found in the "integration-tests" folder in the source code repository.

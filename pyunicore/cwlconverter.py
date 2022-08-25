@@ -58,7 +58,7 @@ def build_argument_list(cwl_inputs, inputs_object = {}, debug = False):
             if value is not None:
                 render[pos] = value
     args = []
-    for index, value in sorted(render.items(), key = lambda x: x[0]):
+    for _, value in sorted(render.items(), key = lambda x: x[0]):
         for x in value:
             args.append(x)
     return args
