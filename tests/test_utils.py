@@ -1,7 +1,7 @@
 import json, unittest
 
-import credentials
-from client import Transport
+import pyunicore.credentials as uc_credentials
+from pyunicore.client import Transport
 from base64 import b64encode
         
 class TestCredentials(unittest.TestCase):
@@ -10,31 +10,31 @@ class TestCredentials(unittest.TestCase):
 
     def test_username_password(self):
         print("*** test_username_password")
-        credential = credentials.UsernamePassword("demouser", "test123")
+        credential = uc_credentials.UsernamePassword("demouser", "test123")
         self.assertEqual("Basic "+b64encode(b"demouser:test123").decode("ascii"),
                          credential.get_auth_header())
 
     def test_oidc_token(self):
         print("*** test_oidc_token")
-        credential = credentials.OIDCToken("test123")
+        credential = uc_credentials.OIDCToken("test123")
         self.assertEqual("Bearer test123", credential.get_auth_header())
 
     def test_oidc_token_with_refresh(self):
         print("*** test_oidc_token_with_refresh")
         refresh_handler = MockRefresh()
-        credential = credentials.OIDCToken("test123", refresh_handler)
+        credential = uc_credentials.OIDCToken("test123", refresh_handler)
         self.assertEqual("Bearer foobar", credential.get_auth_header())
 
     def test_basic_token(self):
         print("*** test_basic_token")
-        credential = credentials.BasicToken("test123")
+        credential = uc_credentials.BasicToken("test123")
         self.assertEqual("Basic test123", credential.get_auth_header())
 
     def test_transport(self):
         print("*** test_transport")
         token_str = b64encode(b"demouser:test123").decode("ascii")
         header_val = "Basic "+token_str
-        credential = credentials.UsernamePassword("demouser", "test123")
+        credential = uc_credentials.UsernamePassword("demouser", "test123")
         transport = Transport(credential)
         self.assertEqual(header_val, transport._headers({})['Authorization'])
         # old style

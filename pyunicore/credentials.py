@@ -143,7 +143,7 @@ class JWTToken(Credential):
     
     def __init__(self, subject, issuer, secret, algorithm = "RS256", lifetime = 300, etd=False):
         self.subject= subject
-        self.issuer = issuer
+        self.issuer = issuer if issuer else subject
         self.lifetime = lifetime
         self.algorithm = algorithm
         self.secret = secret

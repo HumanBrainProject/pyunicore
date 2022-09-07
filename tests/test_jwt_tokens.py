@@ -1,6 +1,6 @@
 import json, unittest
 
-import credentials
+import pyunicore.credentials as uc_credentials
         
 class TestJWTCredentials(unittest.TestCase):
     def setUp(self):
@@ -8,7 +8,7 @@ class TestJWTCredentials(unittest.TestCase):
 
     def test_hs256(self):
         print("*** test_hs256")
-        credential = credentials.JWTToken("CN=Demouser", "CN=My Service",
+        credential = uc_credentials.JWTToken("CN=Demouser", "CN=My Service",
                                           secret="test123", algorithm="HS256", etd=True)
         print(credential.create_token())
 

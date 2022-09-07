@@ -21,12 +21,18 @@ Install from PyPI with
     pip install -U pyunicore
 
 
-Additional packages may be required for your use case:
+Additional extra packages may be required for your use case:
 
 * Using the UFTP fuse driver requires "fusepy"
-* Creating JWT tokens signed with keys requires the "cryptography" package
+* Using UFTP with pyfilesystem requires "fs"
+* Creating JWT tokens signed with keys requires the
+  "cryptography" package
 
-# Example
+You can install (one or more) extras with pip:
+
+    pip install -U pyunicore[crypto,fs,fuse]
+
+# Examples
 
 ## Sample code to create a client for a UNICORE site
 
@@ -43,7 +49,7 @@ Additional packages may be required for your use case:
     client = uc_client.Client(transport, base_url)
     print(json.dumps(client.properties, indent = 2))
     
-## Running a sample job and reading result data
+## Running a job and reading result data
    
     my_job = {'Executable': 'date'}
     
@@ -72,6 +78,7 @@ Additional packages may be required for your use case:
     r = uc_client.Registry(tr, registry_url)
     print(r.site_urls)
 
- ## Further reading
+## Further reading
  
 More example code can be found in the "integration-tests" folder in the source code repository.
+
