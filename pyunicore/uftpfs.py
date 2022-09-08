@@ -8,6 +8,7 @@ import pyunicore.credentials as uc_credentials
 from pyunicore.client import Transport
 from pyunicore.uftp import UFTP
 
+
 class UFTPFS(FTPFS):
     """ A UFTP (UNICORE FTP) Filesystem.
     
@@ -47,6 +48,15 @@ class UFTPFS(FTPFS):
         super(UFTPFS, self).__init__(uftp_host, port=uftp_port, user="anonymous", passwd=uftp_password)
         self.base_path = base_path
 
+    def hassyspath(self, path):
+        return False
+
+    def validatepath(self, path):
+        path = super().validatepath(path)
+        if path.startswith("/"):
+            path = "./"+path
+        return path
+
     def __repr__(self):
         return "UFTPFS({!r}, port={!r}), base_path={!r}".format(self.host, self.port, self.base_path)
 
@@ -64,9 +74,11 @@ class UFTPOpener(Opener):
         auth_url = auth_url + "/rest/" + tok2[0]
         base_dir = tok2[1] if len(tok)>1 else "/"
 
-        if parse_result.params.get("token", None) is not None:
-            cred = uc_credentials.OIDCToken(parse_result.params["token"])
-        else:
-            cred = uc_credentials.UsernamePassword(parse_result.username, parse_result.password)
+        username = parse_result.username
+        passwd = parse_result.password
+        token = parse_result.params.get("token", None)
+        identity = parse_result.params.get("identity", None)
+
+        cred = uc_credentials.Factory().create(username, passwd, token, identity)
         uftpfs = UFTPFS(auth_url, cred, base_dir)
         return uftpfs

@@ -14,9 +14,20 @@ class TestCredentials(unittest.TestCase):
         self.assertEqual("Basic "+b64encode(b"demouser:test123").decode("ascii"),
                          credential.get_auth_header())
 
+    def test_username_password_via_factory(self):
+        print("*** test_username_password_via_factory")
+        credential = uc_credentials.Factory().create("demouser", "test123")
+        self.assertEqual("Basic "+b64encode(b"demouser:test123").decode("ascii"),
+                         credential.get_auth_header())
+
     def test_oidc_token(self):
         print("*** test_oidc_token")
         credential = uc_credentials.OIDCToken("test123")
+        self.assertEqual("Bearer test123", credential.get_auth_header())
+
+    def test_oidc_token_via_factory(self):
+        print("*** test_oidc_token_via_factory")
+        credential = uc_credentials.Factory().create(token="test123")
         self.assertEqual("Bearer test123", credential.get_auth_header())
 
     def test_oidc_token_with_refresh(self):

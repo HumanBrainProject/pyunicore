@@ -13,6 +13,8 @@ from base64 import b64encode
 from jwt import decode as jwt_decode, encode as jwt_encode, ExpiredSignatureError
 import datetime
 import requests
+from os import getenv
+from os.path import isabs
 
 
 class Credential(object):
@@ -55,8 +57,8 @@ class OIDCToken(Credential):
     """
     def __init__(self, token, refresh_handler = None):
         self.token = token
-        self.refresh_handler= refresh_handler
-    
+        self.refresh_handler = refresh_handler
+
     def get_auth_header(self):
         if self.refresh_handler is not None:
             self.token = self.refresh_handler.get_token()
@@ -162,3 +164,41 @@ class JWTToken(Credential):
 
     def get_auth_header(self):
         return "Bearer "+self.create_token()
+
+class Factory(object):
+    """ Helper to create common types of credentials """
+
+    def create(self, username=None, password=None, token=None, identity=None):
+        if token is not None:
+            return OIDCToken(token)
+        if token is None and identity is None:
+            return UsernamePassword(username, password)
+        if identity is None:
+            raise Exception("Not enough info to create user credential")
+        try:
+            from cryptography.hazmat.primitives import serialization
+            from cryptography.hazmat.backends import default_backend
+            if not isabs(identity):
+                if identity.startswith("~"):
+                    identity = getenv("HOME")+"/"+identity.lstrip("~")
+                else:
+                    identity = getenv("HOME")+"/.uftp/"+identity
+            pem = open(identity).read()
+            pem_bytes = bytes(pem, "UTF-8")
+            if password is not None and len(password)>0:
+                passphrase = bytes(password, "UTF-8")
+            else:
+                passphrase = None
+            private_key = serialization.load_pem_private_key(
+                pem_bytes, password=passphrase, backend=default_backend())
+
+            secret = private_key
+            sub = username
+            algo = "EdDSA"
+            if "BEGIN RSA" in pem:
+                algo =  "RS256"
+            elif "BEGIN EC" in pem or "PuTTY"in pem:
+                algo = "ES256"
+            return JWTToken(sub, sub, secret, algorithm = algo, etd=False)
+        except ImportError:
+            raise Exception("To use key-based authentication, you will need the 'cryptography' package.")
