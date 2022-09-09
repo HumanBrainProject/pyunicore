@@ -110,11 +110,12 @@ The FS driver supports three types of authentication
     Specify the `password` if needed to load the private key
   * Bearer token - give the token value via the `token` parameter
 
-(note: the SSH key authentication requires UFTP Auth server 2.7.0 or later)
+(note: the SSH key authentication using this library requires 
+UFTP Auth server 2.7.0 or later)
   
 ### Mounting remote filesystems via UFTP
   
-PyUNICORE contains a FUSE driver based on [fusepy](htt ps://pypi.org/project/fusepy/),
+PyUNICORE contains a FUSE driver based on [fusepy](https://pypi.org/project/fusepy),
 allowing you to mount a remote filesystem via UFTP. Mounting is a two step process,
 
   * authenticate to an Auth server, giving you the UFTPD host/port and one-time password
