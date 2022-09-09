@@ -5,16 +5,15 @@ file access, job submission and management, workflow submission and
 management more convenient, and integrating UNICORE features better
 with typical Python usage.
 
-For the full, up-to-date documentation of the REST API,
-see https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api
+The full, up-to-date documentation of the REST API can be found
+[here](https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api)
 
 In addition, this library contains code for using UFTP (UNICORE FTP)
 for filesystem mounts with FUSE, and a UFTP driver for
 [PyFilesystem](https://github.com/PyFilesystem/pyfilesystem2)
 
-Development of this library was funded in part by the Human Brain Project
-
-For more information about the Human Brain Project, see https://www.humanbrainproject.eu/
+Development of this library was funded in part by the 
+[Human Brain Project](https://www.humanbrainproject.eu)
 
 See LICENSE file for licensing information
 
@@ -23,7 +22,6 @@ See LICENSE file for licensing information
 Install from PyPI with
 
     pip install -U pyunicore
-
 
 Additional extra packages may be required for your use case:
 
@@ -96,24 +94,49 @@ object either directly in code, or implicitely via a URL.
 
 The convenient way is via URL:
 
-   from fs import open_fs
-   fs_url = "uftp://demouser:test123@localhost:9000/rest/auth/TEST:/data"
-   uftp_fs = open_fs(fs_url)
+    from fs import open_fs
+    fs_url = "uftp://demouser:test123@localhost:9000/rest/auth/TEST:/data"
+    uftp_fs = open_fs(fs_url)
 
 The URL format is
 
-   uftp://[username]:[password]@[auth-server-url]:[base-directory]?[token=...][identity=...]
+    uftp://[username]:[password]@[auth-server-url]:[base-directory]?[token=...][identity=...]
    
 The FS driver supports three types of authentication
 
   * Username/Password - give `username` and `password`
-  * SSH Key - give `username` and `identity`, where `identity` is 
-    the filename of a private key. Specify `password` as needed to load the private key
-  * Bearer token - give the `token`
-  
+  * SSH Key - give `username` and the `identity` parameter, 
+    where `identity` is the filename of a private key.
+    Specify the `password` if needed to load the private key
+  * Bearer token - give the token value via the `token` parameter
+
 (note: the SSH key authentication requires UFTP Auth server 2.7.0 or later)
   
 ### Mounting remote filesystems via UFTP
   
-PyUNICORE contains a FUSE driver based on [fusepy](https://pypi.org/project/fusepy/),
-allowing you to mount a remote filesystem via UFTP.
+PyUNICORE contains a FUSE driver based on [fusepy](htt ps://pypi.org/project/fusepy/),
+allowing you to mount a remote filesystem via UFTP. Mounting is a two step process,
+
+  * authenticate to an Auth server, giving you the UFTPD host/port and one-time password
+  * run the FUSE driver
+
+The following code example gives you the basic idea:
+
+    import pyunicore.client as uc_client
+    import pyunicore.credentials as uc_credentials
+    import pyunicore.uftp as uc_uftp
+    import pyunicore.uftpfuse as uc_fuse
+
+    _auth = "https://localhost:9000/rest/auth/TEST"
+    _base_dir = "/opt/shared-data"
+    _local_mount_dir = "/tmp/mount"
+
+    # auhenticate
+    cred = uc_credentials.UsernamePassword("demouser", "test123")
+    uftp = uc_uftp.UFTP(uc_client.Transport(cred), _auth, _base_dir)
+    _host, _port, _password  = uftp.authenticate()
+
+    # run the fuse driver
+    fuse = uc_fuse.FUSE(
+        uc_fuse.UFTPDriver(_host, _port, _password), _local_mount_dir,
+        foreground=False, nothreads=True)
