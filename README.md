@@ -1,4 +1,4 @@
-# Python library for using the UNICORE REST API
+# PyUNICORE, a Python library for using UNICORE and UFTP
 
 This library covers the UNICORE REST API, making common tasks like
 file access, job submission and management, workflow submission and
@@ -8,13 +8,17 @@ with typical Python usage.
 For the full, up-to-date documentation of the REST API,
 see https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api
 
+In addition, this library contains code for using UFTP (UNICORE FTP)
+for filesystem mounts with FUSE, and a UFTP driver for
+[PyFilesystem](https://github.com/PyFilesystem/pyfilesystem2)
+
 Development of this library was funded in part by the Human Brain Project
 
 For more information about the Human Brain Project, see https://www.humanbrainproject.eu/
 
 See LICENSE file for licensing information
 
-# Getting started with pyUNICORE
+## Installation
 
 Install from PyPI with
 
@@ -23,18 +27,18 @@ Install from PyPI with
 
 Additional extra packages may be required for your use case:
 
-* Using the UFTP fuse driver requires "fusepy"
-* Using UFTP with pyfilesystem requires "fs"
-* Creating JWT tokens signed with keys requires the
+ * Using the UFTP fuse driver requires "fusepy"
+ * Using UFTP with pyfilesystem requires "fs"
+ * Creating JWT tokens signed with keys requires the
   "cryptography" package
 
 You can install (one or more) extras with pip:
 
     pip install -U pyunicore[crypto,fs,fuse]
 
-# Examples
+## Examples
 
-## Sample code to create a client for a UNICORE site
+### Creating a client for a UNICORE site
 
     import pyunicore.client as uc_client
     import pyunicore.credentials as uc_credentials
@@ -49,7 +53,7 @@ You can install (one or more) extras with pip:
     client = uc_client.Client(transport, base_url)
     print(json.dumps(client.properties, indent = 2))
     
-## Running a job and reading result data
+### Run a job and read result files
    
     my_job = {'Executable': 'date'}
     
@@ -67,7 +71,7 @@ You can install (one or more) extras with pip:
     content = stdout.raw().read()
     print(content)
     
-## Connecting to a Registry and listing all registered services
+### Connect to a Registry and list all registered services
 
     registry_url = "https://localhost:8080/REGISTRY/rest/registries/default_registry"
 
@@ -78,7 +82,38 @@ You can install (one or more) extras with pip:
     r = uc_client.Registry(tr, registry_url)
     print(r.site_urls)
 
-## Further reading
- 
-More example code can be found in the "integration-tests" folder in the source code repository.
+### Further reading
 
+More examples for using PyUNICORE can be found in the "integration-tests" 
+folder in the source code repository.
+
+## UFTP examples
+
+### Using UFTP for PyFilesystem 
+
+You can create a [PyFilesystem](https://github.com/PyFilesystem/pyfilesystem2) `FS`
+object either directly in code, or implicitely via a URL.
+
+The convenient way is via URL:
+
+   from fs import open_fs
+   fs_url = "uftp://demouser:test123@localhost:9000/rest/auth/TEST:/data"
+   uftp_fs = open_fs(fs_url)
+
+The URL format is
+
+   uftp://[username]:[password]@[auth-server-url]:[base-directory]?[token=...][identity=...]
+   
+The FS driver supports three types of authentication
+
+  * Username/Password - give `username` and `password`
+  * SSH Key - give `username` and `identity`, where `identity` is 
+    the filename of a private key. Specify `password` as needed to load the private key
+  * Bearer token - give the `token`
+  
+(note: the SSH key authentication requires UFTP Auth server 2.7.0 or later)
+  
+### Mounting remote filesystems via UFTP
+  
+PyUNICORE contains a FUSE driver based on [fusepy](https://pypi.org/project/fusepy/),
+allowing you to mount a remote filesystem via UFTP.
