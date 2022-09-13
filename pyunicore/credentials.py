@@ -165,40 +165,50 @@ class JWTToken(Credential):
     def get_auth_header(self):
         return "Bearer "+self.create_token()
 
-class Factory(object):
-    """ Helper to create common types of credentials """
 
-    def create(self, username=None, password=None, token=None, identity=None):
-        if token is not None:
-            return OIDCToken(token)
-        if token is None and identity is None:
-            return UsernamePassword(username, password)
-        if identity is None:
-            raise Exception("Not enough info to create user credential")
-        try:
-            from cryptography.hazmat.primitives import serialization
-            from cryptography.hazmat.backends import default_backend
-            if not isabs(identity):
-                if identity.startswith("~"):
-                    identity = getenv("HOME")+"/"+identity.lstrip("~")
-                else:
-                    identity = getenv("HOME")+"/.uftp/"+identity
-            pem = open(identity).read()
-            pem_bytes = bytes(pem, "UTF-8")
-            if password is not None and len(password)>0:
-                passphrase = bytes(password, "UTF-8")
+def create_credential(self, username=None, password=None, token=None, identity=None):
+    """ Helper to create the most common types of credentials
+
+        Requires one of the following combinations of arguments
+
+        username + password : create a UsernamePassword credential
+        token               ; create a OIDCToken credential from the given token
+        username + identity : create a JWTToken credential which will be signed
+                              with the given private key (ssh key or PEM)
+    """
+
+    if token is not None:
+        return OIDCToken(token)
+    if token is None and identity is None:
+        return UsernamePassword(username, password)
+    if identity is None:
+        raise Exception("Not enough info to create user credential")
+    try:
+        from cryptography.hazmat.primitives import serialization
+        if not isabs(identity):
+            if identity.startswith("~"):
+                identity = getenv("HOME")+"/"+identity.lstrip("~")
             else:
-                passphrase = None
+                identity = getenv("HOME")+"/.uftp/"+identity
+        pem = open(identity).read()
+        pem_bytes = bytes(pem, "UTF-8")
+        if password is not None and len(password)>0:
+            passphrase = bytes(password, "UTF-8")
+        else:
+            passphrase = None
+        try:
+            private_key = serialization.load_ssh_private_key(
+                pem_bytes, password=passphrase)
+        except:
             private_key = serialization.load_pem_private_key(
-                pem_bytes, password=passphrase, backend=default_backend())
-
-            secret = private_key
-            sub = username
-            algo = "EdDSA"
-            if "BEGIN RSA" in pem:
-                algo =  "RS256"
-            elif "BEGIN EC" in pem or "PuTTY"in pem:
-                algo = "ES256"
-            return JWTToken(sub, sub, secret, algorithm = algo, etd=False)
-        except ImportError:
+                pem_bytes, password=passphrase)
+        secret = private_key
+        sub = username
+        algo = "EdDSA"
+        if "BEGIN RSA" in pem:
+            algo =  "RS256"
+        elif "BEGIN EC" in pem or "PuTTY"in pem:
+            algo = "ES256"
+        return JWTToken(sub, sub, secret, algorithm = algo, etd=False)
+    except ImportError:
             raise Exception("To use key-based authentication, you will need the 'cryptography' package.")

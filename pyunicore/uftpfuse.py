@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from errno import EIO, ENOENT, ENOSYS, EROFS
+from errno import EIO, ENOENT, ENOSYS
 from fuse import FUSE, FuseOSError, Operations
 import os
 from time import time

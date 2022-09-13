@@ -79,6 +79,6 @@ class UFTPOpener(Opener):
         token = parse_result.params.get("token", None)
         identity = parse_result.params.get("identity", None)
 
-        cred = uc_credentials.Factory().create(username, passwd, token, identity)
+        cred = uc_credentials.create_credential(username, passwd, token, identity)
         uftpfs = UFTPFS(auth_url, cred, base_dir)
         return uftpfs
