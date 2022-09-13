@@ -166,7 +166,7 @@ class JWTToken(Credential):
         return "Bearer "+self.create_token()
 
 
-def create_credential(self, username=None, password=None, token=None, identity=None):
+def create_credential(username=None, password=None, token=None, identity=None):
     """ Helper to create the most common types of credentials
 
         Requires one of the following combinations of arguments

@@ -73,12 +73,9 @@ class UFTPOpener(Opener):
         tok2 = tok[1].split(":")
         auth_url = auth_url + "/rest/" + tok2[0]
         base_dir = tok2[1] if len(tok)>1 else "/"
-
-        username = parse_result.username
-        passwd = parse_result.password
-        token = parse_result.params.get("token", None)
-        identity = parse_result.params.get("identity", None)
-
-        cred = uc_credentials.create_credential(username, passwd, token, identity)
+        cred = uc_credentials.create_credential(username = parse_result.username,
+                                                password= parse_result.password,
+                                                token =  parse_result.params.get("token", None),
+                                                identity = parse_result.params.get("identity", None))
         uftpfs = UFTPFS(auth_url, cred, base_dir)
         return uftpfs
