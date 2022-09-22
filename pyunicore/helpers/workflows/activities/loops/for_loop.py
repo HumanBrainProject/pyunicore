@@ -21,7 +21,13 @@ class Values(_api_object.ApiRequestObject):
 
 @dataclasses.dataclass
 class Variable(variable.Variable):
-    """A variable to use in an iteration."""
+    """A variable to use in an iteration.
+
+    Args:
+        expression (str): Expression to evaluate at each iteration.
+        end_condition (str): Condition when to end the iteration.
+    
+    """
 
     expression: str
     end_condition: str
@@ -107,20 +113,23 @@ class Chunking(_api_object.ApiRequestObject):
 
     Args:
         chunksize(int): Size of the chunks.
+        chunksize_formula (str, optional): Expression to use to calculate the chunksize
+            at runtime.
         type (ChunkingType, default=Normal): Type of the `chunksize`.
             - `ChunkingType.Normal`: Number of files in a chunk.
             - `ChunkingType.Size`: Total size of a chunk in kbytes.
         filename_format (str): Allows to control how the individual files
             should be named.
-        chunksize_formula (str): Expression to use to calculate the chunksize
-            at runtime.
+        
+    Notes:
+        Either `chunksize` or `chunksize_formula` must be given.
 
     """
 
-    type: ChunkingType = ChunkingType.Normal
     chunksize: Optional[int] = None
-    filename_format: Optional[str] = None
     chunksize_formula: Optional[str] = None
+    type: ChunkingType = ChunkingType.Normal
+    filename_format: Optional[str] = None
 
     def __post_init__(self):
         """Check that either chunksize or formula is given."""

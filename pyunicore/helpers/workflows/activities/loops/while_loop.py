@@ -11,10 +11,7 @@ class While(_loop.Loop):
     """A while-loop-like activity within a workflow.
 
     Args:
-        job (JobDescription): Description of the job.
-        site_name (str): Name of the site to execute the job on.
-        user_preferences (UserPreferences, optional): User preferences to pass.
-        options (list[JobOption], optional): Options to pass.
+        variables (list[Variable]): Variables to use in the loop.
 
     """
 
