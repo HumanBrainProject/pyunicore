@@ -7,7 +7,7 @@ import pyunicore.client
 import pyunicore.testing as testing
 import pyunicore.helpers.connect.registry as _registry
 import pyunicore.helpers.connect.site as _site
-import pyunicore.helpers.connect.authentication as authentication
+import pyunicore.credentials as credentials
 
 
 @pytest.fixture()
@@ -33,14 +33,14 @@ def test_connect_to_registry(monkeypatch):
     monkeypatch.setattr(pyunicore.client, "Transport", testing.FakeTransport)
 
     registry_url = "test_registry_url"
-    auth = authentication.UserAuthentication(
-        user="test_user",
+    creds = credentials.UsernamePassword(
+        username="test_user",
         password="test_password",
     )
 
     result = _registry.connect_to_registry(
         registry_url=registry_url,
-        authentication=auth,
+        credentials=creds,
     )
 
     assert isinstance(result, pyunicore.client.Registry)
@@ -68,8 +68,8 @@ def test_connect_to_site_from_registry(monkeypatch, login_successful, expected):
 
     registry_url = "test_registry_url"
     site = "test_site"
-    auth = authentication.UserAuthentication(
-        user="test_user",
+    creds = credentials.UsernamePassword(
+        username="test_user",
         password="test_password",
     )
 
@@ -77,7 +77,7 @@ def test_connect_to_site_from_registry(monkeypatch, login_successful, expected):
         result = _registry.connect_to_site_from_registry(
             registry_url=registry_url,
             site_name=site,
-            authentication=auth,
+            credentials=creds,
         )
 
         assert isinstance(result, expected)

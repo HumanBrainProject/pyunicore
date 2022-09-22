@@ -4,7 +4,7 @@ import pytest
 import pyunicore.testing as testing
 import pyunicore.helpers.connect.site as _connect
 import pyunicore.client as pyunicore
-import pyunicore.helpers.connect.authentication as authentication
+import pyunicore.credentials as credentials
 
 
 @pytest.fixture()
@@ -35,15 +35,15 @@ def test_connect_to_site(monkeypatch, login_successful, expected):
     )
 
     api_url = "test-api-url"
-    auth = authentication.UserAuthentication(
-        user="test_user",
+    creds = credentials.UsernamePassword(
+        username="test_user",
         password="test_password",
     )
 
     with testing.expect_raise_if_exception(expected):
         result = _connect.connect_to_site(
             site_api_url=api_url,
-            authentication=auth,
+            credentials=creds,
         )
 
         assert isinstance(result, expected)
