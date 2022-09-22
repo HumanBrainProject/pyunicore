@@ -7,6 +7,14 @@ class FakeTransport:
         self.auth_token = auth_token
         self.oidc = oidc
 
+    def _clone(self) -> "FakeTransport":
+        return self
+
+    def get(self, url):
+        return {
+            "entries": "test-entry"
+        }
+
 
 class FakeRegistry:
     def __init__(
