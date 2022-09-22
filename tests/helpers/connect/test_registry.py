@@ -29,6 +29,23 @@ def create_fake_client(login_successful: bool) -> functools.partial:
     )
 
 
+def test_connect_to_registry(monkeypatch):
+    monkeypatch.setattr(pyunicore.client, "Transport", testing.FakeTransport)
+
+    registry_url = "test_registry_url"
+    auth = authentication.UserAuthentication(
+        user="test_user",
+        password="test_password",
+    )
+
+    result = _registry.connect_to_registry(
+        registry_url=registry_url,
+        authentication=auth,
+    )
+
+    assert isinstance(result, pyunicore.client.Registry)
+
+
 @pytest.mark.parametrize(
     ("login_successful", "expected"),
     [

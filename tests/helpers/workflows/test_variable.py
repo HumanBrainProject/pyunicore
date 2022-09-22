@@ -53,6 +53,18 @@ class TestVariable:
                     "initial_value": "false",
                 },
             ),
+            # Test case: Given type not supported.
+            (
+                dict,
+                {},
+                ValueError(),
+            ),
+            # Test case: Initial value not of correct type.
+            (
+                variable.VariableType.Float,
+                "wrong type",
+                ValueError(),
+            ),
         ],
     )
     def test_to_dict(self, type, initial_value, expected):

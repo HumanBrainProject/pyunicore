@@ -10,7 +10,7 @@ from pyunicore.helpers import jobs
 from pyunicore.helpers.workflows.activities import activity
 
 
-class _JobOption:
+class Option:
     """An activity option for jobs in a workflow."""
 
     class _Option(_api_object.ApiRequestObject):
@@ -58,7 +58,7 @@ class _JobOption:
 
 
 @dataclasses.dataclass
-class _JobUserPreferences(_api_object.ApiRequestObject):
+class UserPreferences(_api_object.ApiRequestObject):
     """User preferences."""
 
     role: str
@@ -90,12 +90,6 @@ class Job(activity.Activity):
         options (list[JobOption], optional): Options to pass.
 
     """
-
-    class Option(_JobOption):
-        """An option."""
-
-    class UserPreferences(_JobUserPreferences):
-        """A user preference."""
 
     description: jobs.Description
     site_name: str
