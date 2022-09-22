@@ -4,6 +4,13 @@ from pyunicore.helpers import jobs
 
 class TestJob:
     def test_to_dict(self):
+        user_preferences = job.UserPreferences(
+            role="test-role",
+            uid="test-uid",
+            group="test-group",
+            supplementary_groups="test-groups",
+        )
+        options = [job.Option.IgnoreFailure(True), job.Option.MaxResubmits(2)]
         description = jobs.Description(
             executable="test-executable",
             project="test-project",
@@ -12,6 +19,8 @@ class TestJob:
             id="test-id",
             description=description,
             site_name="test-site",
+            user_preferences=user_preferences,
+            options=options,
         )
         expected = {
             "id": "test-id",
@@ -30,7 +39,16 @@ class TestJob:
                 "UserPostcommandIgnoreNonZeroExitcode": "false",
                 "UserPrecommandIgnoreNonZeroExitcode": "false",
                 "haveClientStageIn": "false",
+                "User preferences": {
+                    "role": "test-role",
+                    "uid": "test-uid",
+                    "group": "test-group",
+                    "supplementaryGroups": "test-groups",
+                },
             },
+            "options": {
+                "IGNORE_FAILURE": "true", "MAX_RESUBMITS": 2
+            },  
         }
 
         result = job_.to_dict()

@@ -40,6 +40,7 @@ class Option:
 
         value: bool
 
+        @property
         def _name(self) -> str:
             return "IGNORE_FAILURE"
 
@@ -53,6 +54,7 @@ class Option:
 
         value: int
 
+        @property
         def _name(self) -> str:
             return "MAX_RESUBMITS"
 
@@ -100,11 +102,16 @@ class Job(activity.Activity):
         return "JOB"
 
     def _activity_to_dict(self) -> Dict:
+        if self.options is not None:
+            options = {k: v for o in self.options for k, v in o.to_dict().items()}
+        else:
+            options = None
+
         return {
             "job": {
                 **self.description.to_dict(),
                 "Site name": self.site_name,
                 "User preferences": self.user_preferences,
             },
-            "options": self.options,
+            "options": options,
         }
