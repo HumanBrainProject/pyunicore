@@ -13,9 +13,8 @@ test: runtest
 
 lint:
 	black --line-length $(LINE_LENGTH) $(HELPERS_SOURCE_DIR) $(HELPERS_TEST_DIR)
-	reorder-python-imports --application-directories \
-		$(HELPERS_SOURCE_DIR) \
-		$(HELPERS_TEST_DIR)
+	reorder-python-imports --application-directories $(HELPERS_SOURCE_DIR)
+	reorder-python-imports --application-directories $(HELPERS_TEST_DIR)
 	flake8 $(HELPERS_SOURCE_DIR) $(HELPERS_TEST_DIR)
 
 test-helpers:
