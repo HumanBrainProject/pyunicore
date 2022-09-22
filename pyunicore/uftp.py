@@ -1,7 +1,6 @@
 from ftplib import FTP
-from pyunicore.client import Resource
-import os, os.path, stat
-from time import localtime, time, mktime, strftime, strptime
+import os, stat
+from time import localtime, mktime, strftime, strptime
 from sys import maxsize
 
 '''

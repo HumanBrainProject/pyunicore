@@ -1,5 +1,13 @@
 {
 
-"echo_line": "hello world!"
+"param_1": "hello world!",
 
+"param_2": "two",
+ 
+"param_3": 42,
+
+"param_4": [1, 2, 3],
+
+"param_5": [7, 8]
+        
 }

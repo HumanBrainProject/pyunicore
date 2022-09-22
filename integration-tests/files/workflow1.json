@@ -1,0 +1,46 @@
+{
+
+    "variables": [
+	  {
+	    "id": "decl1",
+	    "name": "COUNTER",
+	    "type": "INTEGER",
+	    "initial_value": "123"
+	  }
+    ],
+    
+    "activities" : [
+
+	  {
+	    "id": "date1",
+	    "job": {
+		  "Executable": "date",
+		  "Exports": [
+		    {"From": "stdout", "To": "wf:date1/stdout"}
+		  ]
+	    }
+	  },
+	
+	  {
+	    "id": "hold1",
+	    "type": "HOLD"
+	  },
+	
+	  {
+	    "id": "date2",
+	    "job": {
+		  "Executable": "date",
+		  "Exports": [
+		    {"From": "stdout", "To": "wf:date2/stdout"}
+		  ]
+	    }
+	}
+    ],
+    
+    "transitions": [
+	  { "from": "date1", "to": "hold1" },
+	  { "from": "hold1", "to": "date2" }
+	
+    ]
+
+}

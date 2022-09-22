@@ -1,4 +1,4 @@
-import cwlconverter
+import pyunicore.cwlconverter
 
 import argparse, json, yaml, sys
 
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     debug = args.debug
     cwl_doc, cwl_inputs_object = read_cwl_files(cwl_doc_path, cwl_inputs_object_path, debug)
 
-    unicore_job, file_list, outputs_list = cwlconverter.convert_cmdline_tool(cwl_doc, cwl_inputs_object, debug=debug)
+    unicore_job, file_list, outputs_list = pyunicore.cwlconverter.convert_cmdline_tool(cwl_doc, cwl_inputs_object, debug=debug)
     print(json.dumps(unicore_job, indent=2, sort_keys = True))
 
     sys.exit(0)

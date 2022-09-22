@@ -8,3 +8,4 @@ dist/
 pyunicore.egg-info/
 .settings
 .coverage/
+build/

@@ -30,6 +30,14 @@ def convert_cmdline_tool(cwl_doc, inputs_object = {}, debug = False):
         unicore_job['Executable'] = cwl_doc['baseCommand']
 
     unicore_job["Arguments"] = build_argument_list(cwl_doc.get("inputs", {}), inputs_object, debug)
+
+    if "stdout" in cwl_doc.keys():
+        unicore_job["Stdout"] = cwl_doc["stdout"]
+    if "stderr" in cwl_doc.keys():
+        unicore_job["Stderr"] = cwl_doc["stderr"]
+    if "stdin" in cwl_doc.keys():
+        unicore_job["Stdin"] = cwl_doc["stdin"]
+    
     remote_files = get_remote_file_list(inputs_object)
     if len(remote_files)>0:
         unicore_job['Imports'] = remote_files
@@ -50,32 +58,90 @@ def build_argument_list(cwl_inputs, inputs_object = {}, debug = False):
             if value is not None:
                 render[pos] = value
     args = []
-    for index, value in sorted(render.items(), key = lambda x: x[0]):
-        args.append(value)
+    for _, value in sorted(render.items(), key = lambda x: x[0]):
+        for x in value:
+            args.append(x)
     return args
 
 def render_value(name, input_spec, inputs_object={}):
     """ generate a concrete value for command-line argument """
     value = inputs_object.get(name, None)
-    parameter_type = input_spec.get("type", "string")
+    parameter_type = input_spec["type"]
+    input_binding = input_spec.get("inputBinding", {})
+
+    is_array = False
+    is_nested_array = False
+    
+    if isinstance(parameter_type, dict):
+        is_array = True
+        is_nested_array = True
+        input_binding = parameter_type.get("inputBinding", {})
+        parameter_type = parameter_type["items"]
+    elif parameter_type.endswith("[]"):
+        is_array = True
+        parameter_type = parameter_type[:-2]
+    
+    prefix = input_binding.get("prefix", "")
+    item_separator = input_binding.get("itemSeparator", None)
+    separate = prefix!="" and input_binding.get("separate", True)
+    
     if parameter_type.endswith("?"):
         parameter_type = parameter_type[:-1]
         if value is None:
             return None
     elif value is None:
         raise Exception("Parameter value for parameter '%s' is missing in inputs object" % name)
-    input_binding = input_spec.get("inputBinding", {})
-    prefix = input_binding.get("prefix", "")
-    if prefix!="" and input_binding.get("separate", True) is True:
-        prefix = prefix + " "
 
     if parameter_type=="boolean":
-        if value=="true":
-            result = prefix
-    elif parameter_type=="File" or parameter_type=="Directory":
-        result = prefix+value['path']
+        if value==True or value=="true":
+            return prefix
+        else:
+            return None
+
+    if is_array:
+        if not isinstance(value, list):
+            raise Exception("Parameter '%s' is declared as 'array of %s', but value is not a list" % (name, parameter_type))
+        values = value
     else:
-        result = prefix + str(value)
+        values = [value]
+
+    resolved_values = []
+
+    for v in values:
+        if parameter_type=="string" and " " in v:
+            current_value = '"' + v + '"'
+        elif parameter_type=="File" or parameter_type=="Directory":
+            current_value = get_filename_in_jobdir(v)
+        else:
+            current_value = str(v)
+        resolved_values.append(current_value)
+    
+    if item_separator is not None:
+        resolved_values = [item_separator.join(resolved_values)]
+    
+    first = True
+    result = []
+    for v in resolved_values:
+        if first:
+            if prefix!="":
+                if not separate:
+                    result.append(prefix+v)
+                else:
+                    result.append(prefix)
+                    result.append(v)
+            else:
+                result.append(v)
+        else:
+            if prefix!="":
+                if not separate:
+                    result.append(prefix+v)
+                else:
+                    if is_nested_array:
+                        result.append(prefix)
+                    result.append(v)
+            else:
+                result.append(v)
+        first = False
 
     return result
 
@@ -118,3 +184,11 @@ def get_remote_file_list(inputs_object={}):
         except:
             pass
     return file_list
+
+def get_filename_in_jobdir(input_item):
+    name = input_item.get('path', None)
+    if name is None:
+        name = input_item.get('basename', None)
+    if name is None:
+        name = input_item.get('location').split("/")[-1]
+    return name

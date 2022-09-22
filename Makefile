@@ -1,5 +1,6 @@
 TESTS = $(wildcard tests/test_*.py)
-export PYTHONPATH := pyunicore:tests
+INTEGRATIONTESTS = $(wildcard integration-tests/test_*.py)
+export PYTHONPATH := .
 PYTHON=python3
 
 # Currently only lint the helpers package to avoid merge conflicts.
@@ -9,7 +10,9 @@ HELPERS_TEST_DIR = tests/helpers
 
 test: runtest
 
-.PHONY: runtest $(TESTS)
+integration-test: runintegrationtest
+
+.PHONY: runtest $(TESTS) runintegrationtest $(INTEGRATIONTESTS)
 
 lint:
 	black --line-length $(LINE_LENGTH) $(HELPERS_SOURCE_DIR) $(HELPERS_TEST_DIR)
@@ -26,7 +29,14 @@ $(TESTS):
 	@echo "\n** Running test $@"
 	@${PYTHON} $@
 
+runintegrationtest: $(INTEGRATIONTESTS)
+
+$(INTEGRATIONTESTS):
+	@echo "\n** Running integration test $@"
+	@${PYTHON} $@
+
 clean:
 	@find -name "*~" -delete
 	@find -name "*.pyc" -delete
 	@find -name "__pycache__" -delete
+	@rm -rf build/
