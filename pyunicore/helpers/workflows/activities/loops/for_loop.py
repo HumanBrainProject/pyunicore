@@ -26,7 +26,7 @@ class Variable(variable.Variable):
     Args:
         expression (str): Expression to evaluate at each iteration.
         end_condition (str): Condition when to end the iteration.
-    
+
     """
 
     expression: str
@@ -113,14 +113,14 @@ class Chunking(_api_object.ApiRequestObject):
 
     Args:
         chunksize(int): Size of the chunks.
-        chunksize_formula (str, optional): Expression to use to calculate the chunksize
-            at runtime.
+        chunksize_formula (str, optional): Expression to use to calculate the
+            chunksize at runtime.
         type (ChunkingType, default=Normal): Type of the `chunksize`.
             - `ChunkingType.Normal`: Number of files in a chunk.
             - `ChunkingType.Size`: Total size of a chunk in kbytes.
         filename_format (str): Allows to control how the individual files
             should be named.
-        
+
     Notes:
         Either `chunksize` or `chunksize_formula` must be given.
 

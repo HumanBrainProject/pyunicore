@@ -10,8 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 def connect_to_registry(
-    registry_url: str,
-    credentials: credentials.Credential
+    registry_url: str, credentials: credentials.Credential
 ) -> pyunicore.client.Registry:
     """Connect to a registry.
 
@@ -29,9 +28,7 @@ def connect_to_registry(
 
 
 def connect_to_site_from_registry(
-    registry_url: str,
-    site_name: str,
-    credentials: credentials.Credential
+    registry_url: str, site_name: str, credentials: credentials.Credential
 ) -> pyunicore.client.Client:
     """Create a connection to a site's UNICORE API from the registry base URL.
 
@@ -93,5 +90,5 @@ def _get_api_urls(
     logger.debug(
         "Getting all available API URLs from registry %s", registry_url
     )
-    registry = _create_registry(transport=transport, registry_url=registry_url)
+    registry = pyunicore.client.Registry(transport=transport, url=registry_url)
     return registry.site_urls

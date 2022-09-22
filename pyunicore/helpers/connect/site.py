@@ -17,8 +17,7 @@ class AuthenticationFailedException(Exception):
 
 
 def connect_to_site(
-    site_api_url: str,
-    credentials: credentials.Credential
+    site_api_url: str, credentials: credentials.Credential
 ) -> pyunicore.client.Client:
     """Create a connection to a site's UNICORE API.
 
@@ -48,8 +47,7 @@ def connect_to_site(
 
 
 def _connect_to_site(
-    api_url: str,
-    credentials: credentials.Credential
+    api_url: str, credentials: credentials.Credential
 ) -> pyunicore.client.Client:
     transport = pyunicore.client.Transport(credentials)
     client = _create_client(transport=transport, api_url=api_url)
