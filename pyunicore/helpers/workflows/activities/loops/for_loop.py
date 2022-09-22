@@ -2,6 +2,7 @@ import dataclasses
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Union
 
 from pyunicore.helpers import _api_object
 from pyunicore.helpers.workflows import variable
@@ -9,7 +10,7 @@ from pyunicore.helpers.workflows.activities.loops import _loop
 
 
 @dataclasses.dataclass
-class _ForEachValues(_api_object.ApiRequestObject):
+class Values(_api_object.ApiRequestObject):
     values: List
 
     def _to_dict(self) -> Dict:
@@ -17,7 +18,7 @@ class _ForEachValues(_api_object.ApiRequestObject):
 
 
 @dataclasses.dataclass
-class _ForEachVariable(variable.Variable):
+class Variable(variable.Variable):
     expression: str
     end_condition: str
 
@@ -32,15 +33,15 @@ class _ForEachVariable(variable.Variable):
 
 
 @dataclasses.dataclass
-class _ForEachVariables(_api_object.ApiRequestObject):
-    variables: List[_ForEachVariable]
+class Variables(_api_object.ApiRequestObject):
+    variables: List[Variable]
 
     def _to_dict(self) -> Dict:
         return {"variables": self.variables}
 
 
 @dataclasses.dataclass
-class _ForEachFile(_api_object.ApiRequestObject):
+class File(_api_object.ApiRequestObject):
     base: str
     include: List[str]
     exclude: List[str]
@@ -58,15 +59,15 @@ class _ForEachFile(_api_object.ApiRequestObject):
 
 
 @dataclasses.dataclass
-class _ForEachFiles(_api_object.ApiRequestObject):
-    files: List[_ForEachFile]
+class Files(_api_object.ApiRequestObject):
+    files: List[File]
 
     def _to_dict(self) -> Dict:
         return {"file_sets": self.files}
 
 
 @dataclasses.dataclass
-class _ForEachChunking(_api_object.ApiRequestObject):
+class Chunking(_api_object.ApiRequestObject):
     class Type:
         """The type of the chunks.
 
@@ -105,29 +106,8 @@ class ForEach(_loop.Loop):
 
     """
 
-    class Range:
-        """Range to loop over."""
-
-        class Values(_ForEachValues):
-            """A range of values to loop over."""
-
-        class Variables(_ForEachVariables):
-            """A range of variables to loop over."""
-
-            class Variable(_ForEachVariable):
-                """A variable."""
-
-        class Files(_ForEachFiles):
-            """A range of files to loop over."""
-
-            class File(_ForEachFile):
-                """A file."""
-
-    class Chunking(_ForEachChunking):
-        """The chunking of the data."""
-
     iterator_name: str
-    range: Range
+    range: Union[Values, Variables, Files]
     chunking: Optional[Chunking]
 
     def _type(self) -> str:
