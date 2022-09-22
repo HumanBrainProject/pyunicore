@@ -103,7 +103,9 @@ class Job(activity.Activity):
 
     def _activity_to_dict(self) -> Dict:
         if self.options is not None:
-            options = {k: v for o in self.options for k, v in o.to_dict().items()}
+            options = {
+                k: v for o in self.options for k, v in o.to_dict().items()
+            }
         else:
             options = None
 

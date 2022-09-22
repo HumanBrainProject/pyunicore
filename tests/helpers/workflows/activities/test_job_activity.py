@@ -46,9 +46,7 @@ class TestJob:
                     "supplementaryGroups": "test-groups",
                 },
             },
-            "options": {
-                "IGNORE_FAILURE": "true", "MAX_RESUBMITS": 2
-            },  
+            "options": {"IGNORE_FAILURE": "true", "MAX_RESUBMITS": 2},
         }
 
         result = job_.to_dict()
