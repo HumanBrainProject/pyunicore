@@ -2,8 +2,7 @@ import logging
 
 import pyunicore.client
 
-from pyunicore.helpers.connect import transport as _transport
-from pyunicore.helpers.connect import authentication as _authentication
+from pyunicore import credentials
 
 logger = logging.getLogger(__name__)
 
@@ -19,13 +18,13 @@ class AuthenticationFailedException(Exception):
 
 def connect_to_site(
     site_api_url: str,
-    authentication: _authentication.Authentication,
+    credentials: credentials.Credential
 ) -> pyunicore.client.Client:
     """Create a connection to a site's UNICORE API.
 
     Args:
         site_api_url (str): REST API URL to the cluster's UNICORE server.
-        authentication (pyunicore.helpers.Authentication): authentication method
+        credentials (pyunicore.credentials.Credential): Authentication method.
 
     Raises:
         AuthenticationFailedException: Authentication on the cluster failed.
@@ -37,7 +36,7 @@ def connect_to_site(
     logger.info("Attempting to connect to %s", site_api_url)
     client = _connect_to_site(
         api_url=site_api_url,
-        authentication=authentication,
+        credentials=credentials,
     )
     if _authentication_failed(client):
         raise AuthenticationFailedException(
@@ -50,9 +49,9 @@ def connect_to_site(
 
 def _connect_to_site(
     api_url: str,
-    authentication: _authentication.Authentication,
+    credentials: credentials.Credential
 ) -> pyunicore.client.Client:
-    transport = _transport.create_transport(authentication)
+    transport = pyunicore.client.Transport(credentials)
     client = _create_client(transport=transport, api_url=api_url)
     logger.debug("Connection properties: %s", client.properties)
     return client

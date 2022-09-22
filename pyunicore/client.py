@@ -79,7 +79,7 @@ class Transport(object):
     """
     def __init__(self, credential, oidc=True, verify=False, refresh_handler=None, use_security_sessions=True, timeout=120):
         super(Transport, self).__init__()
-        if type(credential)==str:
+        if isinstance(credential, str):
             """ stay backwards compatible """
             if oidc:
                 self.credential = pyunicore.credentials.OIDCToken(credential, refresh_handler)

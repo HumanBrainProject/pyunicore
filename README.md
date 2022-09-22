@@ -132,7 +132,7 @@ The following code example gives you the basic idea:
     _base_dir = "/opt/shared-data"
     _local_mount_dir = "/tmp/mount"
 
-    # auhenticate
+    # authenticate
     cred = uc_credentials.UsernamePassword("demouser", "test123")
     uftp = uc_uftp.UFTP(uc_client.Transport(cred), _auth, _base_dir)
     _host, _port, _password  = uftp.authenticate()
@@ -146,44 +146,31 @@ The following code example gives you the basic idea:
 
 The `pyunicore.helpers` module provides a set of higher-level APIs:
 
-- Different authentication methods:
-  1. user-password (`pyunicore.helpers.UserAuthentication`)
-  2. bearer token (`pyunicore.helpers.TokenAuthentication`)
-- Creating a `pyunicore.client.Transport` (`pyunicore.helpers.create_transport`).
-- Connecting to
-  - a registry (`pyunicore.helpers.connect_to_registry`).
-  - a site via a Registry URL (`pyunicore.helpers.connect_to_site_from_registry`).
-  - a site via its core URL (`pyunicore.helpers.connect_to_site`).
-- Defining a job description as a dataclass and easily converting to a `dict` as required
-  by `pyunicore.client.Client.new_job` (`pyunicore.helpers.JobDescription`).
-- All possible job statuses that may be returned by the jobs API (`pyunicore.helpers.JobStatus`).
-
-### Creating a transport
-
-```Python
-import json
-from pyunicore import helpers
-
-authentication = helpers.UserAuthentication(user="demouser", password="test123")
-
-transport = helpers.create_transport(authentication )
-print(json.dumps(transport.properties, indent=2))
-```
+* Connecting to
+  * a registry (`pyunicore.helpers.connect_to_registry`).
+  * a site via a Registry URL (`pyunicore.helpers.connect_to_site_from_registry`).
+  * a site via its core URL (`pyunicore.helpers.connect_to_site`).
+* Defining descriptions as a dataclass and easily converting to a `dict` as required by `pyunicore.client.Client.new_job` via a `to_dict()` method:
+  * `pyunicore.helpers.jobs.Description` for `pyunicore.client.Client.new_job()`
+  * `pyunicore.helpers.workflows.Description` for `pyunicore.client.WorkflowService.new_workflow()`
+* All possible job statuses that may be returned by the jobs API (`pyunicore.helpers.JobStatus`).
+* Defining a workflow descri
 
 ### Connecting to a registry
 
 ```Python
 import json
-from pyunicore import helpers
+import pyunicore.credentials as uc_credentials
+import pyunicore.helpers as helpers
 
 
 registry_url = "https://localhost:8080/REGISTRY/rest/registries/default_registry"
 
-authentication = helpers.UserAuthentication(user="demouser", password="test123")
+credentials = uc_credentials.UsernamePassword("demouser", "test123")
 
 client = helpers.connect_to_registry(
     registry_url=registry_url,
-    authentication=authentication,
+    credentials=credentials,
 )
 print(json.dumps(client.properties, indent=2))
 ```
@@ -192,17 +179,18 @@ print(json.dumps(client.properties, indent=2))
 
 ```Python
 import json
-from pyunicore import helpers
+import pyunicore.credentials as uc_credentials
+import pyunicore.helpers as helpers
 
 registry_url = "https://localhost:8080/REGISTRY/rest/registries/default_registry"
 site = "DEMO-SITE"
 
-authentication = helpers.UserAuthentication(user="demouser", password="test123")
+credentials = uc_credentials.UsernamePassword("demouser", "test123")
 
 client = helpers.connect_to_site_from_registry(
     registry_url=registry_url,
     site_name=site,
-    authentication=authentication,
+    credentials=credentials,
 )
 print(json.dumps(client.properties, indent=2))
 ```
@@ -211,28 +199,29 @@ print(json.dumps(client.properties, indent=2))
 
 ```Python
 import json
-from pyunicore import helpers
+import pyunicore.credentials as uc_credentials
+import pyunicore.helpers as helpers
 
 site_url = "https://localhost:8080/DEMO-SITE/rest/core"
 
-authentication = helpers.UserAuthentication(user="demouser", password="test123")
+credentials = uc_credentials.UsernamePassword("demouser", "test123")
 
 client = helpers.connect_to_site(
     site_api_url=site_url ,
-    authentication=authentication,
+    credentials=credentials,
 )
 print(json.dumps(client.properties, indent=2))
 ```
 
-### Defining a job
+### Defining a job or workflow
 
 ```Python
 from pyunicore import helpers
 
 client = ...
 
-resources = helpers.Resources(nodes=4)
-job = helpers.JobDescription(
+resources = helpers.jobs.Resources(nodes=4)
+job = helpers.jobs.Description(
     executable="ls",
     project="demoproject",
     resources=resources,
@@ -240,3 +229,5 @@ job = helpers.JobDescription(
 
 client.new_job(job.to_dict())
 ```
+
+This works analogous for `pyunicore.helpers.workflows`.
