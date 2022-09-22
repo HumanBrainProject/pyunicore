@@ -11,6 +11,8 @@ from pyunicore.helpers.workflows.activities.loops import _loop
 
 @dataclasses.dataclass
 class Values(_api_object.ApiRequestObject):
+    """A range of values to iterate over."""
+
     values: List
 
     def _to_dict(self) -> Dict:
@@ -19,13 +21,15 @@ class Values(_api_object.ApiRequestObject):
 
 @dataclasses.dataclass
 class Variable(variable.Variable):
+    """A variable to use in an iteration."""
+
     expression: str
     end_condition: str
 
     def _to_dict(self) -> Dict:
         return {
             "variable_name": self.name,
-            "type": self.Type.get_type_name(self.type),
+            "type": variable.VariableType.get_type_name(self.type),
             "start_value": self.initial_value,
             "expression": self.expression,
             "end_condition": self.end_condition,
@@ -34,6 +38,8 @@ class Variable(variable.Variable):
 
 @dataclasses.dataclass
 class Variables(_api_object.ApiRequestObject):
+    """A set of variables to iterate over."""
+
     variables: List[Variable]
 
     def _to_dict(self) -> Dict:
@@ -42,11 +48,25 @@ class Variables(_api_object.ApiRequestObject):
 
 @dataclasses.dataclass
 class File(_api_object.ApiRequestObject):
+    """A file configuration to include in an iteration.
+
+    Args:
+        base (str): Base of the filenames, which will be resolved at runtime.
+        include (list[str]): List if file names or regular expressions.
+        exclude (list[str]): List if file names or regular expressions.
+        recurse (bool, default=False): Whether the resolution should be done
+            recursively into any subdirectories.
+        indirection (bool, default=False): Whether to load the given file(s)
+            at runtime.
+
+
+    """
+
     base: str
     include: List[str]
     exclude: List[str]
-    recurse: bool
-    indirection: bool
+    recurse: bool = False
+    indirection: bool = False
 
     def _to_dict(self) -> Dict:
         return {
@@ -60,30 +80,55 @@ class File(_api_object.ApiRequestObject):
 
 @dataclasses.dataclass
 class Files(_api_object.ApiRequestObject):
+    """A set of files to iterator over."""
+
     files: List[File]
 
     def _to_dict(self) -> Dict:
         return {"file_sets": self.files}
 
 
+class ChunkingType:
+    """The type of the chunks.
+
+    Attrs:
+        Normal (str): Number of files to use as chunks.
+        Size (str): Size in kbytes to process per chunk.
+
+    """
+
+    Normal = "NORMAL"
+    Size = "SIZE"
+
+
 @dataclasses.dataclass
 class Chunking(_api_object.ApiRequestObject):
-    class Type:
-        """The type of the chunks.
+    """A chunking configuration to use in an iteration.
 
-        Attrs:
-            Normal (str): Number of files to use as chunks.
-            Size (str): Size in kbytes to process per chunk.
+    Args:
+        chunksize(int): Size of the chunks.
+        type (ChunkingType, default=Normal): Type of the `chunksize`.
+            - `ChunkingType.Normal`: Number of files in a chunk.
+            - `ChunkingType.Size`: Total size of a chunk in kbytes.
+        filename_format (str): Allows to control how the individual files
+            should be named.
+        chunksize_formula (str): Expression to use to calculate the chunksize
+            at runtime.
 
-        """
+    """
 
-        Normal = "NORMAL"
-        Size = "SIZE"
+    type: ChunkingType = ChunkingType.Normal
+    chunksize: Optional[int] = None
+    filename_format: Optional[str] = None
+    chunksize_formula: Optional[str] = None
 
-    chunksize: int
-    type: Type
-    filename_format: str
-    chunksize_formula: str
+    def __post_init__(self):
+        """Check that either chunksize or formula is given."""
+        if (
+            (self.chunksize is None and self.chunksize_formula is None)
+            or (self.chunksize is not None and self.chunksize_formula is not None)
+        ):
+            raise ValueError("Either `chunksize` or `chunksize_formula` must be given")
 
     def _to_dict(self) -> Dict:
         return {
@@ -99,16 +144,15 @@ class ForEach(_loop.Loop):
     """A for-each-loop-like activity within a workflow.
 
     Args:
-        job (JobDescription): Description of the job.
-        site_name (str): Name of the site to execute the job on.
-        user_preferences (UserPreferences, optional): User preferences to pass.
-        options (list[JobOption], optional): Options to pass.
+        range (Values, Variables or Files): Range to iterator over.
+        iterator_name (str, default="IT"): Name of the iterator.
+        chunking (Chunking): Chunking to use for the range.
 
     """
 
-    iterator_name: str
     range: Union[Values, Variables, Files]
-    chunking: Optional[Chunking]
+    iterator_name: str = "IT"
+    chunking: Optional[Chunking] = None
 
     def _type(self) -> str:
         return "FOR_EACH"
@@ -117,5 +161,6 @@ class ForEach(_loop.Loop):
         return {
             "iterator_name": self.iterator_name,
             "body": self.body,
-            **self.range,
+            "chunking": self.chunking,
+            **self.range.to_dict(),
         }
