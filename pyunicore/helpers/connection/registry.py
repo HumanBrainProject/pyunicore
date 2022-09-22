@@ -3,7 +3,7 @@ from typing import Dict
 
 import pyunicore.client
 
-from pyunicore.helpers.connect import site as _site
+from pyunicore.helpers.connection import site as _site
 from pyunicore import credentials
 
 logger = logging.getLogger(__name__)

@@ -5,8 +5,8 @@ import pytest
 
 import pyunicore.client
 import pyunicore.testing as testing
-import pyunicore.helpers.connect.registry as _registry
-import pyunicore.helpers.connect.site as _site
+import pyunicore.helpers.connection.registry as _registry
+import pyunicore.helpers.connection.site as _site
 import pyunicore.credentials as credentials
 
 

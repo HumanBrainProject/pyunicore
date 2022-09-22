@@ -2,7 +2,7 @@ import functools
 
 import pytest
 import pyunicore.testing as testing
-import pyunicore.helpers.connect.site as _connect
+import pyunicore.helpers.connection.site as _connect
 import pyunicore.client as pyunicore
 import pyunicore.credentials as credentials
 

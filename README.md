@@ -168,7 +168,7 @@ registry_url = "https://localhost:8080/REGISTRY/rest/registries/default_registry
 
 credentials = uc_credentials.UsernamePassword("demouser", "test123")
 
-client = helpers.connect_to_registry(
+client = helpers.connection.connect_to_registry(
     registry_url=registry_url,
     credentials=credentials,
 )
@@ -187,7 +187,7 @@ site = "DEMO-SITE"
 
 credentials = uc_credentials.UsernamePassword("demouser", "test123")
 
-client = helpers.connect_to_site_from_registry(
+client = helpers.connection.connect_to_site_from_registry(
     registry_url=registry_url,
     site_name=site,
     credentials=credentials,
@@ -206,7 +206,7 @@ site_url = "https://localhost:8080/DEMO-SITE/rest/core"
 
 credentials = uc_credentials.UsernamePassword("demouser", "test123")
 
-client = helpers.connect_to_site(
+client = helpers.connection.connect_to_site(
     site_api_url=site_url ,
     credentials=credentials,
 )
