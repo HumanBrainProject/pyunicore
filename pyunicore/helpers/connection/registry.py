@@ -1,12 +1,9 @@
-import logging
 from typing import Dict
 
 import pyunicore.client
 
 from pyunicore.helpers.connection import site as _site
 from pyunicore import credentials
-
-logger = logging.getLogger(__name__)
 
 
 def connect_to_registry(
@@ -22,7 +19,6 @@ def connect_to_registry(
         pyunicore.client.Registry
 
     """
-    logger.info("Attempting to connect to registry %s", registry_url)
     transport = pyunicore.client.Transport(credentials)
     return pyunicore.client.Registry(transport=transport, url=registry_url)
 
@@ -44,9 +40,6 @@ def connect_to_site_from_registry(
         pyunicore.client.Client
 
     """
-    logger.info(
-        "Attempting to connect to %s from registry %s", site_name, registry_url
-    )
     transport = pyunicore.client.Transport(credentials)
     site_api_url = _get_site_api_url(
         site=site_name,
@@ -65,13 +58,7 @@ def _get_site_api_url(
     transport: pyunicore.client.Transport,
     registry_url: str,
 ) -> str:
-    logger.debug(
-        "Attempting to get site REST API URL for %s from registry %s",
-        site,
-        registry_url,
-    )
     api_urls = _get_api_urls(transport=transport, registry_url=registry_url)
-    logger.debug("Available API URLs: %s", api_urls)
     try:
         api_url = api_urls[site]
     except KeyError:
@@ -87,8 +74,5 @@ def _get_site_api_url(
 def _get_api_urls(
     transport: pyunicore.client.Transport, registry_url: str
 ) -> Dict[str, str]:
-    logger.debug(
-        "Getting all available API URLs from registry %s", registry_url
-    )
     registry = pyunicore.client.Registry(transport=transport, url=registry_url)
     return registry.site_urls
