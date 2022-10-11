@@ -80,7 +80,7 @@ class Transport(object):
     """
     def __init__(self, credential, oidc=True, verify=False, refresh_handler=None, use_security_sessions=True, timeout=120):
         super(Transport, self).__init__()
-        if type(credential)==str:
+        if isinstance(credential, str):
             """ stay backwards compatible """
             if oidc:
                 self.credential = pyunicore.credentials.OIDCToken(credential, refresh_handler)
@@ -296,7 +296,7 @@ class Client(Resource):
             raise Exception("Failure to authenticate at %s" % self.resource_url)
         
     def access_info(self):
-        '''get authentication and authorization information about the current user'''
+        '''get authentication and authentication information about the current user'''
         return self.properties['client']
 
     def get_storages(self, offset=0, num=200, tags=[]):
@@ -792,7 +792,7 @@ class WorkflowService(Resource):
             self.assert_authentication()
 
     def access_info(self):
-        '''get authentication and authorization information about the current user'''
+        '''get authentication and authentication information about the current user'''
         return self.properties['client']
 
     def assert_authentication(self):
