@@ -29,7 +29,10 @@ class TestBasic(unittest.TestCase):
                 home = s
                 break
         self.assertIsNotNone(home)
-        
+        home.listdir()
+        home.listdir(".")
+        home.listdir("/")
+
     def test_upload_download(self):
         print("*** test_upload_download")
         home = self.get_home_storage()

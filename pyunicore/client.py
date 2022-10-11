@@ -15,6 +15,7 @@ from contextlib import closing
 from datetime import datetime, timedelta
 
 import os
+from os.path import normpath
 import re
 import requests
 import time
@@ -201,7 +202,7 @@ class Resource(object):
 
     @property
     def links(self):
-        urls = self.transport.get(url=self.resource_url)['_links']
+        urls = self.properties['_links']
         return {k: v['href'] for k, v in urls.items()}
 
     def delete(self):
@@ -485,16 +486,16 @@ class Storage(Resource):
     def __init__(self, transport, storage_url, cache_time = _DEFAULT_CACHE_TIME):
         super(Storage, self).__init__(transport, storage_url, cache_time)
 
-    def files_url(self):
-        return self.links['files']+'/'
+    def _to_file_url(self, path):
+        return self.links['files'] + normpath('/' + path).rstrip("/")
 
     def contents(self, path="/"):
         '''get a simple list of files in the given directory '''
-        return self.transport.get(url=self.links['files']+'/'+path)
+        return self.transport.get(url=self._to_file_url(path))
 
     def stat(self, path):
         ''' get a reference to a file/directory '''
-        path_url = self.links['files'] + '/' + path
+        path_url = self._to_file_url(path)
         headers = {'Accept': 'application/json',}
         props = self.transport.get(url=path_url, headers = headers)
         if props['isDirectory']:
@@ -508,7 +509,7 @@ class Storage(Resource):
         ret = {}
         for path, meta in self.contents(base)['content'].items():
             path_url = self.links['files'] + path
-            path = path[1:]  # strip leading '/'
+            path = path.lstrip("/")
             if meta['isDirectory']:
                 ret[path] = PathDir(self, path_url, path)
             else:
@@ -531,15 +532,15 @@ class Storage(Resource):
 
     def mkdir(self, name):
         '''create a directory'''
-        return self.transport.post(url=self.links['files']+"/"+name, json={})
+        return self.transport.post(url=self._to_file_url(name), json={})
 
     def rmdir(self, name):
         '''remove a directory and all its content'''
-        return self.transport.delete(url=self.links['files']+"/"+name)
+        return self.transport.delete(url=self._to_file_url(name))
 
     def rm(self, name):
         '''remove a file'''
-        return self.transport.delete(url=self.links['files']+"/"+name)
+        return self.transport.delete(url=self._to_file_url(name))
 
     def makedirs(self, name):
         '''create directory'''
@@ -572,7 +573,7 @@ class Storage(Resource):
         _headers = {'Content-Type': 'application/octet-stream'}
         with open(input_file, 'rb') as fd:
             self.transport.put(
-                url = os.path.join(self.resource_url, "files", destination),
+                url = self._to_file_url(destination),
                 headers = _headers,
                 data=fd)
 
