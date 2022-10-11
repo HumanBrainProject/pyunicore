@@ -7,4 +7,6 @@ __pycache__/
 dist/
 pyunicore.egg-info/
 .settings
+.coverage/
+.coverage
 build/
