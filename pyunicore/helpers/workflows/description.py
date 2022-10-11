@@ -1,6 +1,6 @@
-"""Represents the job description of the UNICORE REST API.
+"""Represents the workflow description of the UNICORE REST API.
 
-See https://unicore-dev.zam.kfa-juelich.de/documentation/workflow-8.0.0/workflow-manual.html  # noqa
+See https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api/workflow-description
 
 """
 import dataclasses

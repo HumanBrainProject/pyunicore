@@ -1,6 +1,6 @@
 """Represents the job description of the UNICORE REST API.
 
-See https://sourceforge.net/p/unicore/wiki/Job_Description/
+See https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api/job-description/
 
 """
 import dataclasses
@@ -18,8 +18,8 @@ class Description(_api_object.ApiRequestObject):
     """UNICORE's job description for submitting jobs.
 
     Args:
-        executable (str) : Command line.
-        project (str): Accounting project.
+        executable (str, optional) : Command line.
+        project (str, optional): Accounting project.
         resources (Resources): The job's resource requests.
         application_name (str, optional): Application name.
         application_version (str, optional): Application version.
@@ -63,8 +63,8 @@ class Description(_api_object.ApiRequestObject):
         name (str, optional): Job name.
     """
 
-    executable: str
-    project: str
+    executable: Optional[str] = None
+    project: Optional[str] = None
     resources: _resources.Resources = dataclasses.field(
         default_factory=_resources.Resources
     )
@@ -73,8 +73,8 @@ class Description(_api_object.ApiRequestObject):
     arguments: Optional[List[str]] = None
     environment: Optional[Dict[str, str]] = None
     parameters: Optional[Dict[str, str]] = None
-    stdout: str = "stdout"
-    stderr: str = "stderr"
+    stdout: Optional[str] = "stdout"
+    stderr: Optional[str] = "stderr"
     stdin: Optional[str] = None
     ignore_non_zero_exit_code: bool = False
     user_precommand: Optional[str] = None
@@ -86,7 +86,7 @@ class Description(_api_object.ApiRequestObject):
     imports: Optional[List[data.Import]] = None
     exports: Optional[List[data.Export]] = None
     have_client_stage_in: bool = False
-    job_type: str = "normal"
+    job_type: Optional[str] = "normal"
     login_node: Optional[str] = None
     bss_file: Optional[str] = None
     tags: Optional[List[str]] = None
