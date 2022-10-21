@@ -1,7 +1,7 @@
 # This workflow runs integration tests using
 # the unicore-testing-all Docker container
 
-name: Integration tests
+name: Integration tests vs UNICORE 9
 
 on:
   workflow_dispatch:
@@ -14,7 +14,7 @@ jobs:
 
     services:
       unicore:
-        image: ghcr.io/unicore-eu/unicore-testing-all:8.3.0
+        image: ghcr.io/unicore-eu/unicore-testing-all:9.0.0
         ports:
           - 8080:8080
 
