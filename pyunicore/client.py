@@ -487,7 +487,7 @@ class Storage(Resource):
         super(Storage, self).__init__(transport, storage_url, cache_time)
 
     def _to_file_url(self, path):
-        return self.links['files'] + normpath('/' + path).rstrip("/")
+        return self.links['files'] + normpath('/' + path.lstrip("/")).rstrip("/")
 
     def contents(self, path="/"):
         '''get a simple list of files in the given directory '''
