@@ -49,7 +49,7 @@ def test_connect_to_registry(monkeypatch):
 @pytest.mark.parametrize(
     ("login_successful", "expected"),
     [
-        (False, _site.AuthenticationFailedException()),
+        (False, credentials.AuthenticationFailedException()),
         (True, testing.FakeClient),
     ],
 )

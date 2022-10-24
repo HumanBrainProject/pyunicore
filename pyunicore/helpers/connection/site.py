@@ -1,19 +1,10 @@
 import pyunicore.client
 
-from pyunicore import credentials
-
-
-class AuthenticationFailedException(Exception):
-    """User authentication has failed.
-
-    Unfortunately the response by the server does not give any detailed
-    information why the authentication fails.
-
-    """
+from pyunicore import credentials as _credentials
 
 
 def connect_to_site(
-    site_api_url: str, credentials: credentials.Credential
+    site_api_url: str, credentials: _credentials.Credential
 ) -> pyunicore.client.Client:
     """Create a connection to a site's UNICORE API.
 
@@ -22,7 +13,7 @@ def connect_to_site(
         credentials (pyunicore.credentials.Credential): Authentication method.
 
     Raises:
-        AuthenticationFailedException: Authentication on the cluster failed.
+        pyunicore.credentials.AuthenticationFailedException: Authentication on the cluster failed.
 
     Returns:
         pyunicore.client.Client
@@ -33,7 +24,7 @@ def connect_to_site(
         credentials=credentials,
     )
     if _authentication_failed(client):
-        raise AuthenticationFailedException(
+        raise _credentials.AuthenticationFailedException(
             "Check if your credentials are correct, and if the cluster name "
             "and registry URL are correct."
         )
@@ -41,7 +32,7 @@ def connect_to_site(
 
 
 def _connect_to_site(
-    api_url: str, credentials: credentials.Credential
+    api_url: str, credentials: _credentials.Credential
 ) -> pyunicore.client.Client:
     transport = pyunicore.client.Transport(credentials)
     client = _create_client(transport=transport, api_url=api_url)

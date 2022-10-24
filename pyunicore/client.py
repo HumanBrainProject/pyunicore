@@ -60,7 +60,7 @@ def _build_full_url(url, offset, num, tags):
         url = url + "?" + "&".join(map(str, q_params))
     return url
 
-    
+
 class Transport(object):
     """wrapper around requests, which
            - adds HTTP Authorization header
@@ -293,7 +293,7 @@ class Client(Resource):
     def assert_authentication(self):
         ''' Asserts that the remote role is not "anonymous" '''
         if self.access_info()['role']['selected']=="anonymous":
-            raise Exception("Failure to authenticate at %s" % self.resource_url)
+            raise pyunicore.credentials.AuthenticationFailedException("Failure to authenticate at %s" % self.resource_url)
         
     def access_info(self):
         '''get authentication and authentication information about the current user'''
@@ -798,7 +798,7 @@ class WorkflowService(Resource):
     def assert_authentication(self):
         ''' Asserts that the remote role is not "anonymous" '''
         if self.access_info()['role']['selected']=="anonymous":
-            raise Exception("Failure to authenticate at %s" % self.resource_url)
+            raise pyunicore.credentials.AuthenticationFailedException("Failure to authenticate at %s" % self.resource_url)
 
     def get_workflows(self, offset=0, num=None, tags=[]):
         ''' get the list of workflows.

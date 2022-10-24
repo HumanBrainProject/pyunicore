@@ -8,7 +8,7 @@ def convert_cmdline_tool(cwl_doc, inputs_object = {}, debug = False):
         Returns: UNICORE JSON job, list of local files to upload,  list of output files
     """
     if cwl_doc['class']!="CommandLineTool":
-        raise Exception("Unsupported 'class' of CWL document, must be 'CommandLineTool'")
+        raise ValueError("Unsupported 'class' of CWL document, must be 'CommandLineTool'")
     unicore_job = {}
 
     _hints = cwl_doc.get("hints", {})
@@ -90,7 +90,7 @@ def render_value(name, input_spec, inputs_object={}):
         if value is None:
             return None
     elif value is None:
-        raise Exception("Parameter value for parameter '%s' is missing in inputs object" % name)
+        raise TypeError("Parameter value for parameter '%s' is missing in inputs object" % name)
 
     if parameter_type=="boolean":
         if value==True or value=="true":
@@ -100,7 +100,7 @@ def render_value(name, input_spec, inputs_object={}):
 
     if is_array:
         if not isinstance(value, list):
-            raise Exception("Parameter '%s' is declared as 'array of %s', but value is not a list" % (name, parameter_type))
+            raise ValueError("Parameter '%s' is declared as 'array of %s', but value is not a list" % (name, parameter_type))
         values = value
     else:
         values = [value]

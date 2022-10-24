@@ -17,6 +17,9 @@ from os import getenv
 from os.path import isabs
 
 
+class AuthenticationFailedException(Exception):
+    """User authentication has failed."""
+
 class Credential(object):
     """
     Base class for credential
@@ -182,7 +185,7 @@ def create_credential(username=None, password=None, token=None, identity=None):
     if token is None and identity is None:
         return UsernamePassword(username, password)
     if identity is None:
-        raise Exception("Not enough info to create user credential")
+        raise AuthenticationFailedException("Not enough info to create user credential")
     try:
         from cryptography.hazmat.primitives import serialization
         if not isabs(identity):
@@ -211,4 +214,4 @@ def create_credential(username=None, password=None, token=None, identity=None):
             algo = "ES256"
         return JWTToken(sub, sub, secret, algorithm = algo, etd=False)
     except ImportError:
-            raise Exception("To use key-based authentication, you will need the 'cryptography' package.")
+        raise AuthenticationFailedException("To use key-based authentication, you will need the 'cryptography' package.")

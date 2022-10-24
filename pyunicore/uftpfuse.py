@@ -201,7 +201,7 @@ if __name__ == '__main__':
     if _pwd is None:
         _pwd = os.getenv("UFTP_PASSWORD")
     if _pwd is None:
-        raise Exception("UFTP one-time password must be given with '-P ...' or as environment UFTP_PASSWORD")
+        raise TypeError("UFTP one-time password must be given with '-P ...' or as environment UFTP_PASSWORD")
     _host, _port = args.address.split(":")
  
     fuse = FUSE(

@@ -22,7 +22,7 @@ def create_fake_client(login_successful: bool) -> functools.partial:
 @pytest.mark.parametrize(
     ("login_successful", "expected"),
     [
-        (False, _connect.AuthenticationFailedException()),
+        (False, credentials.AuthenticationFailedException()),
         (True, testing.FakeClient),
     ],
 )
