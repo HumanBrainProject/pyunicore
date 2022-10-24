@@ -20,10 +20,8 @@ def convert_cmdline_tool(cwl_doc, inputs_object = {}, debug = False):
     if _is_container:
         unicore_job['ApplicationName'] = "CONTAINER"
         docker_image = _hints['DockerRequirement']['dockerPull']
-        run_options = [ "--contain", "--ipc", "--bind $PWD", "--pwd $PWD"]
         params = {'IMAGE_URL': docker_image,
                   'COMMAND': cwl_doc['baseCommand'],
-                  'RUN_OPTS': " ".join(run_options)
                   }
         unicore_job['Parameters'] = params
     else:
