@@ -95,7 +95,7 @@ def render_value(name, input_spec, inputs_object={}):
         raise TypeError("Parameter value for parameter '%s' is missing in inputs object" % name)
 
     if parameter_type == "boolean":
-        if value == True or value == "true":
+        if (isinstance(value, bool) and value) or value == "true":
             return prefix
         else:
             return None

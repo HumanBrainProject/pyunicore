@@ -6,7 +6,7 @@ try:
     from urllib3 import disable_warnings
 
     disable_warnings()
-except:  # noqa: B901
+except:
     pass
 
 from abc import ABCMeta, abstractmethod
@@ -22,7 +22,7 @@ from os import getenv
 from os.path import isabs
 
 
-class AuthenticationFailedException(Exception):
+class AuthenticationFailedException(Exception):  # noqa N818
     """User authentication has failed."""
 
 

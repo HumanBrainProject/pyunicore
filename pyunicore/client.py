@@ -75,7 +75,8 @@ class Transport:
     Args:
         credential: the credential
         timeout: timeout for HTTP calls (defaults to 120 seconds)
-        use_security_sessions: if true, UNICORE's security sessions mechanism will be used (to speed up request processing)
+        use_security_sessions: if true, UNICORE's security sessions mechanism
+            will be used (to speed up request processing)
         verify: if true, SSL verification of the server's certificate will be done
     """
 
@@ -131,7 +132,7 @@ class Transport:
 
         return headers
 
-    def checkError(self, res):
+    def check_error(self, res):
         """checks for error and extracts any error info sent by the server"""
         if 400 <= res.status_code < 600:
             reason = res.reason
@@ -162,7 +163,7 @@ class Transport:
                 timeout=self.timeout,
                 **args,
             )
-        self.checkError(res)
+        self.check_error(res)
         if self.use_security_sessions:
             self.last_session_id = res.headers.get("X-UNICORE-SecuritySession", None)
         return res
@@ -239,7 +240,7 @@ class Resource:
 class Registry(Resource):
     """Client for a UNICORE service Registry
 
-        >>> base_url = '...' # e.g. "https://localhost:8080/REGISTRY/rest/registries/default_registry"
+        >>> base_url = '...' # e.g. "https://localhost:8080/REGISTRY/rest/registries/default_registry"  # noqa
         >>> token = '...'
         >>> transport = Transport(token)
         >>> registry = Registry(transport, base_url)
@@ -615,7 +616,8 @@ class Storage(Resource):
 
         Args:
             file_name : the file on this storage to send (supports wildcards)
-            remote_url: the destination (https://.../rest/core/storages/NAME/files/path_to_file_or_directory
+            remote_url: the destination
+                (https://.../rest/core/storages/NAME/files/path_to_file_or_directory)
             protocol: optional protocol (e.g. "UFTP")
             additional_parameters: any protocol-dependent additional settings
 
@@ -649,7 +651,8 @@ class Storage(Resource):
         """launch a server-to-server transfer: pull a file from a remote storage to this storage
 
         Args:
-            remote_url: the remote file (supports wildcards) (https://.../rest/core/storages/NAME/files/path_to_file
+            remote_url: the remote file (supports wildcards)
+                (https://.../rest/core/storages/NAME/files/path_to_file)
             file_name : the file on this storage to write to
             protocol: optional protocol (e.g. "UFTP")
             additional_parameters: any protocol-dependent additional settings
@@ -756,13 +759,13 @@ class PathFile(Path):
             )
         ) as resp:
 
-            CHUNK_SIZE = 10 * 1024
+            chunk_size = 10 * 1024
             if isinstance(file, str):
                 with open(file, "wb") as fd:
-                    for chunk in resp.iter_content(CHUNK_SIZE):
+                    for chunk in resp.iter_content(chunk_size):
                         fd.write(chunk)
             else:
-                for chunk in resp.iter_content(CHUNK_SIZE):
+                for chunk in resp.iter_content(chunk_size):
                     file.write(chunk)
 
     def raw(self, offset=0, size=-1):

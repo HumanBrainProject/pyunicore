@@ -1,5 +1,4 @@
 """ UFTP extension to the pyfilesystem FTPFS class """
-from fs.base import FS
 from fs.ftpfs import FTPFS
 from fs.opener import Opener
 

@@ -9,7 +9,6 @@ from fuse import FUSE
 from fuse import FuseOSError
 from fuse import Operations
 
-from pyunicore.client import Transport
 from pyunicore.uftp import UFTP
 
 
