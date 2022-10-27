@@ -8,7 +8,7 @@
 	    "initial_value": "123"
 	  }
     ],
-    
+
     "activities" : [
 
 	  {
@@ -20,12 +20,12 @@
 		  ]
 	    }
 	  },
-	
+
 	  {
 	    "id": "hold1",
 	    "type": "HOLD"
 	  },
-	
+
 	  {
 	    "id": "date2",
 	    "job": {
@@ -36,11 +36,11 @@
 	    }
 	}
     ],
-    
+
     "transitions": [
 	  { "from": "date1", "to": "hold1" },
 	  { "from": "hold1", "to": "date2" }
-	
+
     ]
 
 }

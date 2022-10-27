@@ -1,7 +1,6 @@
+import dataclasses
 from typing import Dict
 from typing import Optional
-
-import dataclasses
 
 from pyunicore.helpers import _api_object
 

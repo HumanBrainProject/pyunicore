@@ -11,9 +11,7 @@ class FakeTransport:
         return self
 
     def get(self, url):
-        return {
-            "entries": "test-entry"
-        }
+        return {"entries": "test-entry"}
 
 
 class FakeRegistry:
@@ -56,9 +54,7 @@ class FakeJob:
         return self.url
 
     def poll(self) -> None:
-        self._properties["status"] = (
-            "SUCCESSFUL" if self._successful else "FAILED"
-        )
+        self._properties["status"] = "SUCCESSFUL" if self._successful else "FAILED"
 
     def abort(self):
         pass

@@ -1,5 +1,5 @@
-from pyunicore.helpers.workflows.activities import job
 from pyunicore.helpers import jobs
+from pyunicore.helpers.workflows.activities import job
 
 
 class TestJob:

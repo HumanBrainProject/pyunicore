@@ -1,9 +1,10 @@
-import json, unittest
+import unittest
+from base64 import b64encode
 
 import pyunicore.credentials as uc_credentials
 from pyunicore.client import Transport
-from base64 import b64encode
-        
+
+
 class TestCredentials(unittest.TestCase):
     def setUp(self):
         pass
@@ -11,14 +12,18 @@ class TestCredentials(unittest.TestCase):
     def test_username_password(self):
         print("*** test_username_password")
         credential = uc_credentials.UsernamePassword("demouser", "test123")
-        self.assertEqual("Basic "+b64encode(b"demouser:test123").decode("ascii"),
-                         credential.get_auth_header())
+        self.assertEqual(
+            "Basic " + b64encode(b"demouser:test123").decode("ascii"),
+            credential.get_auth_header(),
+        )
 
     def test_username_password_via_factory(self):
         print("*** test_username_password_via_factory")
         credential = uc_credentials.create_credential("demouser", "test123")
-        self.assertEqual("Basic "+b64encode(b"demouser:test123").decode("ascii"),
-                         credential.get_auth_header())
+        self.assertEqual(
+            "Basic " + b64encode(b"demouser:test123").decode("ascii"),
+            credential.get_auth_header(),
+        )
 
     def test_oidc_token(self):
         print("*** test_oidc_token")
@@ -44,20 +49,21 @@ class TestCredentials(unittest.TestCase):
     def test_transport(self):
         print("*** test_transport")
         token_str = b64encode(b"demouser:test123").decode("ascii")
-        header_val = "Basic "+token_str
+        header_val = "Basic " + token_str
         credential = uc_credentials.UsernamePassword("demouser", "test123")
         transport = Transport(credential)
-        self.assertEqual(header_val, transport._headers({})['Authorization'])
+        self.assertEqual(header_val, transport._headers({})["Authorization"])
         # old style
         transport = Transport(token_str, oidc=False)
-        self.assertEqual(header_val, transport._headers({})['Authorization'])
+        self.assertEqual(header_val, transport._headers({})["Authorization"])
         transport2 = transport._clone()
-        self.assertEqual(header_val, transport2._headers({})['Authorization'])
+        self.assertEqual(header_val, transport2._headers({})["Authorization"])
 
 
-class MockRefresh(object):
+class MockRefresh:
     def get_token(self):
         return "foobar"
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

@@ -9,7 +9,7 @@ on:
 
 jobs:
   integration-test:
-  
+
     runs-on: ubuntu-latest
 
     services:
@@ -32,4 +32,3 @@ jobs:
     - name: Run tests
       run: |
         make integration-test
-

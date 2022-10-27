@@ -8,9 +8,7 @@ import pytest  # type: ignore
 
 def expect_raise_if_exception(
     expected: Any,
-) -> Union[
-    _pytest.python_api.RaisesContext, contextlib.AbstractContextManager
-]:
+) -> Union[_pytest.python_api.RaisesContext, contextlib.AbstractContextManager]:
     """Create a context that expects a raised exception or no raised exception.
 
     Args:
@@ -22,7 +20,5 @@ def expect_raise_if_exception(
 
     """
     return (
-        pytest.raises(type(expected))
-        if isinstance(expected, Exception)
-        else contextlib.suppress()
+        pytest.raises(type(expected)) if isinstance(expected, Exception) else contextlib.suppress()
     )

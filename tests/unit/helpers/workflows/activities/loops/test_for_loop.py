@@ -1,7 +1,7 @@
 import pytest
 
-from pyunicore.helpers.workflows.activities import loops
 from pyunicore.helpers.workflows import variable
+from pyunicore.helpers.workflows.activities import loops
 
 
 class TestChunking:

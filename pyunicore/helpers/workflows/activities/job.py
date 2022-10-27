@@ -2,8 +2,8 @@ import abc
 import dataclasses
 from typing import Dict
 from typing import List
-from typing import Type
 from typing import Optional
+from typing import Type
 
 from pyunicore.helpers import _api_object
 from pyunicore.helpers import jobs
@@ -103,9 +103,7 @@ class Job(activity.Activity):
 
     def _activity_to_dict(self) -> Dict:
         if self.options is not None:
-            options = {
-                k: v for o in self.options for k, v in o.to_dict().items()
-            }
+            options = {k: v for o in self.options for k, v in o.to_dict().items()}
         else:
             options = None
 

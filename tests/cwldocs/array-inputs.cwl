@@ -10,7 +10,7 @@ inputs:
       position: 1
 
   filesB:
-    type: 
+    type:
       type: array
       items: string
       inputBinding:
@@ -32,4 +32,3 @@ outputs:
     type: stdout
 stdout: output.txt
 baseCommand: echo
-

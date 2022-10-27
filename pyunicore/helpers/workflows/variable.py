@@ -1,9 +1,9 @@
 import dataclasses
+from typing import Any
 from typing import Dict
 from typing import Tuple
-from typing import Union
-from typing import Any
 from typing import Type
+from typing import Union
 
 from pyunicore.helpers import _api_object
 

@@ -15,10 +15,10 @@
    "location": "https://www.google.de",
    "basename": "some_remote_file"
  },
- 
+
 "file_4": {
    "class": "File",
    "location": "https://www.foo.bar/file.txt",
  }
- 
+
 }

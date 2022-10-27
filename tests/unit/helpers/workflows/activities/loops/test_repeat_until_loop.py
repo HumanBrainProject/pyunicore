@@ -1,5 +1,5 @@
-from pyunicore.helpers.workflows.activities import loops
 from pyunicore.helpers.workflows import variable
+from pyunicore.helpers.workflows.activities import loops
 
 
 class TestRepeatUntil:
@@ -20,9 +20,7 @@ class TestRepeatUntil:
         expected = {
             "id": "test-repeat-until-loop-id",
             "type": "REPEAT_UNTIL",
-            "variables": [
-                {"name": "test-variable", "type": "INTEGER", "initial_value": 1}
-            ],
+            "variables": [{"name": "test-variable", "type": "INTEGER", "initial_value": 1}],
             "body": expected_loop_body,
         }
 

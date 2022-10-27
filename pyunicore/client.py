@@ -1,12 +1,13 @@
-'''
+"""
     Client library for UNICORE
 
     For full info on the UNICORE REST API, see
     https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api/index.html
-'''
+"""
 
 try:
     from urllib3 import disable_warnings
+
     disable_warnings()
 except:
     pass
@@ -24,64 +25,72 @@ import pyunicore.credentials
 
 _DEFAULT_CACHE_TIME = 5  # in seconds
 
-_HBP_REGISTRY_URL = ('https://hbp-unic.fz-juelich.de:7112'
-                     '/HBP/rest/registries/default_registry')
+_HBP_REGISTRY_URL = "https://hbp-unic.fz-juelich.de:7112" "/HBP/rest/registries/default_registry"
 
-_FACTORY_RE = r'''
+_FACTORY_RE = r"""
 ^                                 # start of line
 (?P<site_url>\s*https://.*/       # capture full url
 (?P<site_name>.*)                 # capture site name
 /rest/core/)
 .*                                # ignore the rest
-'''
+"""
 
 _FACTORY_RE = re.compile(_FACTORY_RE, re.VERBOSE)
 
-_WORKFLOWS_RE = r'''
+_WORKFLOWS_RE = r"""
 ^                                 # start of line
 (?P<site_url>\s*https://.*/       # capture full url
 (?P<site_name>.*)                 # capture site name
 /rest/workflows)
-'''
+"""
 
 _WORKFLOWS_RE = re.compile(_WORKFLOWS_RE, re.VERBOSE)
 
 
 def _build_full_url(url, offset, num, tags):
-    ''' adds optional paging and tags as query to the url '''
+    """adds optional paging and tags as query to the url"""
     q_params = []
-    if offset>0:
+    if offset > 0:
         q_params.append("offset=%d" % offset)
     if num is not None:
         q_params.append("num=%d" % num)
-    if len(tags)>0:
-        q_params.append("tags=" + ','.join(map(str, tags)))
-    if len(q_params)>0:
+    if len(tags) > 0:
+        q_params.append("tags=" + ",".join(map(str, tags)))
+    if len(q_params) > 0:
         url = url + "?" + "&".join(map(str, q_params))
     return url
 
 
-class Transport(object):
+class Transport:
     """wrapper around requests, which
-           - adds HTTP Authorization header
-           - transparently handles security sessions
-           - handles user preferences
-           - can be configured with an OIDC refresh handler
+        - adds HTTP Authorization header
+        - transparently handles security sessions
+        - handles user preferences
+        - can be configured with an OIDC refresh handler
 
-       see also
-           https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api/index.html#user-preferences
-           https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api/index.html#security-session-handling
+    see also
+        https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api/index.html#user-preferences
+        https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api/index.html#security-session-handling
 
-       Args:
-           credential: the credential
-           timeout: timeout for HTTP calls (defaults to 120 seconds)
-           use_security_sessions: if true, UNICORE's security sessions mechanism will be used (to speed up request processing)
-           verify: if true, SSL verification of the server's certificate will be done
+    Args:
+        credential: the credential
+        timeout: timeout for HTTP calls (defaults to 120 seconds)
+        use_security_sessions: if true, UNICORE's security sessions mechanism will be used (to speed up request processing)
+        verify: if true, SSL verification of the server's certificate will be done
     """
-    def __init__(self, credential, oidc=True, verify=False, refresh_handler=None, use_security_sessions=True, timeout=120):
-        super(Transport, self).__init__()
+
+    def __init__(
+        self,
+        credential,
+        oidc=True,
+        verify=False,
+        refresh_handler=None,
+        use_security_sessions=True,
+        timeout=120,
+    ):
+        super().__init__()
         if isinstance(credential, str):
-            """ stay backwards compatible """
+            """stay backwards compatible"""
             if oidc:
                 self.credential = pyunicore.credentials.OIDCToken(credential, refresh_handler)
             else:
@@ -95,7 +104,7 @@ class Transport(object):
         self.timeout = timeout
 
     def _clone(self):
-        ''' create a copy of this transport '''
+        """create a copy of this transport"""
         tr = Transport(self.credential)
         tr.preferences = self.preferences
         tr.use_security_sessions = self.use_security_sessions
@@ -105,31 +114,32 @@ class Transport(object):
         return tr
 
     def _headers(self, kwargs):
-        headers = {'Authorization': self.credential.get_auth_header(),
-                   'Accept': 'application/json',
-                   'Content-Type': 'application/json',
+        headers = {
+            "Authorization": self.credential.get_auth_header(),
+            "Accept": "application/json",
+            "Content-Type": "application/json",
         }
         if self.use_security_sessions and self.last_session_id is not None:
-            headers['X-UNICORE-SecuritySession'] = self.last_session_id
+            headers["X-UNICORE-SecuritySession"] = self.last_session_id
 
         if self.preferences is not None:
-            headers['X-UNICORE-User-Preferences'] = self.preferences
+            headers["X-UNICORE-User-Preferences"] = self.preferences
 
-        if 'headers' in kwargs:
-            headers.update(kwargs['headers'])
-            del kwargs['headers']
+        if "headers" in kwargs:
+            headers.update(kwargs["headers"])
+            del kwargs["headers"]
 
         return headers
 
     def checkError(self, res):
-        """ checks for error and extracts any error info sent by the server """
+        """checks for error and extracts any error info sent by the server"""
         if 400 <= res.status_code < 600:
             reason = res.reason
             try:
-                reason = res.json()['errorMessage']
+                reason = res.json()["errorMessage"]
             except:
                 pass
-            msg =  u'%s Server Error: %s for url: %s' % (res.status_code, reason, res.url)
+            msg = f"{res.status_code} Server Error: {reason} for url: {res.url}"
             raise requests.HTTPError(msg, response=res)
         else:
             res.raise_for_status()
@@ -137,27 +147,32 @@ class Transport(object):
     def repeat_required(self, res, headers):
         if self.use_security_sessions:
             if 432 == res.status_code:
-                headers.pop('X-UNICORE-SecuritySession', None)
+                headers.pop("X-UNICORE-SecuritySession", None)
                 return True
         return False
-    
+
     def run_method(self, method, **args):
-        ''' performs the requested method, handling security sessions, timeouts etc '''
+        """performs the requested method, handling security sessions, timeouts etc"""
         _headers = self._headers(args)
         res = method(headers=_headers, verify=self.verify, timeout=self.timeout, **args)
         if self.repeat_required(res, _headers):
-            res = method(headers=_headers, verify=self.verify, timeout=self.timeout, **args)
+            res = method(
+                headers=_headers,
+                verify=self.verify,
+                timeout=self.timeout,
+                **args,
+            )
         self.checkError(res)
         if self.use_security_sessions:
-            self.last_session_id = res.headers.get('X-UNICORE-SecuritySession', None)
-        return res;
+            self.last_session_id = res.headers.get("X-UNICORE-SecuritySession", None)
+        return res
 
     def get(self, to_json=True, **kwargs):
-        '''do GET and return the response content as JSON
+        """do GET and return the response content as JSON
 
         Note:
             For the raw response, set `to_json` to false
-        '''
+        """
         res = self.run_method(requests.get, **kwargs)
         if not to_json:
             return res
@@ -166,25 +181,25 @@ class Transport(object):
         return json
 
     def put(self, **kwargs):
-        '''do a PUT and return the response '''
+        """do a PUT and return the response"""
         return self.run_method(requests.put, **kwargs)
 
     def post(self, **kwargs):
-        '''do a POST and return the response '''
+        """do a POST and return the response"""
         return self.run_method(requests.post, **kwargs)
 
     def delete(self, **kwargs):
-        '''send a DELETE to the current endpoint '''
+        """send a DELETE to the current endpoint"""
         self.run_method(requests.delete, **kwargs).close()
 
 
-class Resource(object):
-    ''' Base class for accessing a UNICORE REST endpoint with (cached)
-        properties and some common methods
-    '''
+class Resource:
+    """Base class for accessing a UNICORE REST endpoint with (cached)
+    properties and some common methods
+    """
 
-    def __init__(self, transport, resource_url, cache_time = _DEFAULT_CACHE_TIME):
-        super(Resource, self).__init__()
+    def __init__(self, transport, resource_url, cache_time=_DEFAULT_CACHE_TIME):
+        super().__init__()
         self.transport = transport._clone()
         self.resource_url = resource_url
         self.cache_time = cache_time
@@ -193,35 +208,36 @@ class Resource(object):
 
     @property
     def properties(self):
-        '''get resource properties (these are cached for cache_time seconds)'''
+        """get resource properties (these are cached for cache_time seconds)"""
         now = datetime.now()
-        if self.cache_time <= 0 or (timedelta(seconds = self.cache_time) < now - self._last_retrieved):
+        if self.cache_time <= 0 or (
+            timedelta(seconds=self.cache_time) < now - self._last_retrieved
+        ):
             self._last_properties = self.transport.get(url=self.resource_url)
             self._last_retrieved = now
         return self._last_properties
 
     @property
     def links(self):
-        urls = self.properties['_links']
-        return {k: v['href'] for k, v in urls.items()}
+        urls = self.properties["_links"]
+        return {k: v["href"] for k, v in urls.items()}
 
     def delete(self):
-        '''delete/destroy this resource'''
+        """delete/destroy this resource"""
         self.transport.delete(url=self.resource_url)
 
     def set_properties(self, props):
-        '''set/update resource properties'''
+        """set/update resource properties"""
         return self.transport.put(url=self.resource_url, json=props).json()
 
     def __repr__(self):
-        return ('Resource: %s' %
-                (self.resource_url,
-                ))
+        return f"Resource: {self.resource_url}"
 
     __str__ = __repr__
 
+
 class Registry(Resource):
-    ''' Client for a UNICORE service Registry 
+    """Client for a UNICORE service Registry
 
         >>> base_url = '...' # e.g. "https://localhost:8080/REGISTRY/rest/registries/default_registry"
         >>> token = '...'
@@ -229,39 +245,39 @@ class Registry(Resource):
         >>> registry = Registry(transport, base_url)
 
     Will collect the BASE URLs of all registered sites
-    '''
+    """
 
-    def __init__(self, transport, url, cache_time = _DEFAULT_CACHE_TIME):
-        super(Registry, self).__init__(transport, url, cache_time)
+    def __init__(self, transport, url, cache_time=_DEFAULT_CACHE_TIME):
+        super().__init__(transport, url, cache_time)
         self.refresh()
-    
+
     def refresh(self):
         self.site_urls = {}
         self.workflow_services_urls = {}
 
-        for entry in self.transport.get(url=self.resource_url)['entries']:
+        for entry in self.transport.get(url=self.resource_url)["entries"]:
             try:
                 # just want the "core" URL and the site ID
-                href = entry['href']
-                service_type = entry['type']
+                href = entry["href"]
+                service_type = entry["type"]
                 if "CoreServices" == service_type:
                     base = re.match(r"(https://\S+/rest/core).*", href).group(1)
                     site_name = re.match(r"https://\S+/(\S+)/rest/core", href).group(1)
-                    self.site_urls[site_name]=base
+                    self.site_urls[site_name] = base
                 elif "WorkflowServices" == service_type:
                     base = re.match(r"(https://\S+/rest/workflows).*", href).group(1)
                     site_name = re.match(r"https://\S+/(\S+)/rest/workflows", href).group(1)
-                    self.workflow_services_urls[site_name]=base
+                    self.workflow_services_urls[site_name] = base
 
             except Exception as e:
                 print(e)
 
     def site(self, name):
-        ''' Get a client object for the named site '''
+        """Get a client object for the named site"""
         return Client(self.transport, self.site_urls[name])
 
     def workflow_service(self, name=None):
-        ''' Get a client object for the named site, or the first in the list if no name is given '''
+        """Get a client object for the named site, or the first in the list if no name is given"""
         if name is None:
             _, url = list(self.workflow_services_urls.items())[0]
         else:
@@ -270,91 +286,96 @@ class Registry(Resource):
 
 
 class Client(Resource):
-    '''Entrypoint to the UNICORE API at a site
+    """Entrypoint to the UNICORE API at a site
 
-        >>> base_url = '...' # e.g. "https://localhost:8080/DEMO-SITE/rest/core"
-        >>> credential = credentials.UsernamePassword("demouser", "test123")
-        >>> transport = client.Transport(credential)
-        >>> sites = get_sites(transport)
-        >>> site_client = client.Client(transport, sites['JURECA'])
-        >>> # to get the jobs
-        >>> jobs = site_client.get_jobs()
-        >>> # to start a new job:
-        >>> job_description = {...}
-        >>> job = site_client.new_job(job_description)
-    '''
-    
-    def __init__(self, transport, site_url, check_authentication=True, cache_time = _DEFAULT_CACHE_TIME):
-        super(Client, self).__init__(transport, site_url, cache_time)
+    >>> base_url = '...' # e.g. "https://localhost:8080/DEMO-SITE/rest/core"
+    >>> credential = credentials.UsernamePassword("demouser", "test123")
+    >>> transport = client.Transport(credential)
+    >>> sites = get_sites(transport)
+    >>> site_client = client.Client(transport, sites['JURECA'])
+    >>> # to get the jobs
+    >>> jobs = site_client.get_jobs()
+    >>> # to start a new job:
+    >>> job_description = {...}
+    >>> job = site_client.new_job(job_description)
+    """
+
+    def __init__(
+        self,
+        transport,
+        site_url,
+        check_authentication=True,
+        cache_time=_DEFAULT_CACHE_TIME,
+    ):
+        super().__init__(transport, site_url, cache_time)
         self.check_authentication = check_authentication
         if self.check_authentication:
             self.assert_authentication()
 
     def assert_authentication(self):
-        ''' Asserts that the remote role is not "anonymous" '''
-        if self.access_info()['role']['selected']=="anonymous":
-            raise pyunicore.credentials.AuthenticationFailedException("Failure to authenticate at %s" % self.resource_url)
-        
+        '''Asserts that the remote role is not "anonymous"'''
+        if self.access_info()["role"]["selected"] == "anonymous":
+            raise pyunicore.credentials.AuthenticationFailedException(
+                "Failure to authenticate at %s" % self.resource_url
+            )
+
     def access_info(self):
-        '''get authentication and authentication information about the current user'''
-        return self.properties['client']
+        """get authentication and authentication information about the current user"""
+        return self.properties["client"]
 
     def get_storages(self, offset=0, num=200, tags=[]):
-        '''get a list of all Storages on this site
+        """get a list of all Storages on this site
         Use the optional 'offset' and 'num' parameters to handle long result lists
         (for long lists, the server might not return all results!).
-        Use the optional tag list to filter the results.'''
-        s_url = _build_full_url(self.links['storages'], offset, num, tags)
-        return [Storage(self.transport, url)
-                for url in self.transport.get(url=s_url)['storages']]
+        Use the optional tag list to filter the results."""
+        s_url = _build_full_url(self.links["storages"], offset, num, tags)
+        return [Storage(self.transport, url) for url in self.transport.get(url=s_url)["storages"]]
 
     def get_transfers(self, offset=0, num=200, tags=[]):
-        '''get a list of all Transfers.
+        """get a list of all Transfers.
         Use the optional 'offset' and 'num' parameters to handle long result lists
         (for long lists, the server might not return all results!).
-        Use the optional tag list to filter the results.'''
-        t_url = _build_full_url(self.links['transfers'], offset, num, tags)
-        return [Transfer(self.transport, url)
-                for url in self.transport.get(url=t_url)['transfers']]
+        Use the optional tag list to filter the results."""
+        t_url = _build_full_url(self.links["transfers"], offset, num, tags)
+        return [Transfer(self.transport, url) for url in self.transport.get(url=t_url)["transfers"]]
 
     def get_applications(self):
         apps = []
-        for url in self.transport.get(url=self.links['factories'])['factories']:
-            for app in self.transport.get(url=url)['applications']:
-                apps.append(Application(self.transport, url+"/applications/"+app))
+        for url in self.transport.get(url=self.links["factories"])["factories"]:
+            for app in self.transport.get(url=url)["applications"]:
+                apps.append(Application(self.transport, url + "/applications/" + app))
         return apps
 
     def get_compute(self):
-        '''get a list of all Compute resources'''
+        """get a list of all Compute resources"""
         resources = []
-        for url in self.transport.get(url=self.links['factories'])['factories']:
+        for url in self.transport.get(url=self.links["factories"])["factories"]:
             resources.append(Compute(self.transport, url))
         return resources
 
     def get_jobs(self, offset=0, num=None, tags=[]):
-        '''return a list of `Job` objects.
+        """return a list of `Job` objects.
         Use the optional 'offset' and 'num' parameters to handle long result lists
         (for long lists, the server might not return all results!).
-        Use the optional tag list to filter the results.'''
-        j_url = _build_full_url(self.links['jobs'], offset, num, tags)
-        return [Job(self.transport, url)
-                for url in self.transport.get(url=j_url)['jobs']]
+        Use the optional tag list to filter the results."""
+        j_url = _build_full_url(self.links["jobs"], offset, num, tags)
+        return [Job(self.transport, url) for url in self.transport.get(url=j_url)["jobs"]]
 
-    def new_job(self, job_description, inputs=[], autostart = True):
-        ''' submit and start a job on the site, optionally uploading input data files '''
-        if len(inputs)>0 or job_description.get('haveClientStageIn') is True :
-            job_description['haveClientStageIn'] = "true"
+    def new_job(self, job_description, inputs=[], autostart=True):
+        """submit and start a job on the site, optionally uploading input data files"""
+        if len(inputs) > 0 or job_description.get("haveClientStageIn") is True:
+            job_description["haveClientStageIn"] = "true"
 
-        with closing(self.transport.post(url=self.links['jobs'], json=job_description)) as resp:
-            job_url = resp.headers['Location']
-        
+        with closing(self.transport.post(url=self.links["jobs"], json=job_description)) as resp:
+            job_url = resp.headers["Location"]
+
         job = Job(self.transport, job_url)
 
-        if len(inputs)>0:
+        if len(inputs) > 0:
             working_dir = job.working_dir
             for input_item in inputs:
                 working_dir.upload(input_item)
-        if autostart and job_description.get('haveClientStageIn', None) == "true":
+        if autostart and job_description.get("haveClientStageIn", None) == "true":
             try:
                 job.start()
             except:
@@ -362,192 +383,200 @@ class Client(Resource):
 
         return job
 
-
     def execute(self, cmd):
-        ''' run a (non-batch) command on the site, executed on a login node '''
-        job_description = {'Executable': cmd,
-                           'Job type': 'INTERACTIVE'
-        }
-        with closing(self.transport.post(url=self.links['jobs'], json=job_description)) as resp:
-            job_url = resp.headers['Location']
-        
+        """run a (non-batch) command on the site, executed on a login node"""
+        job_description = {"Executable": cmd, "Job type": "INTERACTIVE"}
+        with closing(self.transport.post(url=self.links["jobs"], json=job_description)) as resp:
+            job_url = resp.headers["Location"]
+
         return Job(self.transport, job_url)
 
 
 class Application(Resource):
-    '''wrapper around a UNICORE application '''
-    def __init__(self, transport, app_url, submit_url=None, cache_time = _DEFAULT_CACHE_TIME):
-        super(Application, self).__init__(transport, app_url, cache_time)
+    """wrapper around a UNICORE application"""
+
+    def __init__(
+        self,
+        transport,
+        app_url,
+        submit_url=None,
+        cache_time=_DEFAULT_CACHE_TIME,
+    ):
+        super().__init__(transport, app_url, cache_time)
         if submit_url is None:
-            submit_url = app_url.split("/rest/core/factories/")[0]+"/rest/core/jobs"
+            submit_url = app_url.split("/rest/core/factories/")[0] + "/rest/core/jobs"
         self.submit_url = submit_url
 
     @property
     def name(self):
-        return self.properties['ApplicationName']
+        return self.properties["ApplicationName"]
 
     @property
     def version(self):
-        return self.properties['ApplicationVersion']
+        return self.properties["ApplicationVersion"]
 
     @property
     def options(self):
-        return self.properties['Options']
+        return self.properties["Options"]
 
     def __repr__(self):
-        return ('Application %s %s @ %s' %
-                 (self.name,
-                  self.version,
-                  self.submit_url))
+        return "Application {} {} @ {}".format(
+            self.name,
+            self.version,
+            self.submit_url,
+        )
 
     __str__ = __repr__
 
 
-
 class Job(Resource):
-    '''wrapper around UNICORE job'''
+    """wrapper around UNICORE job"""
 
-    def __init__(self, transport, job_url, cache_time = _DEFAULT_CACHE_TIME):
-        super(Job, self).__init__(transport, job_url, cache_time)
+    def __init__(self, transport, job_url, cache_time=_DEFAULT_CACHE_TIME):
+        super().__init__(transport, job_url, cache_time)
 
     @property
     def working_dir(self):
-        '''return the Storage for accessing this job's working directory '''
-        return Storage(
-            self.transport,
-            self.links['workingDirectory'])
+        """return the Storage for accessing this job's working directory"""
+        return Storage(self.transport, self.links["workingDirectory"])
 
     def bss_details(self):
-        ''' return a JSON containing the low-level batch system details '''
-        return self.transport.get(url=self.links['details'])
+        """return a JSON containing the low-level batch system details"""
+        return self.transport.get(url=self.links["details"])
 
     def is_running(self):
-        '''checks whether this job is still running'''
-        return self.properties['status'] not in ( 'SUCCESSFUL', 'FAILED' )
+        """checks whether this job is still running"""
+        return self.properties["status"] not in ("SUCCESSFUL", "FAILED")
 
     def abort(self):
-        '''abort this job'''
-        url = self.links['action:abort']
+        """abort this job"""
+        url = self.links["action:abort"]
         return self.transport.post(url=url, json={})
 
     def restart(self):
-        '''restart this job'''
-        url = self.links['action:restart']
+        """restart this job"""
+        url = self.links["action:restart"]
         return self.transport.post(url=url, json={})
 
     def start(self):
-        '''start this job - only required if client had to stage-in local files '''
-        url = self.links['action:start']
+        """start this job - only required if client had to stage-in local files"""
+        url = self.links["action:start"]
         return self.transport.post(url=url, json={})
 
     @property
     def job_id(self):
-        '''get the UID of this job'''
+        """get the UID of this job"""
         return os.path.basename(self.resource_url)
 
     def poll(self):
-        '''wait until this job completes'''
+        """wait until this job completes"""
         while self.is_running():
             time.sleep(max(2, self.cache_time + 1))
 
     def __repr__(self):
-        return ('Job: %s submitted: %s running: %s' %
-                (self.resource_url,
-                 self.properties['submissionTime'],
-                 self.is_running()))
+        return "Job: {} submitted: {} running: {}".format(
+            self.resource_url,
+            self.properties["submissionTime"],
+            self.is_running(),
+        )
 
     __str__ = __repr__
+
 
 class Compute(Resource):
-    ''' wrapper around a UNICORE compute resource (a specific cluster with queues) '''
-    def __init__(self, transport, job_url, cache_time = _DEFAULT_CACHE_TIME):
-        super(Compute, self).__init__(transport, job_url, cache_time)
+    """wrapper around a UNICORE compute resource (a specific cluster with queues)"""
+
+    def __init__(self, transport, job_url, cache_time=_DEFAULT_CACHE_TIME):
+        super().__init__(transport, job_url, cache_time)
 
     def __repr__(self):
-        return ('Compute: %s' %
-                (self.resource_url,
-                ))
+        return f"Compute: {self.resource_url}"
 
     __str__ = __repr__
-    
+
     def get_queues(self):
-        return self.properties['resources']
+        return self.properties["resources"]
 
     def get_applications(self):
         apps = []
-        base_url = self.links['applications']
-        for app in self.properties['applications']:
-            apps.append(Application(self.transport, base_url+"/"+app))
+        base_url = self.links["applications"]
+        for app in self.properties["applications"]:
+            apps.append(Application(self.transport, base_url + "/" + app))
         return apps
 
-class Storage(Resource):
-    ''' wrapper around a UNICORE Storage resource '''
 
-    def __init__(self, transport, storage_url, cache_time = _DEFAULT_CACHE_TIME):
-        super(Storage, self).__init__(transport, storage_url, cache_time)
+class Storage(Resource):
+    """wrapper around a UNICORE Storage resource"""
+
+    def __init__(self, transport, storage_url, cache_time=_DEFAULT_CACHE_TIME):
+        super().__init__(transport, storage_url, cache_time)
 
     def _to_file_url(self, path):
-        return self.links['files'] + normpath('/' + path.lstrip("/")).rstrip("/")
+        return self.links["files"] + normpath("/" + path.lstrip("/")).rstrip("/")
 
     def contents(self, path="/"):
-        '''get a simple list of files in the given directory '''
+        """get a simple list of files in the given directory"""
         return self.transport.get(url=self._to_file_url(path))
 
     def stat(self, path):
-        ''' get a reference to a file/directory '''
+        """get a reference to a file/directory"""
         path_url = self._to_file_url(path)
-        headers = {'Accept': 'application/json',}
-        props = self.transport.get(url=path_url, headers = headers)
-        if props['isDirectory']:
+        headers = {
+            "Accept": "application/json",
+        }
+        props = self.transport.get(url=path_url, headers=headers)
+        if props["isDirectory"]:
             ret = PathDir(self, path_url, path)
         else:
             ret = PathFile(self, path_url, path)
         return ret
-    
-    def listdir(self, base='/'):
-        ''' get a list of files and directories in the given base directory '''
+
+    def listdir(self, base="/"):
+        """get a list of files and directories in the given base directory"""
         ret = {}
-        for path, meta in self.contents(base)['content'].items():
-            path_url = self.links['files'] + path
+        for path, meta in self.contents(base)["content"].items():
+            path_url = self.links["files"] + path
             path = path.lstrip("/")
-            if meta['isDirectory']:
+            if meta["isDirectory"]:
                 ret[path] = PathDir(self, path_url, path)
             else:
                 ret[path] = PathFile(self, path_url, path)
         return ret
 
     def rename(self, source, target):
-        '''rename a file on this storage'''
-        json = {'from': source,
-                'to': target,
-                }
-        return self.transport.post(url=self.links['action:rename'], json=json)
+        """rename a file on this storage"""
+        json = {
+            "from": source,
+            "to": target,
+        }
+        return self.transport.post(url=self.links["action:rename"], json=json)
 
     def copy(self, source, target):
-        '''copy a file on this storage'''
-        json = {'from': source,
-                'to': target,
-                }
-        return self.transport.post(url=self.links['action:copy'], json=json)
+        """copy a file on this storage"""
+        json = {
+            "from": source,
+            "to": target,
+        }
+        return self.transport.post(url=self.links["action:copy"], json=json)
 
     def mkdir(self, name):
-        '''create a directory'''
+        """create a directory"""
         return self.transport.post(url=self._to_file_url(name), json={})
 
     def rmdir(self, name):
-        '''remove a directory and all its content'''
+        """remove a directory and all its content"""
         return self.transport.delete(url=self._to_file_url(name))
 
     def rm(self, name):
-        '''remove a file'''
+        """remove a file"""
         return self.transport.delete(url=self._to_file_url(name))
 
     def makedirs(self, name):
-        '''create directory'''
+        """create directory"""
         return self.mkdir(name)
 
     def upload(self, input_file, destination=None):
-        """ upload file "input_file" to the remote file "destination".
+        """upload file "input_file" to the remote file "destination".
 
         Remote directories will be created automatically, if required.
         If "destination" is not given, it is derived from the local
@@ -570,15 +599,19 @@ class Storage(Resource):
                 destination = os.path.basename(input_file)
             else:
                 destination = input_file
-        _headers = {'Content-Type': 'application/octet-stream'}
-        with open(input_file, 'rb') as fd:
-            self.transport.put(
-                url = self._to_file_url(destination),
-                headers = _headers,
-                data=fd)
+        _headers = {"Content-Type": "application/octet-stream"}
+        with open(input_file, "rb") as fd:
+            self.transport.put(url=self._to_file_url(destination), headers=_headers, data=fd)
 
-    def send_file(self, file_name, remote_url, protocol=None, scheduled=None, additional_parameters={}):
-        """ launch a server-to-server transfer: send a file from this storage to a remote location 
+    def send_file(
+        self,
+        file_name,
+        remote_url,
+        protocol=None,
+        scheduled=None,
+        additional_parameters={},
+    ):
+        """launch a server-to-server transfer: send a file from this storage to a remote location
 
         Args:
             file_name : the file on this storage to send (supports wildcards)
@@ -591,22 +624,29 @@ class Storage(Resource):
         """
         params = additional_parameters.copy()
         if protocol:
-            remote_url = protocol+":"+remote_url
+            remote_url = protocol + ":" + remote_url
         if scheduled:
-            params['scheduledStartTime'] = scheduled
+            params["scheduledStartTime"] = scheduled
         json = {
             "file": file_name,
             "target": remote_url,
-            "extraParameters": params
+            "extraParameters": params,
         }
-        dest = self.links.get('transfers', self.resource_url+"/transfers")
+        dest = self.links.get("transfers", self.resource_url + "/transfers")
         with closing(self.transport.post(url=dest, json=json)) as resp:
-            tr_url = resp.headers['Location']
-        
+            tr_url = resp.headers["Location"]
+
         return Transfer(self.transport, tr_url)
 
-    def receive_file(self, remote_url, file_name, protocol=None, scheduled=None, additional_parameters={}):
-        """ launch a server-to-server transfer: pull a file from a remote storage to this storage
+    def receive_file(
+        self,
+        remote_url,
+        file_name,
+        protocol=None,
+        scheduled=None,
+        additional_parameters={},
+    ):
+        """launch a server-to-server transfer: pull a file from a remote storage to this storage
 
         Args:
             remote_url: the remote file (supports wildcards) (https://.../rest/core/storages/NAME/files/path_to_file
@@ -619,80 +659,78 @@ class Storage(Resource):
         """
         params = additional_parameters.copy()
         if protocol:
-            remote_url = protocol+":"+remote_url
+            remote_url = protocol + ":" + remote_url
         if scheduled:
-            params['scheduledStartTime'] = scheduled
+            params["scheduledStartTime"] = scheduled
         json = {
             "file": file_name,
             "source": remote_url,
-            "extraParameters": params
+            "extraParameters": params,
         }
 
-        dest = self.links.get('transfers', self.resource_url+"/transfers")
+        dest = self.links.get("transfers", self.resource_url + "/transfers")
         with closing(self.transport.post(url=dest, json=json)) as resp:
-            tr_url = resp.headers['Location']
-        
+            tr_url = resp.headers["Location"]
+
         return Transfer(self.transport, tr_url)
 
     def __repr__(self):
-        return ('Storage: %s' %
-                (self.resource_url,
-                ))
+        return f"Storage: {self.resource_url}"
 
     __str__ = __repr__
 
 
 class Path(Resource):
-    ''' common base for files and directories '''
+    """common base for files and directories"""
 
-    def __init__(self, storage, path_url, name, cache_time = _DEFAULT_CACHE_TIME):
-        super(Path, self).__init__(storage.transport, path_url, cache_time)
+    def __init__(self, storage, path_url, name, cache_time=_DEFAULT_CACHE_TIME):
+        super().__init__(storage.transport, path_url, cache_time)
         self.name = name
         self.storage = storage
 
     def isdir(self):
-        '''is a directory'''
+        """is a directory"""
         return False
 
     def isfile(self):
-        '''is a file'''
+        """is a file"""
         return False
 
     def get_metadata(self, name=None):
         if name:
-            return self.properties['metadata'][name]
+            return self.properties["metadata"][name]
         else:
-            return self.properties['metadata']
+            return self.properties["metadata"]
 
     def remove(self):
-        '''remove this file or directory'''
+        """remove this file or directory"""
         return self.storage.rm(self.name)
 
     def __repr__(self):
-        return '%s: %s' % (self.__class__.__name__, self.name)
+        return f"{self.__class__.__name__}: {self.name}"
 
     __str__ = __repr__
 
 
 class PathDir(Path):
-    def __init__(self, storage, path_url, name, cache_time = _DEFAULT_CACHE_TIME):
-        super(PathDir, self).__init__(storage, path_url, name, cache_time)
+    def __init__(self, storage, path_url, name, cache_time=_DEFAULT_CACHE_TIME):
+        super().__init__(storage, path_url, name, cache_time)
 
     def isdir(self):
         return True
 
     def __repr__(self):
-        return 'PathDir: %s' % (self.name)
+        return "PathDir: %s" % (self.name)
 
     __str__ = __repr__
 
 
 class PathFile(Path):
-    def __init__(self, storage, path_url, name, cache_time = _DEFAULT_CACHE_TIME):
-        super(PathFile, self).__init__(storage, path_url, name, cache_time)
+    def __init__(self, storage, path_url, name, cache_time=_DEFAULT_CACHE_TIME):
+        super().__init__(storage, path_url, name, cache_time)
 
     def download(self, file):
-        '''download file
+        """download file
 
         Args:
             file_(str or file-like): if a string, a file of that name
@@ -706,19 +744,21 @@ class PathFile(Path):
             >>> foo_contents = cStringIO.StringIO()
             >>> foo.download(foo_contents)
             >>> print(foo.contents.getvalue())
-        '''
+        """
 
-        _headers = {'Accept': 'application/octet-stream'}
+        _headers = {"Accept": "application/octet-stream"}
         with closing(
-            self.transport.get(url=self.resource_url,
-                               headers=_headers,
-                               stream=True,
-                               to_json=False,
-                               )) as resp:
-           
+            self.transport.get(
+                url=self.resource_url,
+                headers=_headers,
+                stream=True,
+                to_json=False,
+            )
+        ) as resp:
+
             CHUNK_SIZE = 10 * 1024
             if isinstance(file, str):
-                with open(file, 'wb') as fd:
+                with open(file, "wb") as fd:
                     for chunk in resp.iter_content(CHUNK_SIZE):
                         fd.write(chunk)
             else:
@@ -726,151 +766,164 @@ class PathFile(Path):
                     file.write(chunk)
 
     def raw(self, offset=0, size=-1):
-        ''' access the raw http response for streaming purposes. 
-            The optional 'offset' and 'size' parameters allow to download only
-            part of the file.
-            NOTE: this is the raw response from the server and might not be 
-                  decoded appropriately!
-        '''
-        _headers = {'Accept': 'application/octet-stream'}
-        if offset<0:
+        """access the raw http response for streaming purposes.
+        The optional 'offset' and 'size' parameters allow to download only
+        part of the file.
+        NOTE: this is the raw response from the server and might not be
+              decoded appropriately!
+        """
+        _headers = {"Accept": "application/octet-stream"}
+        if offset < 0:
             raise ValueError("Offset must be positive")
-        if offset>0 or size>-1:
+        if offset > 0 or size > -1:
             _range = "bytes=%s-" % offset
-            if size>-1:
-                _range += str(size+offset-1)
-            _headers['Range'] = _range
+            if size > -1:
+                _range += str(size + offset - 1)
+            _headers["Range"] = _range
 
-        resp = self.transport.get(to_json=False, url=self.resource_url, headers=_headers, stream=True)
+        resp = self.transport.get(
+            to_json=False, url=self.resource_url, headers=_headers, stream=True
+        )
         return resp.raw
 
     def isfile(self):
         return True
 
-class Transfer(Resource):
-    '''wrapper around a UNICORE server-to-server transfer'''
 
-    def __init__(self, transport, tr_url, cache_time = _DEFAULT_CACHE_TIME):
-        super(Transfer, self).__init__(transport, tr_url, cache_time)
+class Transfer(Resource):
+    """wrapper around a UNICORE server-to-server transfer"""
+
+    def __init__(self, transport, tr_url, cache_time=_DEFAULT_CACHE_TIME):
+        super().__init__(transport, tr_url, cache_time)
 
     def is_running(self):
-        '''checks whether this transfer is still running'''
-        return self.properties['status'] not in ('DONE', 'FAILED', )
+        """checks whether this transfer is still running"""
+        return self.properties["status"] not in (
+            "DONE",
+            "FAILED",
+        )
 
     def abort(self):
-        '''abort this transfer'''
-        url = self.properties['_links']['action:abort']['href']
+        """abort this transfer"""
+        url = self.properties["_links"]["action:abort"]["href"]
         return self.transport.post(url=url, json={})
 
     def __repr__(self):
-        return ('Transfer: %s running: %s' %
-                 (self.resource_url,
-                 self.is_running()))
+        return "Transfer: {} running: {}".format(
+            self.resource_url,
+            self.is_running(),
+        )
 
     __str__ = __repr__
 
 
-
 class WorkflowService(Resource):
-    '''Entrypoint for the UNICORE Workflow API
+    """Entrypoint for the UNICORE Workflow API
 
-        >>> workflows_url = '...' # e.g. "https://localhost:8080/WORKFLOW/rest/workflows"
-        >>> credemtial = ...
-        >>> transport = Transport(credential)
-        >>> workflow_service = WorkflowService(transport, workflows_url)
-        >>> # to get the list of workflows
-        >>> workflows = client.get_workflows()
-        >>> # to start a new workflow:
-        >>> wf_description = {...}
-        >>> wf = workflow_service.new_workflow(wf_description)
-    '''
-    
-    def __init__(self, transport, workflows_url, check_authentication=True, cache_time = _DEFAULT_CACHE_TIME):
-        super(WorkflowService, self).__init__(transport, workflows_url, cache_time)
+    >>> workflows_url = '...' # e.g. "https://localhost:8080/WORKFLOW/rest/workflows"
+    >>> credemtial = ...
+    >>> transport = Transport(credential)
+    >>> workflow_service = WorkflowService(transport, workflows_url)
+    >>> # to get the list of workflows
+    >>> workflows = client.get_workflows()
+    >>> # to start a new workflow:
+    >>> wf_description = {...}
+    >>> wf = workflow_service.new_workflow(wf_description)
+    """
+
+    def __init__(
+        self,
+        transport,
+        workflows_url,
+        check_authentication=True,
+        cache_time=_DEFAULT_CACHE_TIME,
+    ):
+        super().__init__(transport, workflows_url, cache_time)
         self.check_authentication = check_authentication
         if self.check_authentication:
             self.assert_authentication()
 
     def access_info(self):
-        '''get authentication and authentication information about the current user'''
-        return self.properties['client']
+        """get authentication and authentication information about the current user"""
+        return self.properties["client"]
 
     def assert_authentication(self):
-        ''' Asserts that the remote role is not "anonymous" '''
-        if self.access_info()['role']['selected']=="anonymous":
-            raise pyunicore.credentials.AuthenticationFailedException("Failure to authenticate at %s" % self.resource_url)
+        '''Asserts that the remote role is not "anonymous"'''
+        if self.access_info()["role"]["selected"] == "anonymous":
+            raise pyunicore.credentials.AuthenticationFailedException(
+                "Failure to authenticate at %s" % self.resource_url
+            )
 
     def get_workflows(self, offset=0, num=None, tags=[]):
-        ''' get the list of workflows.
+        """get the list of workflows.
 
         Use the optional 'offset' and 'num' parameters to handle long result lists
         (for long lists, the server might not return all results!).
-        Use the optional tag list to filter the results.'''
+        Use the optional tag list to filter the results."""
         w_url = _build_full_url(self.resource_url, offset, num, tags)
-        return [Workflow(self.transport, url)
-                for url in self.transport.get(url=w_url)['workflows']]
+        return [Workflow(self.transport, url) for url in self.transport.get(url=w_url)["workflows"]]
 
     def new_workflow(self, wf_description):
-        ''' submit a workflow '''
+        """submit a workflow"""
         with closing(self.transport.post(url=self.resource_url, json=wf_description)) as resp:
-            wf_url = resp.headers['Location']
+            wf_url = resp.headers["Location"]
         return Workflow(self.transport, wf_url)
 
 
 class Workflow(Resource):
-    '''wrapper around a UNICORE workflow'''
+    """wrapper around a UNICORE workflow"""
 
-    def __init__(self, transport, wf_url, cache_time = _DEFAULT_CACHE_TIME):
-        super(Workflow, self).__init__(transport, wf_url, cache_time)
+    def __init__(self, transport, wf_url, cache_time=_DEFAULT_CACHE_TIME):
+        super().__init__(transport, wf_url, cache_time)
 
     def is_running(self):
-        '''checks whether this workflow is still running'''
-        return self.properties['status'] not in ( 'SUCCESSFUL', 'FAILED' )
+        """checks whether this workflow is still running"""
+        return self.properties["status"] not in ("SUCCESSFUL", "FAILED")
 
     def is_held(self):
-        '''checks whether this workflow is in HELD state'''
-        return self.is_running() and self.properties['status'] == 'HELD'
+        """checks whether this workflow is in HELD state"""
+        return self.is_running() and self.properties["status"] == "HELD"
 
     def poll(self):
-        '''wait until this workflow completes'''
+        """wait until this workflow completes"""
         while self.is_running():
             time.sleep(max(2, self.cache_time + 1))
 
     def abort(self):
-        '''abort this workflow'''
-        url = self.properties['_links']['action:abort']['href']
+        """abort this workflow"""
+        url = self.properties["_links"]["action:abort"]["href"]
         return self.transport.post(url=url, json={})
 
     def resume(self, params={}):
-        '''resume this workflow (from "HELD" state), optionally updating parameters'''
-        url = self.properties['_links']['action:continue']['href']
+        """resume this workflow (from "HELD" state), optionally updating parameters"""
+        url = self.properties["_links"]["action:continue"]["href"]
         return self.transport.post(url=url, json=params)
 
     def get_files(self):
-        ''' get a dictionary of registered workflow files and their 
-            physical locations
-        '''
-        return self.transport.get(url=self.links['files'])
+        """get a dictionary of registered workflow files and their
+        physical locations
+        """
+        return self.transport.get(url=self.links["files"])
 
     def get_jobs(self, offset=0, num=None):
-        '''return the list of jobs submitted for this workflow
+        """return the list of jobs submitted for this workflow
          Use the optional 'offset' and 'num' parameters to handle long result lists
         (for long lists, the server might not return all results!).
-         '''
-        j_url = _build_full_url(self.links['jobs'], offset, num, [])
-        return [Job(self.transport, url)
-                for url in self.transport.get(url=j_url)['jobs']]
+        """
+        j_url = _build_full_url(self.links["jobs"], offset, num, [])
+        return [Job(self.transport, url) for url in self.transport.get(url=j_url)["jobs"]]
 
     def stat(self, path):
-        ''' lookup the named workflow file and return a PathFile object '''
+        """lookup the named workflow file and return a PathFile object"""
         physical_location = self.get_files()[path]
-        storage_url, name = physical_location.split("/files/",1)
+        storage_url, name = physical_location.split("/files/", 1)
         return Storage(self.transport, storage_url).stat(name)
 
     def __repr__(self):
-        return ('Workflow: %s submitted: %s running: %s' %
-                 (self.resource_url,
-                 self.properties['submissionTime'],
-                 self.is_running()))
+        return "Workflow: {} submitted: {} running: {}".format(
+            self.resource_url,
+            self.properties["submissionTime"],
+            self.is_running(),
+        )
 
     __str__ = __repr__
