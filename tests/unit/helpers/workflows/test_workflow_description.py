@@ -26,9 +26,7 @@ class TestWorkflowDescription:
         expected = {
             "activities": [{"id": "test-start", "type": "START"}],
             "transitions": [{"from": "here", "to": "there"}],
-            "variables": [
-                {"initial_value": 1, "name": "test-variable", "type": "INTEGER"}
-            ],
+            "variables": [{"initial_value": 1, "name": "test-variable", "type": "INTEGER"}],
         }
 
         result = workflow.to_dict()

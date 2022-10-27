@@ -136,9 +136,7 @@ class Chunking(_api_object.ApiRequestObject):
         if (self.chunksize is None and self.chunksize_formula is None) or (
             self.chunksize is not None and self.chunksize_formula is not None
         ):
-            raise ValueError(
-                "Either `chunksize` or `chunksize_formula` must be given"
-            )
+            raise ValueError("Either `chunksize` or `chunksize_formula` must be given")
 
     def _to_dict(self) -> Dict:
         return {

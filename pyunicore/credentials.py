@@ -6,7 +6,7 @@ try:
     from urllib3 import disable_warnings
 
     disable_warnings()
-except:
+except:  # noqa: B901
     pass
 
 from abc import ABCMeta, abstractmethod
