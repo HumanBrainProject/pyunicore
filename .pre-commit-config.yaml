@@ -47,7 +47,7 @@ repos:
         additional_dependencies:
           - Flake8-pyproject
           # See https://github.com/DmytroLitvinov/awesome-flake8-extensions
-          #- flake8-blind-except
+          - flake8-blind-except
           - flake8-logging-format
           - flake8_module_name
           - pep8-naming
