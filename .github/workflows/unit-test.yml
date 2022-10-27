@@ -5,6 +5,7 @@ name: Unit tests
 on:
   workflow_dispatch:
   push:
+  pull_request:
 
 jobs:
   unit-test:

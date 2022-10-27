@@ -6,6 +6,7 @@ name: Integration tests vs UNICORE 9
 on:
   workflow_dispatch:
   push:
+  pull_request:
 
 jobs:
   integration-test:
