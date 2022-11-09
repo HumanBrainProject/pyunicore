@@ -19,7 +19,7 @@ class TestBasic(unittest.TestCase):
     def test_run_workflow(self):
         print("*** test_run_workflow")
         wf_service = self.get_client()
-        with open("integration-tests/files/workflow1.json") as _f:
+        with open("tests/integration/files/workflow1.json") as _f:
             wf = json.load(_f)
         workflow1 = wf_service.new_workflow(wf)
         print("Submitted %s" % workflow1.resource_url)

@@ -39,7 +39,7 @@ class TestBasic(unittest.TestCase):
         print("*** test_run_uploaded_script")
         client = self.get_client()
         job_desc = {"Executable": "bash", "Arguments": ["script.sh"]}
-        in_file = os.getcwd() + "/integration-tests/files/script.sh"
+        in_file = os.getcwd() + "/tests/integration/files/script.sh"
         job = client.new_job(job_desc, [in_file])
         job.poll()
         exit_code = int(job.properties["exitCode"])

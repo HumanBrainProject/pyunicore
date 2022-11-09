@@ -41,7 +41,7 @@ class TestBasic(unittest.TestCase):
     def test_upload_download(self):
         print("*** test_upload_download")
         home = self.get_home_storage()
-        _path = "integration-tests/files/script.sh"
+        _path = "tests/integration/files/script.sh"
         _length = os.stat(_path).st_size
         home.upload(_path, "script.sh")
         uploaded_file = home.stat("script.sh")
@@ -55,7 +55,7 @@ class TestBasic(unittest.TestCase):
     def test_transfer(self):
         print("*** test_transfer")
         storage1 = self.get_home_storage()
-        _path = "integration-tests/files/script.sh"
+        _path = "tests/integration/files/script.sh"
         _length = os.stat(_path).st_size
         storage1.upload(_path, "script.sh")
         site_client = self.get_client()
