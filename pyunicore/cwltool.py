@@ -19,7 +19,7 @@ def read_cwl_files(cwl_doc_path, cwl_inputs_object_path=None, debug=False):
         with open(cwl_inputs_object_path) as f:
             try:
                 cwl_inputs_object = yaml.safe_load(f)
-            except:
+            except yaml.error.YAMLError:
                 with open(cwl_inputs_object_path) as f2:
                     cwl_inputs_object = json.load(f2)
     return cwl_doc, cwl_inputs_object

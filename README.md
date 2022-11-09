@@ -38,47 +38,52 @@ You can install (one or more) extras with pip:
 
 ### Creating a client for a UNICORE site
 
-    import pyunicore.client as uc_client
-    import pyunicore.credentials as uc_credentials
-    import json
+```Python
+import pyunicore.client as uc_client
+import pyunicore.credentials as uc_credentials
+import json
 
-    base_url = "https://localhost:8080/DEMO-SITE/rest/core"
+base_url = "https://localhost:8080/DEMO-SITE/rest/core"
 
-    # authenticate with username/password
-    credential = uc_credentials.UsernamePassword("demouser", "test123")
-    transport  = uc_client.Transport(credential)
+# authenticate with username/password
+credential = uc_credentials.UsernamePassword("demouser", "test123")
+transport  = uc_client.Transport(credential)
 
-    client = uc_client.Client(transport, base_url)
-    print(json.dumps(client.properties, indent = 2))
+client = uc_client.Client(transport, base_url)
+print(json.dumps(client.properties, indent = 2))
+```
 
 ### Run a job and read result files
 
-    my_job = {'Executable': 'date'}
+```Python
+my_job = {'Executable': 'date'}
 
-    job = uc_client.new_job(job_description=my_job, inputs=[])
-    print(json.dumps(job.properties, indent = 2))
+job = uc_client.new_job(job_description=my_job, inputs=[])
+print(json.dumps(job.properties, indent = 2))
 
-    job.poll() # wait for job to finish
+job.poll() # wait for job to finish
 
-    work_dir = job.working_dir
-    print(json.dumps(work_dir.properties, indent = 2))
+work_dir = job.working_dir
+print(json.dumps(work_dir.properties, indent = 2))
 
-    stdout = work_dir.stat("/stdout")
-    print(json.dumps(stdout.properties, indent = 2))
-
-    content = stdout.raw().read()
-    print(content)
+stdout = work_dir.stat("/stdout")
+print(json.dumps(stdout.properties, indent = 2))
+content = stdout.raw().read()
+print(content)
+```
 
 ### Connect to a Registry and list all registered services
 
-    registry_url = "https://localhost:8080/REGISTRY/rest/registries/default_registry"
+```Python
+registry_url = "https://localhost:8080/REGISTRY/rest/registries/default_registry"
 
-    # authenticate with username/password
-    credential = uc_credentials.UsernamePassword("demouser", "test123")
-    transport = uc_client.Transport(credential)
+# authenticate with username/password
+credential = uc_credentials.UsernamePassword("demouser", "test123")
+transport = uc_client.Transport(credential)
 
-    r = uc_client.Registry(tr, registry_url)
-    print(r.site_urls)
+r = uc_client.Registry(tr, registry_url)
+print(r.site_urls)
+```
 
 ### Further reading
 
@@ -94,9 +99,11 @@ object either directly in code, or implicitely via a URL.
 
 The convenient way is via URL:
 
-    from fs import open_fs
-    fs_url = "uftp://demouser:test123@localhost:9000/rest/auth/TEST:/data"
-    uftp_fs = open_fs(fs_url)
+```Python
+from fs import open_fs
+fs_url = "uftp://demouser:test123@localhost:9000/rest/auth/TEST:/data"
+uftp_fs = open_fs(fs_url)
+```
 
 The URL format is
 
@@ -123,24 +130,25 @@ allowing you to mount a remote filesystem via UFTP. Mounting is a two step proce
 
 The following code example gives you the basic idea:
 
-    import pyunicore.client as uc_client
-    import pyunicore.credentials as uc_credentials
-    import pyunicore.uftp as uc_uftp
-    import pyunicore.uftpfuse as uc_fuse
+```Python
+import pyunicore.client as uc_client
+import pyunicore.credentials as uc_credentials
+import pyunicore.uftp as uc_uftp
+import pyunicore.uftpfuse as uc_fuse
 
-    _auth = "https://localhost:9000/rest/auth/TEST"
-    _base_dir = "/opt/shared-data"
-    _local_mount_dir = "/tmp/mount"
+_auth = "https://localhost:9000/rest/auth/TEST"
+_base_dir = "/opt/shared-data"
+_local_mount_dir = "/tmp/mount"
 
-    # authenticate
-    cred = uc_credentials.UsernamePassword("demouser", "test123")
-    uftp = uc_uftp.UFTP(uc_client.Transport(cred), _auth, _base_dir)
-    _host, _port, _password  = uftp.authenticate()
+# authenticate
+cred = uc_credentials.UsernamePassword("demouser", "test123")
+uftp = uc_uftp.UFTP(uc_client.Transport(cred), _auth, _base_dir)
+_host, _port, _password  = uftp.authenticate()
 
-    # run the fuse driver
-    fuse = uc_fuse.FUSE(
-        uc_fuse.UFTPDriver(_host, _port, _password), _local_mount_dir,
-        foreground=False, nothreads=True)
+# run the fuse driver
+fuse = uc_fuse.FUSE(
+uc_fuse.UFTPDriver(_host, _port, _password), _local_mount_dir, foreground=False, nothreads=True)
+```
 
 ## Helpers
 
@@ -162,7 +170,6 @@ The `pyunicore.helpers` module provides a set of higher-level APIs:
 import json
 import pyunicore.credentials as uc_credentials
 import pyunicore.helpers as helpers
-
 
 registry_url = "https://localhost:8080/REGISTRY/rest/registries/default_registry"
 
@@ -224,13 +231,13 @@ resources = helpers.jobs.Resources(nodes=4)
 job = helpers.jobs.Description(
     executable="ls",
     project="demoproject",
-    resources=resources,
+    resources=resources
 )
 
 client.new_job(job.to_dict())
 ```
 
-This works analogous for `pyunicore.helpers.workflows`.
+This works analogously for `pyunicore.helpers.workflows`.
 
 ## Contributing
 

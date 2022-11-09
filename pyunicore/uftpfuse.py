@@ -29,10 +29,7 @@ class UFTPFile:
 
     def close_data(self):
         if self.data is not None:
-            try:
-                self.data.close()
-            except:
-                pass
+            self.data.close()
         self.data = None
         self.pos = 0
 
@@ -116,10 +113,7 @@ class UFTPDriver(Operations):
 
     def destroy(self, path):
         for f in self.file_map.values():
-            try:
-                f.close()
-            except:
-                pass
+            f.close()
         self.uftp_session.close()
 
     def getattr(self, path, fh=None):

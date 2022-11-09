@@ -7,6 +7,7 @@
 
 try:
     from urllib3 import disable_warnings
+
     disable_warnings()
 except ImportError:
     pass
@@ -136,8 +137,8 @@ class Transport:
         if 400 <= res.status_code < 600:
             reason = res.reason
             try:
-                reason = res.json()["errorMessage"]
-            except:
+                reason = res.json().get("errorMessage", "n/a")
+            except ValueError:
                 pass
             msg = f"{res.status_code} Server Error: {reason} for url: {res.url}"
             raise requests.HTTPError(msg, response=res)
@@ -256,21 +257,17 @@ class Registry(Resource):
         self.workflow_services_urls = {}
 
         for entry in self.transport.get(url=self.resource_url)["entries"]:
-            try:
-                # just want the "core" URL and the site ID
-                href = entry["href"]
-                service_type = entry["type"]
-                if "CoreServices" == service_type:
-                    base = re.match(r"(https://\S+/rest/core).*", href).group(1)
-                    site_name = re.match(r"https://\S+/(\S+)/rest/core", href).group(1)
-                    self.site_urls[site_name] = base
-                elif "WorkflowServices" == service_type:
-                    base = re.match(r"(https://\S+/rest/workflows).*", href).group(1)
-                    site_name = re.match(r"https://\S+/(\S+)/rest/workflows", href).group(1)
-                    self.workflow_services_urls[site_name] = base
-
-            except Exception as e:
-                print(e)
+            # just want the "core" URL and the site ID
+            href = entry["href"]
+            service_type = entry["type"]
+            if "CoreServices" == service_type:
+                base = re.match(r"(https://\S+/rest/core).*", href).group(1)
+                site_name = re.match(r"https://\S+/(\S+)/rest/core", href).group(1)
+                self.site_urls[site_name] = base
+            elif "WorkflowServices" == service_type:
+                base = re.match(r"(https://\S+/rest/workflows).*", href).group(1)
+                site_name = re.match(r"https://\S+/(\S+)/rest/workflows", href).group(1)
+                self.workflow_services_urls[site_name] = base
 
     def site(self, name):
         """Get a client object for the named site"""
@@ -376,11 +373,7 @@ class Client(Resource):
             for input_item in inputs:
                 working_dir.upload(input_item)
         if autostart and job_description.get("haveClientStageIn", None) == "true":
-            try:
-                job.start()
-            except:
-                pass
-
+            job.start()
         return job
 
     def execute(self, cmd):

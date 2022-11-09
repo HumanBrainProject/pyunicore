@@ -160,7 +160,7 @@ def get_local_file_list(inputs_object={}):
             if input_item.get("class", None) == "File":
                 path = input_item.get("path", None)
                 if path is None:
-                    path = input_item.get("location")
+                    path = input_item.get("location", "")
                     if not path.startswith("file:"):
                         continue
                     path = path[5:]
@@ -168,7 +168,7 @@ def get_local_file_list(inputs_object={}):
             elif input_item.get("class", None) == "Directory":
                 # TBD resolve
                 pass
-        except:
+        except AttributeError:
             pass
     return file_list
 
@@ -189,7 +189,7 @@ def get_remote_file_list(inputs_object={}):
                 if base_name is None:
                     base_name = path.split("/")[-1]
                 file_list.append({"From": path, "To": base_name})
-        except:
+        except AttributeError:
             pass
     return file_list
 

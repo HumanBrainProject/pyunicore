@@ -67,31 +67,25 @@ class UFTP:
         lines = self.ftp.getmultiline().split("\n")
         if len(lines) != 3 or not lines[0].startswith("250"):
             raise OSError("File not found. Server reply: %s " % str(lines[0]))
-        try:
-            infos = lines[1].strip().split(" ")[0].split(";")
-            raw_info = {}
-            for x in infos:
-                try:
-                    tok = x.split("=")
-                    if len(tok) != 2:
-                        continue
-                    raw_info[tok[0]] = tok[1]
-                except:
-                    pass
-            st = {}
-            st["st_size"] = int(raw_info["size"])
-            st["st_uid"] = self.uid
-            st["st_gid"] = self.gid
-            mode = UFTP.__type[raw_info.get("type", stat.S_IFREG)]
-            for x in raw_info["perm"]:
-                mode = mode | UFTP.__perms.get(x, stat.S_IRUSR)
-            st["st_mode"] = mode
-            ttime = int(mktime(strptime(raw_info["modify"], "%Y%m%d%H%M%S")))
-            st["st_mtime"] = ttime
-            st["st_atime"] = ttime
-            return st
-        except Exception as e:
-            raise OSError(str(e))
+        infos = lines[1].strip().split(" ")[0].split(";")
+        raw_info = {}
+        for x in infos:
+            tok = x.split("=")
+            if len(tok) != 2:
+                continue
+            raw_info[tok[0]] = tok[1]
+        st = {}
+        st["st_size"] = int(raw_info["size"])
+        st["st_uid"] = self.uid
+        st["st_gid"] = self.gid
+        mode = UFTP.__type[raw_info.get("type", stat.S_IFREG)]
+        for x in raw_info["perm"]:
+            mode = mode | UFTP.__perms.get(x, stat.S_IRUSR)
+        st["st_mode"] = mode
+        ttime = int(mktime(strptime(raw_info["modify"], "%Y%m%d%H%M%S")))
+        st["st_mtime"] = ttime
+        st["st_atime"] = ttime
+        return st
 
     def listdir(self, directory):
         """return a list of files in the given directory"""
@@ -128,10 +122,7 @@ class UFTP:
             raise OSError("Could not set time: " % reply)
 
     def close(self):
-        try:
-            self.ftp.close()
-        except:
-            pass
+        self.ftp.close()
 
     def get_write_socket(self, path, offset):
         path = self.normalize(path)

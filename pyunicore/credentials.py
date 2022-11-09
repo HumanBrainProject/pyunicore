@@ -6,7 +6,7 @@ try:
     from urllib3 import disable_warnings
 
     disable_warnings()
-except:
+except ImportError:
     pass
 
 from abc import ABCMeta, abstractmethod
@@ -226,7 +226,7 @@ def create_credential(username=None, password=None, token=None, identity=None):
             passphrase = None
         try:
             private_key = serialization.load_ssh_private_key(pem_bytes, password=passphrase)
-        except:
+        except ValueError:
             private_key = serialization.load_pem_private_key(pem_bytes, password=passphrase)
         secret = private_key
         sub = username
