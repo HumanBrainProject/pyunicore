@@ -11,7 +11,7 @@ class FakeTransport:
         return self
 
     def get(self, url):
-        return {"entries": "test-entry"}
+        return {"entries": [{"href": "test-entry-url", "type": "test-entry-type"}]}
 
 
 class FakeRegistry:
