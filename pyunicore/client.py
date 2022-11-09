@@ -7,9 +7,8 @@
 
 try:
     from urllib3 import disable_warnings
-
     disable_warnings()
-except:
+except ImportError:
     pass
 
 from contextlib import closing
