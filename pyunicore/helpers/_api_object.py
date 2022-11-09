@@ -19,11 +19,7 @@ class ApiRequestObject(abc.ABC):
 
 
 def _create_dict_with_not_none_values(kwargs: Dict) -> Dict:
-    return {
-        key: _convert_value(value)
-        for key, value in kwargs.items()
-        if value is not None
-    }
+    return {key: _convert_value(value) for key, value in kwargs.items() if value is not None}
 
 
 def _convert_value(value: Union[Any, ApiRequestObject]) -> Any:

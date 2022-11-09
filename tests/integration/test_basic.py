@@ -1,6 +1,9 @@
+import os
+import unittest
+
 import pyunicore.client as uc_client
 import pyunicore.credentials as uc_credentials
-import json, os, unittest
+
 
 class TestBasic(unittest.TestCase):
     def setUp(self):
@@ -9,13 +12,13 @@ class TestBasic(unittest.TestCase):
     def get_client(self):
         credential = uc_credentials.UsernamePassword("demouser", "test123")
         base_url = "https://localhost:8080/DEMO-SITE/rest/core"
-        transport  = uc_client.Transport(credential)
+        transport = uc_client.Transport(credential)
         return uc_client.Client(transport, base_url)
 
     def test_connect(self):
         print("*** test_connect")
         client = self.get_client()
-        self.assertEqual("user", client.properties['client']['role']['selected'])
+        self.assertEqual("user", client.properties["client"]["role"]["selected"])
 
     def test_run_date(self):
         print("*** test_run_date")
@@ -25,26 +28,27 @@ class TestBasic(unittest.TestCase):
         print(job)
         job.cache_time = 0
         job.poll()
-        exit_code = int(job.properties['exitCode'])
+        exit_code = int(job.properties["exitCode"])
         self.assertEqual(0, exit_code)
         work_dir = job.working_dir
         stdout = work_dir.stat("/stdout").raw().read()
-        self.assertTrue(len(stdout)>0)
+        self.assertTrue(len(stdout) > 0)
         print(stdout)
- 
+
     def test_run_uploaded_script(self):
         print("*** test_run_uploaded_script")
         client = self.get_client()
         job_desc = {"Executable": "bash", "Arguments": ["script.sh"]}
-        in_file = os.getcwd()+ "/integration-tests/files/script.sh"
+        in_file = os.getcwd() + "/integration-tests/files/script.sh"
         job = client.new_job(job_desc, [in_file])
         job.poll()
-        exit_code = int(job.properties['exitCode'])
+        exit_code = int(job.properties["exitCode"])
         self.assertEqual(0, exit_code)
         work_dir = job.working_dir
         stdout = work_dir.stat("/stdout").raw().read()
-        self.assertTrue(len(stdout)>0)
+        self.assertTrue(len(stdout) > 0)
         print(stdout)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

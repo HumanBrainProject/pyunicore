@@ -1,8 +1,8 @@
-from pyunicore.helpers.workflows.activities import loops
 from pyunicore.helpers.workflows import variable
+from pyunicore.helpers.workflows.activities import loops
 
 
-class TestRepeatUntil:
+class TestWhileLoop:
     def test_to_dict(self, loop_body, expected_loop_body):
         variables = [
             variable.Variable(
@@ -11,18 +11,16 @@ class TestRepeatUntil:
                 initial_value=1,
             )
         ]
-        loop = loops.RepeatUntil(
-            id="test-repeat-until-loop-id",
+        loop = loops.While(
+            id="test-while-loop-id",
             variables=variables,
             body=loop_body,
         )
 
         expected = {
-            "id": "test-repeat-until-loop-id",
-            "type": "REPEAT_UNTIL",
-            "variables": [
-                {"name": "test-variable", "type": "INTEGER", "initial_value": 1}
-            ],
+            "id": "test-while-loop-id",
+            "type": "WHILE",
+            "variables": [{"name": "test-variable", "type": "INTEGER", "initial_value": 1}],
             "body": expected_loop_body,
         }
 

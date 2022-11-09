@@ -6,10 +6,11 @@ name: Integration tests vs UNICORE 9
 on:
   workflow_dispatch:
   push:
+  pull_request:
 
 jobs:
   integration-test:
-  
+
     runs-on: ubuntu-latest
 
     services:
@@ -32,4 +33,3 @@ jobs:
     - name: Run tests
       run: |
         make integration-test
-

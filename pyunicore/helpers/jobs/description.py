@@ -65,9 +65,7 @@ class Description(_api_object.ApiRequestObject):
 
     executable: Optional[str] = None
     project: Optional[str] = None
-    resources: _resources.Resources = dataclasses.field(
-        default_factory=_resources.Resources
-    )
+    resources: _resources.Resources = dataclasses.field(default_factory=_resources.Resources)
     application_name: Optional[str] = None
     application_version: Optional[str] = None
     arguments: Optional[List[str]] = None
@@ -100,9 +98,7 @@ class Description(_api_object.ApiRequestObject):
             self.have_client_stage_in = True
 
         if self.job_type == "raw" and self.bss_file is None:
-            raise ValueError(
-                "If job type is 'raw', BSS file has to be specified"
-            )
+            raise ValueError("If job type is 'raw', BSS file has to be specified")
 
     def _to_dict(self) -> Dict:
         return {
@@ -117,16 +113,10 @@ class Description(_api_object.ApiRequestObject):
             "Stdin": self.stdin,
             "IgnoreNonZeroExitCode": self.ignore_non_zero_exit_code,
             "User precommand": self.user_precommand,
-            "RunUserPrecommandOnLoginNode": (
-                self.run_user_precommand_on_login_node
-            ),
-            "UserPrecommandIgnoreNonZeroExitcode": (
-                self.user_precommand_ignore_non_zero_exitcode
-            ),
+            "RunUserPrecommandOnLoginNode": (self.run_user_precommand_on_login_node),
+            "UserPrecommandIgnoreNonZeroExitcode": (self.user_precommand_ignore_non_zero_exitcode),
             "User postcommand": self.user_postcommand,
-            "RunUserPostcommandOnLoginNode": (
-                self.run_user_postcommand_on_login_node
-            ),
+            "RunUserPostcommandOnLoginNode": (self.run_user_postcommand_on_login_node),
             "UserPostcommandIgnoreNonZeroExitcode": (
                 self.user_postcommand_ignore_non_zero_exit_code
             ),

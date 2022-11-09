@@ -1,7 +1,6 @@
-# This workflow runs integration tests using
-# the unicore-testing-all Docker container
+# This workflow runs unit tests
 
-name: Integration tests vs UNICORE 8
+name: Unit tests
 
 on:
   workflow_dispatch:
@@ -9,15 +8,9 @@ on:
   pull_request:
 
 jobs:
-  integration-test:
+  unit-test:
 
     runs-on: ubuntu-latest
-
-    services:
-      unicore:
-        image: ghcr.io/unicore-eu/unicore-testing-all:8.3.0
-        ports:
-          - 8080:8080
 
     steps:
     - uses: actions/checkout@v3
@@ -30,6 +23,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install setuptools wheel
         pip install .
+        pip install -r requirements-dev.txt
     - name: Run tests
       run: |
-        make integration-test
+        make test

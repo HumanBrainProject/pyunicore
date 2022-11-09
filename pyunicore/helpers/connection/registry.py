@@ -1,9 +1,8 @@
 from typing import Dict
 
 import pyunicore.client
-
-from pyunicore.helpers.connection import site as _site
 from pyunicore import credentials
+from pyunicore.helpers.connection import site as _site
 
 
 def connect_to_registry(
@@ -71,8 +70,6 @@ def _get_site_api_url(
     return api_url
 
 
-def _get_api_urls(
-    transport: pyunicore.client.Transport, registry_url: str
-) -> Dict[str, str]:
+def _get_api_urls(transport: pyunicore.client.Transport, registry_url: str) -> Dict[str, str]:
     registry = pyunicore.client.Registry(transport=transport, url=registry_url)
     return registry.site_urls

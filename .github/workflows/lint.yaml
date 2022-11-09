@@ -1,0 +1,82 @@
+# This workflow runs linting packages
+
+name: Lint
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+jobs:
+  black:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install black
+    - name: Lint package
+      run: |
+        black \
+          --check \
+          --config pyproject.toml \
+          pyunicore tests
+  flake8:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install \
+          flake8 \
+          Flake8-pyproject \
+          flake8-blind-except \
+          flake8-logging-format \
+          flake8_module_name \
+          pep8-naming
+    - name: Lint package
+      run: |
+        flake8 pyunicore tests
+  pyupgrade:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyupgrade
+    - name: Lint package
+      run: |
+        pyupgrade \
+          --py3-plus \
+          --py36-plus \
+          $(find pyunicore tests | grep "\.py$")
+  reorder-python-imports:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install reorder-python-imports
+    - name: Lint package
+      run: |
+        reorder-python-imports $(find pyunicore tests | grep "\.py$")

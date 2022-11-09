@@ -11,7 +11,7 @@ inputs:
   param_2:
     type: string
     inputBinding:
-      position: 2      
+      position: 2
   param_3:
     type: int
     inputBinding:
@@ -20,9 +20,9 @@ inputs:
     type: int[]
     inputBinding:
       itemSeparator: ","
-      position: 4 
+      position: 4
   param_5:
-    type: 
+    type:
       type: array
       items: int
       inputBinding:

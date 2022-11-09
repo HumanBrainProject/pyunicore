@@ -2,9 +2,9 @@ from typing import Dict
 
 import pytest
 
-from pyunicore.helpers.workflows.activities import loops
 from pyunicore.helpers.workflows import activities as _activities
 from pyunicore.helpers.workflows import transition
+from pyunicore.helpers.workflows.activities import loops
 
 
 @pytest.fixture(scope="session")
@@ -16,11 +16,7 @@ def loop_body() -> loops.Body:
             expression="test-expression",
         )
     ]
-    transitions = [
-        transition.Transition(
-            from_="here", to="there", condition="test-condition"
-        )
-    ]
+    transitions = [transition.Transition(from_="here", to="there", condition="test-condition")]
     return loops.Body(
         activities=activities,
         transitions=transitions,
