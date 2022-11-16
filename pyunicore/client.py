@@ -16,7 +16,7 @@ from contextlib import closing
 from datetime import datetime, timedelta
 
 import os
-from os.path import normpath
+import pathlib
 import re
 import requests
 import time
@@ -505,7 +505,7 @@ class Storage(Resource):
         super().__init__(transport, storage_url, cache_time)
 
     def _to_file_url(self, path):
-        return self.links["files"] + normpath("/" + path.lstrip("/")).rstrip("/")
+        return self.links["files"] + pathlib.Path("/" + path.lstrip("/")).as_posix().rstrip("/")
 
     def contents(self, path="/"):
         """get a simple list of files in the given directory"""
