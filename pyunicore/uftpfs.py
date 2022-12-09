@@ -13,7 +13,7 @@ class UFTPFS(FTPFS):
     This extends the fs.ftpfs.FTPFS filesystem
     with UFTP authentication.
 
-    Example: create with auth URL and username/password
+    Example: create with auth URL and username/password credentials
 
       from pyunicore.credentials import UsernamePassword
       from pyunicore.uftpfs import UFTPFS
@@ -31,9 +31,6 @@ class UFTPFS(FTPFS):
       fs_url = "uftp://demouser:test123@localhost:9000/rest/auth/TEST:/opt/shared-data"
       uftp_fs = open_fs(fs_url)
       uftp_fs.tree()
-
-    Example: using OAuth tokens
-    TBD
 
 
     """

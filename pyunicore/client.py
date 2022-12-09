@@ -466,6 +466,16 @@ class Job(Resource):
         while self.is_running():
             time.sleep(max(2, self.cache_time + 1))
 
+    def open_tunnel(self, service_port=None, service_host=None, debug=False):
+        """open a tunnel to a service running on the HPC side"""
+        from pyunicore.forwarder import Forwarder
+
+        endpoint = self.links["forwarding"]
+        tr = self.transport._clone()
+        tr.use_security_sessions = False
+        forwarder = Forwarder(tr, endpoint, service_port, service_host, debug)
+        return forwarder.connect()
+
     def __repr__(self):
         return "Job: {} submitted: {} running: {}".format(
             self.resource_url,
