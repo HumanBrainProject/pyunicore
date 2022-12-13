@@ -5,7 +5,7 @@ import threading
 from urllib.parse import urlparse
 
 from pyunicore.client import Transport
-from pyunicore.credentials import UsernamePassword
+from pyunicore.credentials import create_credential
 
 
 class Forwarder:
@@ -64,7 +64,14 @@ class Forwarder:
 
     def create_socket(self):
         self.quiet or print("Connecting to %s" % self.parsed_url.netloc)
-        address = tuple(self.parsed_url.netloc.split(":"))
+        if ":" in self.parsed_url.netloc:
+            _addr = self.parsed_url.netloc.split(":")
+            address = (_addr[0], int(_addr[1]))
+        else:
+            if "https" == self.parsed_url.scheme.lower():
+                address = (self.parsed_url.netloc, 443)
+            else:
+                address = (self.parsed_url.netloc, 80)
         sock = socket.create_connection(address)
         if "https" == self.parsed_url.scheme:
             context = ssl.SSLContext(ssl.PROTOCOL_TLS)
@@ -109,12 +116,17 @@ def main():
     parser.add_argument(
         "-d", "--debug", required=False, action="store_true", help="print debug info"
     )
+    parser.add_argument("-t", "--token", help="Authentication: token")
+    parser.add_argument("-u", "--username", help="Authentication: username")
+    parser.add_argument("-p", "--password", help="Authentication: password")
+    parser.add_argument("-i", "--identity", help="Authentication: private key file")
     args = parser.parse_args()
 
     port = int(args.listen)
     endpoint = args.endpoint
-
-    tr = Transport(UsernamePassword("demouser", "test123"), use_security_sessions=False)
+    credential = create_credential(args.username, args.password, args.token, args.identity)
+    print(credential.get_auth_header())
+    tr = Transport(credential, use_security_sessions=False)
     forwarder = Forwarder(tr, endpoint, debug=args.debug)
     quiet = not args.debug
     with socket.socket() as server:
