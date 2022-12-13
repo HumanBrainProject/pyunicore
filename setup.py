@@ -14,7 +14,8 @@ python_requires = ">=3"
 
 install_requires = [
     "PyJWT>=2.0",
-    "requests>=2.5" "dataclasses>=0.8",
+    "requests>=2.5",
+    "dataclasses>=0.8",
 ]
 
 extras_require = {
