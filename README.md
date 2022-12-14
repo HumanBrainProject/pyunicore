@@ -152,23 +152,36 @@ uc_fuse.UFTPDriver(_host, _port, _password), _local_mount_dir, foreground=False,
 
 ### Tunneling / port forwarding
 
+Opens a local server socket for clients to connect to, where traffic
+gets forwarded to a service on a HPC cluster login (or compute) node.
 This feature requires UNICORE 9.1.0 or later on the server side.
 
-You can use this in your own applications via the `pyunicore.client.Job` class.
-You can also open a tunnel from the command line:
+You can use this feature in two ways
+
+ * in your own applications via the `pyunicore.client.Job` class.
+ * you can also open a tunnel from the command line using the
+   'pyunicore.forwarder' module
+
+Here is an example for a command line tool invocation:
 
 ```
-export JOB_URL=https://localhost:8080/DEMO-SITE/rest/core/jobs/some_job_id
-$> python3 -m pyunicore.forwarder -L 4322 $JOB_URL/forward_port?port=8000 --token <your_auth_token>
+LOCAL_PORT=4322
+JOB_URL=https://localhost:8080/DEMO-SITE/rest/core/jobs/some_job_id
+REMOTE_PORT=8000
+python3 -m pyunicore.forwarder  --token <your_auth_token> \
+  -L $LOCAL_PORT \
+   $JOB_URL/forward-port?port=REMOTE_PORT \
 ```
 
-Use the "-L" option to specify the local port to connect to. See
+Your application can now connect to "localhost:4322" but all traffic will
+be forwarded to port 8000 on the login node.
 
+See
 ```
-$> python3 -m pyunicore.forwarder --help
+python3 -m pyunicore.forwarder --help
 ```
-
 for all options.
+
 
 ## Helpers
 
