@@ -11,8 +11,26 @@ from pyunicore.credentials import create_credential
 class Forwarder:
     """Forwarding helper"""
 
-    def __init__(self, transport, endpoint, service_port=None, service_host=None, debug=False):
-        """Creates a new Forwarder instance"""
+    def __init__(
+        self,
+        transport,
+        endpoint,
+        service_port=None,
+        service_host=None,
+        login_node=None,
+        debug=False,
+    ):
+        """Creates a new Forwarder instance
+        The remote service host/port can be already encoded in the endpoint, or given separately
+
+        Args:
+            transport: the transport (security sessions should be OFF)
+            endpoint: UNICORE REST API endpoint which can establish the forwarding
+            service_port: the remote service port (if not already encoded in the endpoint)
+            service_host: the (optional) remote service host (if not encoded in the endpoint)
+            login_node: the /optional) login node to use (if not encoded in the endpoint)
+            debug: set to True for some debug output to the console
+        """
         self.endpoint = endpoint
         self.parsed_url = urlparse(self.endpoint)
         self.transport = transport
@@ -26,6 +44,10 @@ class Forwarder:
             if len(q) > 0:
                 q += "&"
             q += "host=%s" % service_host
+        if login_node is not None:
+            if len(q) > 0:
+                q += "&"
+            q += "loginNode=%s" % service_host
         self.parsed_url = self.parsed_url._replace(query=q)
 
     def connect(self):
@@ -42,8 +64,13 @@ class Forwarder:
             msg.append(f"{h}: {headers[h]}")
         msg.append("")
         for m in msg:
-            self.quiet or print("<-- %s" % m)
             sock.write(bytes(m + "\r\n", "UTF-8"))
+            if self.quiet:
+                continue
+            if m.startswith("Authorization"):
+                print("<-- Authorization: ***")
+            else:
+                print("<--", m)
         reader = sock.makefile("r")
         first = True
         code = -1
@@ -88,22 +115,52 @@ class Forwarder:
 
     def transfer(self, source, destination):
         desc = f"{source.getpeername()} --> {destination.getpeername()}"
+        self.quiet or print("Start TCP forwarding %s" % desc)
         while True:
             try:
-                buffer = source.recv(4096)
+                buffer = source.recv(16384)
                 if len(buffer) > 0:
                     destination.send(buffer)
                 elif len(buffer) <= 0:
                     break
             except OSError:
+                for s in source, destination:
+                    try:
+                        s.close()
+                    except OSError:
+                        pass
                 break
         self.quiet or print("Stopping TCP forwarding %s" % desc)
 
 
+def run_forwarder(tr, local_port, endpoint, debug):
+    """Starts a loop listening on 'local_port' for client connections.
+    It connect clients to the backend 'endpoint'
+
+    Args:
+        transport: the transport (security sessions should be OFF)
+        local_port: local port to listen on (use 0 to listen on any free port)
+        endpoint: UNICORE REST API endpoint which can establish the forwarding
+        debug: set to True for some debug output to the console
+    """
+    forwarder = Forwarder(tr, endpoint, debug=debug)
+    quiet = not debug
+    with socket.socket() as server:
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server.bind(("", local_port))
+        if local_port == 0:
+            print("Listening on %s" % str(server.getsockname()))
+        server.listen(2)
+        while True:
+            quiet or print("Waiting for client connection.")
+            client_socket, _ = server.accept()
+            quiet or print("Client %s connected." % str(client_socket.getpeername()))
+            service_socket = forwarder.connect()
+            forwarder.start_forwarding(client_socket, service_socket)
+
+
 def main():
     """
-    currently for TESTING ONLY - always authenticates as "demouser:test123"
-
     Main function to listen on a local port for a client connection.
     Once the client connects, the tool contacts the server and negotiates
     the port forwarding
@@ -111,7 +168,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("endpoint", help="UNICORE REST API endpoint")
+    parser.add_argument("endpoint", help="Full UNICORE REST API endpoint for forwarding")
     parser.add_argument("-L", "--listen", required=True, help="local port to listen on")
     parser.add_argument(
         "-d", "--debug", required=False, action="store_true", help="print debug info"
@@ -125,19 +182,8 @@ def main():
     port = int(args.listen)
     endpoint = args.endpoint
     credential = create_credential(args.username, args.password, args.token, args.identity)
-    print(credential.get_auth_header())
     tr = Transport(credential, use_security_sessions=False)
-    forwarder = Forwarder(tr, endpoint, debug=args.debug)
-    quiet = not args.debug
-    with socket.socket() as server:
-        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server.bind(("", port))
-        server.listen(0)
-        quiet or print("Waiting for client connection.")
-        client_socket, _ = server.accept()
-    quiet or print("Client connected.")
-    service_socket = forwarder.connect()
-    forwarder.start_forwarding(client_socket, service_socket)
+    run_forwarder(tr, port, endpoint, args.debug)
 
 
 if __name__ == "__main__":

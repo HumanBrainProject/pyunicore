@@ -150,6 +150,26 @@ fuse = uc_fuse.FUSE(
 uc_fuse.UFTPDriver(_host, _port, _password), _local_mount_dir, foreground=False, nothreads=True)
 ```
 
+### Tunneling / port forwarding
+
+This feature requires UNICORE 9.1.0 or later on the server side.
+
+You can use this in your own applications via the `pyunicore.client.Job` class.
+You can also open a tunnel from the command line:
+
+```
+export JOB_URL=https://localhost:8080/DEMO-SITE/rest/core/jobs/some_job_id
+$> python3 -m pyunicore.forwarder -L 4322 $JOB_URL/forward_port?port=8000 --token <your_auth_token>
+```
+
+Use the "-L" option to specify the local port to connect to. See
+
+```
+$> python3 -m pyunicore.forwarder --help
+```
+
+for all options.
+
 ## Helpers
 
 The `pyunicore.helpers` module provides a set of higher-level APIs:
