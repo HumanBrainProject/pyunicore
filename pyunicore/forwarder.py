@@ -32,23 +32,11 @@ class Forwarder:
             debug: set to True for some debug output to the console
         """
         self.endpoint = endpoint
-        self.parsed_url = urlparse(self.endpoint)
+        self.parsed_url = _parse_forwarding_params(
+            self.endpoint, service_port, service_host, login_node
+        )
         self.transport = transport
         self.quiet = not debug
-        q = self.parsed_url.query
-        if service_port is not None:
-            if len(q) > 0:
-                q += "&"
-            q += "port=%d" % service_port
-        if service_host is not None:
-            if len(q) > 0:
-                q += "&"
-            q += "host=%s" % service_host
-        if login_node is not None:
-            if len(q) > 0:
-                q += "&"
-            q += "loginNode=%s" % service_host
-        self.parsed_url = self.parsed_url._replace(query=q)
 
     def connect(self):
         """connect to the backend service and return the connected socket"""
@@ -116,14 +104,17 @@ class Forwarder:
     def transfer(self, source, destination):
         desc = f"{source.getpeername()} --> {destination.getpeername()}"
         self.quiet or print("Start TCP forwarding %s" % desc)
+        buf_size = 32768
         while True:
             try:
-                buffer = source.recv(16384)
+                buffer = source.recv(buf_size)
                 if len(buffer) > 0:
                     destination.send(buffer)
-                elif len(buffer) <= 0:
+                elif len(buffer) == 0:
+                    self.quiet or print("Source is at EOF for %s" % desc)
                     break
-            except OSError:
+            except OSError as e:
+                self.quiet or print("I/O ERROR for %s " % desc, e)
                 for s in source, destination:
                     try:
                         s.close()
@@ -131,6 +122,56 @@ class Forwarder:
                         pass
                 break
         self.quiet or print("Stopping TCP forwarding %s" % desc)
+
+    def run(self, local_port):
+        """open a listener, accept client connections and forward them to the backend"""
+        with socket.socket() as server:
+            server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            server.bind(("", local_port))
+            if local_port == 0:
+                print("Listening on %s" % str(server.getsockname()))
+            server.listen(2)
+            while True:
+                self.quiet or print("Waiting for client connection.")
+                client_socket, _ = server.accept()
+                self.quiet or print("Client %s connected." % str(client_socket.getpeername()))
+                service_socket = self.connect()
+                self.start_forwarding(client_socket, service_socket)
+
+
+def _parse_forwarding_params(endpoint, service_port=None, service_host=None, login_node=None):
+    """If not already present in the endpoint, the parameters like
+    service_port are added.
+
+    Returns:
+        parsed URL with query parameters added as needed
+    """
+    parsed_url = urlparse(endpoint)
+    q = parsed_url.query
+    if service_port is not None and "port=" not in endpoint:
+        if len(q) > 0:
+            q += "&"
+        q += "port=%d" % service_port
+    if service_host is not None and "host=" not in endpoint:
+        if len(q) > 0:
+            q += "&"
+        q += "host=%s" % service_host
+    if login_node is not None and "loginNode=" not in endpoint:
+        if len(q) > 0:
+            q += "&"
+        q += "loginNode=%s" % login_node
+    return parsed_url._replace(query=q)
+
+
+def open_tunnel(job, service_port=None, service_host=None, login_node=None, debug=False):
+    """open a tunnel to a service running on the HPC side
+    and return the connected socket
+    """
+    endpoint = job.links["forwarding"]
+    tr = job.transport._clone()
+    tr.use_security_sessions = False
+    forwarder = Forwarder(tr, endpoint, service_port, service_host, login_node, debug)
+    return forwarder.connect()
 
 
 def run_forwarder(tr, local_port, endpoint, debug):
@@ -143,20 +184,7 @@ def run_forwarder(tr, local_port, endpoint, debug):
         endpoint: UNICORE REST API endpoint which can establish the forwarding
         debug: set to True for some debug output to the console
     """
-    forwarder = Forwarder(tr, endpoint, debug=debug)
-    quiet = not debug
-    with socket.socket() as server:
-        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server.bind(("", local_port))
-        if local_port == 0:
-            print("Listening on %s" % str(server.getsockname()))
-        server.listen(2)
-        while True:
-            quiet or print("Waiting for client connection.")
-            client_socket, _ = server.accept()
-            quiet or print("Client %s connected." % str(client_socket.getpeername()))
-            service_socket = forwarder.connect()
-            forwarder.start_forwarding(client_socket, service_socket)
+    Forwarder(tr, endpoint, debug=debug).run(local_port)
 
 
 def main():

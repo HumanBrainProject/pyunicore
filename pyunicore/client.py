@@ -14,6 +14,7 @@ except ImportError:
 
 from contextlib import closing
 from datetime import datetime, timedelta
+from enum import Enum
 
 import os
 import pathlib
@@ -199,9 +200,14 @@ class Resource:
     properties and some common methods
     """
 
-    def __init__(self, transport, resource_url, cache_time=_DEFAULT_CACHE_TIME):
+    def __init__(self, security, resource_url, cache_time=_DEFAULT_CACHE_TIME):
         super().__init__()
-        self.transport = transport._clone()
+        if isinstance(security, pyunicore.credentials.Credential):
+            self.transport = Transport(security)
+        elif isinstance(security, Transport):
+            self.transport = security._clone()
+        else:
+            raise TypeError("Need Credential or Transport object")
         self.resource_url = resource_url
         self.cache_time = cache_time
         self._last_properties = None
@@ -422,6 +428,33 @@ class Application(Resource):
     __str__ = __repr__
 
 
+class JobStatus(Enum):
+    """UNICORE Job states"""
+
+    UNDEFINED = "UNDEFINED"
+    READY = "READY"
+    STAGINGIN = "STAGINGIN"
+    QUEUED = "QUEUED"
+    RUNNING = "RUNNING"
+    STAGINGOUT = "STAGINGOUT"
+    SUCCESSFUL = "SUCCESSFUL"
+    FAILED = "FAILED"
+
+    def ordinal(self):
+        i = 0
+        for s in JobStatus:
+            if s == self:
+                return i
+            i += 1
+
+
+def create_job_status(self, jobstate):
+    for s in JobStatus:
+        if s.value[0] == jobstate:
+            return s
+    raise ValueError("No such job state: '%s'" % jobstate)
+
+
 class Job(Resource):
     """wrapper around UNICORE job"""
 
@@ -432,6 +465,10 @@ class Job(Resource):
     def working_dir(self):
         """return the Storage for accessing this job's working directory"""
         return Storage(self.transport, self.links["workingDirectory"])
+
+    @property
+    def status(self):
+        return JobStatus(self.properties["status"])
 
     def bss_details(self):
         """return a JSON containing the low-level batch system details"""
@@ -444,37 +481,42 @@ class Job(Resource):
     def abort(self):
         """abort this job"""
         url = self.links["action:abort"]
-        return self.transport.post(url=url, json={})
+        with self.transport.post(url=url, json={}):
+            pass
 
     def restart(self):
         """restart this job"""
         url = self.links["action:restart"]
-        return self.transport.post(url=url, json={})
+        with self.transport.post(url=url, json={}):
+            pass
 
     def start(self):
         """start this job - only required if client had to stage-in local files"""
         url = self.links["action:start"]
-        return self.transport.post(url=url, json={})
+        with self.transport.post(url=url, json={}):
+            pass
 
     @property
     def job_id(self):
-        """get the UID of this job"""
+        """get the UUID of this job"""
         return os.path.basename(self.resource_url)
 
-    def poll(self):
-        """wait until this job completes"""
-        while self.is_running():
-            time.sleep(max(2, self.cache_time + 1))
-
-    def open_tunnel(self, service_port=None, service_host=None, debug=False):
-        """open a tunnel to a service running on the HPC side"""
-        from pyunicore.forwarder import Forwarder
-
-        endpoint = self.links["forwarding"]
-        tr = self.transport._clone()
-        tr.use_security_sessions = False
-        forwarder = Forwarder(tr, endpoint, service_port, service_host, debug)
-        return forwarder.connect()
+    def poll(self, state=JobStatus.SUCCESSFUL, timeout=0):
+        """wait until this job reaches the given status (default : SUCCESSFUL)
+        or ends (i.e. SUCCESSFUL or FAILED).
+        If the optional timeout is reached, a TimeoutError will be raised
+        Args:
+            state - job state to wait for (default : JobStatus.SUCCESSFUL)
+            timeout - timeout in seconds (default: 0 = no timeout)
+        """
+        if state == JobStatus.UNDEFINED:
+            raise ValueError("Cannot wait for %s" % state)
+        start_time = int(time.time())
+        while self.status.ordinal() < state.ordinal():
+            wait_time = max(2, self.cache_time + 1)
+            time.sleep(wait_time)
+            if timeout > 0 and int(time.time()) > start_time + timeout:
+                raise TimeoutError("Timeout waiting for job to become %s" % state.value)
 
     def __repr__(self):
         return "Job: {} submitted: {} running: {}".format(
@@ -811,7 +853,8 @@ class Transfer(Resource):
     def abort(self):
         """abort this transfer"""
         url = self.properties["_links"]["action:abort"]["href"]
-        return self.transport.post(url=url, json={})
+        with self.transport.post(url=url, json={}):
+            pass
 
     def __repr__(self):
         return "Transfer: {} running: {}".format(
@@ -897,7 +940,8 @@ class Workflow(Resource):
     def abort(self):
         """abort this workflow"""
         url = self.properties["_links"]["action:abort"]["href"]
-        return self.transport.post(url=url, json={})
+        with self.transport.post(url=url, json={}):
+            pass
 
     def resume(self, params={}):
         """resume this workflow (from "HELD" state), optionally updating parameters"""
