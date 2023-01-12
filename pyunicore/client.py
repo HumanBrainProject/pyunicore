@@ -365,12 +365,13 @@ class Client(Resource):
         """submit and start a job on the site, optionally uploading input data files"""
         if len(inputs) > 0 or job_description.get("haveClientStageIn") is True:
             job_description["haveClientStageIn"] = "true"
-
         with closing(self.transport.post(url=self.links["jobs"], json=job_description)) as resp:
             job_url = resp.headers["Location"]
-
-        job = Job(self.transport, job_url)
-
+        job_type = job_description.get("Job type", "n/a")
+        if "ALLOCATE" == job_type.upper():
+            job = Allocation(self.transport, job_url)
+        else:
+            job = Job(self.transport, job_url)
         if len(inputs) > 0:
             working_dir = job.working_dir
             for input_item in inputs:
@@ -455,8 +456,8 @@ def create_job_status(self, jobstate):
 class Job(Resource):
     """wrapper around UNICORE job"""
 
-    def __init__(self, transport, job_url, cache_time=_DEFAULT_CACHE_TIME):
-        super().__init__(transport, job_url, cache_time)
+    def __init__(self, security, job_url, cache_time=_DEFAULT_CACHE_TIME):
+        super().__init__(security, job_url, cache_time)
 
     @property
     def working_dir(self):
@@ -523,6 +524,46 @@ class Job(Resource):
         )
 
     __str__ = __repr__
+
+
+class Allocation(Job):
+    """A special Job representing a batch system allocation. Tasks can be submitted
+    'into' the allocation using the new_job() method. Use 'srun' or whichever
+    command is suitable for running the task. UNICORE will automatically set the
+    correct job ID, so the task is started in the allocation.
+    """
+
+    def __init__(self, security, job_url, cache_time=_DEFAULT_CACHE_TIME):
+        super().__init__(security, job_url, cache_time)
+
+    def new_job(self, job_description, inputs=[], autostart=True):
+        """submit and start a job within the existing allocation"""
+        if len(inputs) > 0 or job_description.get("haveClientStageIn") is True:
+            job_description["haveClientStageIn"] = "true"
+        with closing(self.transport.post(url=self.resource_url, json=job_description)) as resp:
+            job_url = resp.headers["Location"]
+        job = Job(self.transport, job_url)
+        if len(inputs) > 0:
+            working_dir = job.working_dir
+            for input_item in inputs:
+                working_dir.upload(input_item)
+        if autostart and job_description.get("haveClientStageIn", None) == "true":
+            job.start()
+        return job
+
+    def wait_until_available(self, timeout=0):
+        """wait until the allocation is available"""
+        self.poll(JobStatus.RUNNING, timeout)
+        start_time = int(time.time())
+        wait_time = max(2, self.cache_time + 1)
+        while True:
+            bss_id = self.properties["batchSystemID"]
+            if bss_id.startswith("INTERACTIVE_"):
+                time.sleep(wait_time)
+                if timeout > 0 and int(time.time()) > start_time + timeout:
+                    raise TimeoutError("Timeout waiting for allocation to become available")
+            else:
+                break
 
 
 class Compute(Resource):

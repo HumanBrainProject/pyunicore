@@ -17,7 +17,7 @@ class UNICORECluster(Cluster):
 
     def __init__(
         self,
-        unicore_client,
+        submitter,
         n_workers=0,
         name=None,
         asynchronous=False,
@@ -32,7 +32,7 @@ class UNICORECluster(Cluster):
         connection_timeout=60,
     ):
         super().__init__(asynchronous=asynchronous, name=name, quiet=not debug)
-        self.unicore_client = unicore_client
+        self.submitter = submitter
         self.status = Status.created
         self.debug = debug
         self.local_port = local_port
@@ -93,7 +93,7 @@ class UNICORECluster(Cluster):
         Starts the scheduler
         """
         job_desc, inputs = self.get_scheduler_job_description()
-        job = self.unicore_client.new_job(job_desc, inputs)
+        job = self.submitter.new_job(job_desc, inputs)
         self.scheduler_job = job
         not self.debug or print("Submitted scheduler", job)
         not self.debug or print("Waiting for scheduler to start up...")
@@ -139,19 +139,13 @@ class UNICORECluster(Cluster):
             job_start_worker["Resources"] = resources
         return job_start_worker, []
 
-    def _submit_worker_job(self, wait_for_startup=False):
+    def _submit_worker_job(self):
         """
         Starts and returns a worker job
         """
         job_desc, inputs = self.get_worker_job_description()
-        worker = self.unicore_client.new_job(job_desc, inputs)
+        worker = self.submitter.new_job(job_desc, inputs)
         not self.debug or print("Submitted worker job:", worker)
-        if wait_for_startup:
-            not self.debug or print("Waiting for worker to start up...")
-            worker.poll(JobStatus.RUNNING)
-            if JobStatus.FAILED == worker.status:
-                raise OSError("Launching worker failed")
-            not self.debug or print("Worker is running.")
         return worker
 
     def scale(self, n=None, jobs=0, wait_for_startup=False):
@@ -159,8 +153,18 @@ class UNICORECluster(Cluster):
             jobs = int(math.ceil(n / self.processes))
         while jobs < len(self.worker_jobs):
             self.worker_jobs.pop().abort()
+        new_workers = []
         while jobs > len(self.worker_jobs):
-            self.worker_jobs.append(self._submit_worker_job(wait_for_startup))
+            w = self._submit_worker_job()
+            self.worker_jobs.append(w)
+            new_workers.append(w)
+        if wait_for_startup:
+            not self.debug or print("Waiting for worker(s) to start up...")
+            for worker in new_workers:
+                worker.poll(JobStatus.RUNNING)
+                if JobStatus.FAILED == worker.status:
+                    raise OSError("Worker %s failed: " % worker.resource_url)
+        not self.debug or print("Worker(s) running.")
 
     def _start_forwarder(self):
         not self.debug or print("Starting port forwarder listening on port:", self.local_port)
