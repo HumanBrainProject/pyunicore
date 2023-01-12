@@ -49,6 +49,28 @@ class TestBasic(unittest.TestCase):
         self.assertTrue(len(stdout) > 0)
         print(stdout)
 
+    def test_alloc_and_run_date(self):
+        print("*** test_alloc_and_run_date")
+        client = self.get_client()
+        alloc_desc = {"Job type": "ALLOCATE", "Resources": {"Runtime": "10m"}}
+        allocation = client.new_job(alloc_desc)
+        try:
+            print(allocation)
+            allocation.wait_until_available()
+            job_desc = {"Executable": "date"}
+            job = allocation.new_job(job_desc)
+            print(job)
+            job.cache_time = 0
+            job.poll()
+            exit_code = int(job.properties["exitCode"])
+            self.assertEqual(0, exit_code)
+            work_dir = job.working_dir
+            stdout = work_dir.stat("/stdout").raw().read()
+            self.assertTrue(len(stdout) > 0)
+            print(stdout)
+        finally:
+            allocation.abort()
+
 
 if __name__ == "__main__":
     unittest.main()

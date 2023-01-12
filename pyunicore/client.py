@@ -565,6 +565,15 @@ class Allocation(Job):
             else:
                 break
 
+    def __repr__(self):
+        return "Allocation: {} submitted: {} running: {}".format(
+            self.resource_url,
+            self.properties["submissionTime"],
+            self.is_running(),
+        )
+
+    __str__ = __repr__
+
 
 class Compute(Resource):
     """wrapper around a UNICORE compute resource (a specific cluster with queues)"""
