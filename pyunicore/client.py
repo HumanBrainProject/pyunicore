@@ -247,9 +247,8 @@ class Registry(Resource):
     """Client for a UNICORE service Registry
 
         >>> base_url = '...' # e.g. "https://localhost:8080/REGISTRY/rest/registries/default_registry"  # noqa
-        >>> token = '...'
-        >>> transport = Transport(token)
-        >>> registry = Registry(transport, base_url)
+        >>> credential = '...'
+        >>> registry = Registry(credential, base_url)
 
     Will collect the BASE URLs of all registered sites
     """
@@ -293,9 +292,7 @@ class Client(Resource):
 
     >>> base_url = '...' # e.g. "https://localhost:8080/DEMO-SITE/rest/core"
     >>> credential = credentials.UsernamePassword("demouser", "test123")
-    >>> transport = client.Transport(credential)
-    >>> sites = get_sites(transport)
-    >>> site_client = client.Client(transport, sites['JURECA'])
+    >>> site_client = client.Client(credential, base_url)
     >>> # to get the jobs
     >>> jobs = site_client.get_jobs()
     >>> # to start a new job:
@@ -503,7 +500,7 @@ class Job(Resource):
 
     def poll(self, state=JobStatus.SUCCESSFUL, timeout=0):
         """wait until this job reaches the given status (default : SUCCESSFUL)
-        or ends (i.e. SUCCESSFUL or FAILED).
+        or a later one (like SUCCESSFUL or FAILED).
         If the optional timeout is reached, a TimeoutError will be raised
         Args:
             state - job state to wait for (default : JobStatus.SUCCESSFUL)
@@ -531,8 +528,8 @@ class Job(Resource):
 class Compute(Resource):
     """wrapper around a UNICORE compute resource (a specific cluster with queues)"""
 
-    def __init__(self, transport, job_url, cache_time=_DEFAULT_CACHE_TIME):
-        super().__init__(transport, job_url, cache_time)
+    def __init__(self, security, resource_url, cache_time=_DEFAULT_CACHE_TIME):
+        super().__init__(security, resource_url, cache_time)
 
     def __repr__(self):
         return f"Compute: {self.resource_url}"

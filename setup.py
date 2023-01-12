@@ -38,7 +38,8 @@ setup(
     entry_points={
         "fs.opener": [
             "uftp = pyunicore.uftpfs:UFTPOpener",
-        ]
+        ],
+        "console_scripts": ["unicore-port-forwarder=pyunicore.forwarder:main"],
     },
     license="License :: OSI Approved :: BSD",
     url="https://github.com/HumanBrainProject/pyunicore",

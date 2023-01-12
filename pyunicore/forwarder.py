@@ -203,13 +203,24 @@ def main():
     )
     parser.add_argument("-t", "--token", help="Authentication: token")
     parser.add_argument("-u", "--username", help="Authentication: username")
-    parser.add_argument("-p", "--password", help="Authentication: password")
+    parser.add_argument(
+        "-p",
+        "--password",
+        nargs="?",
+        const="__ASK__",
+        help="Authentication: password (leave empty to enter interactively)",
+    )
     parser.add_argument("-i", "--identity", help="Authentication: private key file")
     args = parser.parse_args()
 
     port = int(args.listen)
     endpoint = args.endpoint
-    credential = create_credential(args.username, args.password, args.token, args.identity)
+    password = args.password
+    if "__ASK__" == password:
+        import getpass
+
+        password = getpass.getpass("Enter password:")
+    credential = create_credential(args.username, password, args.token, args.identity)
     tr = Transport(credential, use_security_sessions=False)
     run_forwarder(tr, port, endpoint, args.debug)
 
