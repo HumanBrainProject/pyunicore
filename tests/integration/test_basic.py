@@ -52,6 +52,9 @@ class TestBasic(unittest.TestCase):
     def test_alloc_and_run_date(self):
         print("*** test_alloc_and_run_date")
         client = self.get_client()
+        if client.server_version_info() < (9, 0, 0):
+            print("Skipping, requires server 9.0.0 or later")
+            return
         alloc_desc = {"Job type": "ALLOCATE", "Resources": {"Runtime": "10m"}}
         allocation = client.new_job(alloc_desc)
         try:

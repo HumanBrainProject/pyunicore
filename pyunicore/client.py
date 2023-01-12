@@ -323,6 +323,11 @@ class Client(Resource):
         """get authentication and authentication information about the current user"""
         return self.properties["client"]
 
+    def server_version_info(self):
+        """get server version as a tuple (major, minor, patch)"""
+        v = self.properties["server"]["version"]
+        return tuple([int(x) for x in tuple(v.split("-")[0].split("."))])
+
     def get_storages(self, offset=0, num=200, tags=[]):
         """get a list of all Storages on this site
         Use the optional 'offset' and 'num' parameters to handle long result lists
