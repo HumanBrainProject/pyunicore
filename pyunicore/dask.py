@@ -102,8 +102,7 @@ class UNICORECluster(Cluster):
         if JobStatus.FAILED == job.status:
             raise OSError("Launching scheduler failed")
         not self.debug or print("Scheduler is running.")
-        if self.scheduler_port == 0 or not "ON_LOGIN_NODE" == job.properties["jobType"]:
-            self.scheduler_host, self.scheduler_port = self._read_scheduler_address()
+        self.scheduler_host, self.scheduler_port = self._read_scheduler_address()
 
     def _read_scheduler_address(self):
         """reads scheduler host/port from dask.json file in the scheduler's working directory"""
