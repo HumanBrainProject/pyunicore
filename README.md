@@ -9,8 +9,10 @@ The full, up-to-date documentation of the REST API can be found
 [here](https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api)
 
 In addition, this library contains code for using UFTP (UNICORE FTP)
-for filesystem mounts with FUSE, and a UFTP driver for
+for filesystem mounts with FUSE, a UFTP driver for
 [PyFilesystem](https://github.com/PyFilesystem/pyfilesystem2)
+and a UNICORE implementation of a
+[Dask Cluster](https://distributed.dask.org/en/stable/)
 
 Development of this library was funded in part by the
 [Human Brain Project](https://www.humanbrainproject.eu)
@@ -47,9 +49,8 @@ base_url = "https://localhost:8080/DEMO-SITE/rest/core"
 
 # authenticate with username/password
 credential = uc_credentials.UsernamePassword("demouser", "test123")
-transport  = uc_client.Transport(credential)
 
-client = uc_client.Client(transport, base_url)
+client = uc_client.Client(credential, base_url)
 print(json.dumps(client.properties, indent = 2))
 ```
 
@@ -79,9 +80,8 @@ registry_url = "https://localhost:8080/REGISTRY/rest/registries/default_registry
 
 # authenticate with username/password
 credential = uc_credentials.UsernamePassword("demouser", "test123")
-transport = uc_client.Transport(credential)
 
-r = uc_client.Registry(tr, registry_url)
+r = uc_client.Registry(credential, registry_url)
 print(r.site_urls)
 ```
 
@@ -173,8 +173,8 @@ python3 -m pyunicore.forwarder  --token <your_auth_token> \
    $JOB_URL/forward-port?port=REMOTE_PORT \
 ```
 
-Your application can now connect to "localhost:4322" but all traffic will
-be forwarded to port 8000 on the login node.
+Your application can now connect to "localhost:4322" but all traffic
+will be forwarded to port 8000 on the login node.
 
 See
 ```
@@ -182,22 +182,60 @@ python3 -m pyunicore.forwarder --help
 ```
 for all options.
 
+### Dask cluster implementation
+
+PyUNICORE provides an implementation of a Dask Cluster, allowing to
+run the Dask client on your local host (or in a Jupyter notebook in
+the Cloud), and have the Dask scheduler and workers running remotely
+on the HPC site.
+
+A basic usage example:
+
+```Python
+import pyunicore.client as uc_client
+import pyunicore.credentials as uc_credentials
+import pyunicore.dask as uc_dask
+
+# Create a UNICORE client for accessing the HPC cluster
+base_url = "https://localhost:8080/DEMO-SITE/rest/core"
+credential = uc_credentials.UsernamePassword("demouser", "test123")
+submitter = uc_client.Client(credential, base_url)
+
+# Create the UNICORECluster instance
+
+uc_cluster = uc_dask.UNICORECluster(
+   submitter,
+   queue = "batch",
+   project = "my-project",
+   debug=True)
+
+# Start two workers
+uc_cluster.scale(2, wait_for_startup=True)
+
+# Create a Dask client connected to the UNICORECluster
+
+from dask.distributed import Client
+dask_client = Client(uc_cluster, timeout=120)
+```
+
+That's it! Now Dask will run its computations using the scheduler
+and workers started via UNICORE on the HPC site.
 
 ## Helpers
 
 The `pyunicore.helpers` module provides a set of higher-level APIs:
 
 * Connecting to
-  * a registry (`pyunicore.helpers.connect_to_registry`).
+  * a Registry (`pyunicore.helpers.connect_to_registry`).
   * a site via a Registry URL (`pyunicore.helpers.connect_to_site_from_registry`).
   * a site via its core URL (`pyunicore.helpers.connect_to_site`).
 * Defining descriptions as a dataclass and easily converting to a `dict` as required by `pyunicore.client.Client.new_job` via a `to_dict()` method:
   * `pyunicore.helpers.jobs.Description` for `pyunicore.client.Client.new_job()`
   * `pyunicore.helpers.workflows.Description` for `pyunicore.client.WorkflowService.new_workflow()`
 * All possible job statuses that may be returned by the jobs API (`pyunicore.helpers.JobStatus`).
-* Defining a workflow descri
+* Defining a workflow description
 
-### Connecting to a registry
+### Connecting to a Registry
 
 ```Python
 import json
@@ -215,7 +253,7 @@ client = helpers.connection.connect_to_registry(
 print(json.dumps(client.properties, indent=2))
 ```
 
-### Connecting to a site via a registry
+### Connecting to a site via a Registry
 
 ```Python
 import json
