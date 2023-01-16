@@ -1,6 +1,7 @@
 """ Dask Distributed cluster implementation """
 import json
 import math
+import time
 from multiprocessing import get_context
 from urllib.parse import urlparse
 
@@ -29,7 +30,7 @@ class UNICORECluster(Cluster):
         worker_options={},
         local_port=4322,
         debug=False,
-        connection_timeout=60,
+        connection_timeout=120,
     ):
         super().__init__(asynchronous=asynchronous, name=name, quiet=not debug)
         self.submitter = submitter
@@ -55,7 +56,7 @@ class UNICORECluster(Cluster):
                 self.scale(n_workers)
         except OSError:
             try:
-                self.close()
+                self.cleanup()
             finally:
                 raise
         self._loop_runner.start()
@@ -68,8 +69,7 @@ class UNICORECluster(Cluster):
         job_start_scheduler = self.scheduler_options.get(
             "executable", {"ApplicationName": "dask-scheduler"}
         )
-        self.scheduler_port = self.scheduler_options.get("port", 8786)
-        self.scheduler_host = "localhost"
+        self.scheduler_port = self.scheduler_options.get("port", 0)
         job_start_scheduler["Arguments"] = [
             "--port",
             str(self.scheduler_port),
@@ -97,7 +97,6 @@ class UNICORECluster(Cluster):
         self.scheduler_job = job
         not self.debug or print("Submitted scheduler", job)
         not self.debug or print("Waiting for scheduler to start up...")
-
         job.poll(JobStatus.RUNNING)
         if JobStatus.FAILED == job.status:
             raise OSError("Launching scheduler failed")
@@ -106,8 +105,16 @@ class UNICORECluster(Cluster):
 
     def _read_scheduler_address(self):
         """reads scheduler host/port from dask.json file in the scheduler's working directory"""
+        not self.debug or print("Reading scheduler host/port...")
         wd = self.scheduler_job.working_dir
-        dask_json = json.loads(wd.stat("dask.json").raw().read())
+        while True:
+            json_file = wd.listdir().get("dask.json")
+            if json_file is not None:
+                break
+            if JobStatus.FAILED == self.scheduler_job.status:
+                raise OSError("Scheduler failed")
+            time.sleep(2)
+        dask_json = json.loads(json_file.raw().read())
         _h, _p = urlparse(dask_json["address"]).netloc.split(":")
         return _h, int(_p)
 
@@ -157,7 +164,7 @@ class UNICORECluster(Cluster):
             w = self._submit_worker_job()
             self.worker_jobs.append(w)
             new_workers.append(w)
-        if wait_for_startup:
+        if wait_for_startup and len(new_workers) > 0:
             not self.debug or print("Waiting for worker(s) to start up...")
             for worker in new_workers:
                 worker.poll(JobStatus.RUNNING)
@@ -182,13 +189,16 @@ class UNICORECluster(Cluster):
         self.forwarding_process = ctx.Process(target=self.forwarder.run, args=[self.local_port])
         self.forwarding_process.start()
 
-    def close(self):
+    def cleanup(self):
         if self.scheduler_job:
             self.scheduler_job.abort()
         for worker in self.worker_jobs:
             worker.abort()
         if self.forwarding_process:
             self.forwarding_process.kill()
+
+    def close(self):
+        self.cleanup()
         super().close()
 
     @property

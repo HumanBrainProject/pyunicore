@@ -182,7 +182,7 @@ python3 -m pyunicore.forwarder --help
 ```
 for all options.
 
-### Dask cluster implementation
+### Dask cluster implementation (experimental)
 
 PyUNICORE provides an implementation of a Dask Cluster, allowing to
 run the Dask client on your local host (or in a Jupyter notebook in

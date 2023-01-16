@@ -37,6 +37,7 @@ class Forwarder:
         )
         self.transport = transport
         self.quiet = not debug
+        self.local_port = 0
 
     def connect(self):
         """connect to the backend service and return the connected socket"""
@@ -130,6 +131,7 @@ class Forwarder:
             server.bind(("", local_port))
             if local_port == 0:
                 print("Listening on %s" % str(server.getsockname()))
+            self.local_port = server.getsockname()[1]
             server.listen(2)
             while True:
                 self.quiet or print("Waiting for client connection.")
