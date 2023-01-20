@@ -11,6 +11,9 @@ from time import mktime
 from time import strftime
 from time import strptime
 
+from pyunicore.client import Transport
+from pyunicore.credentials import Credential
+
 
 class UFTP:
     """
@@ -20,19 +23,14 @@ class UFTP:
 
     uftp_session_tag = "___UFTP___MULTI___FILE___SESSION___MODE___"
 
-    def __init__(self, transport=None, base_url=None, base_dir=""):
-        self.transport = transport
-        self.base_url = base_url
-        if base_dir != "" and not base_dir.endswith("/"):
-            base_dir += "/"
-        self.base_dir = base_dir
+    def __init__(self):
         self.ftp = None
         self.uid = os.getuid()
         self.gid = os.getgid()
 
-    def connect(self):
+    def connect(self, security, base_url, base_dir=""):
         """authenticate and open a UFTP session"""
-        host, port, password = self.authenticate()
+        host, port, password = self.authenticate(security, base_url, base_dir)
         self.open_uftp_session(host, port, password)
 
     def open_uftp_session(self, host, port, password):
@@ -41,14 +39,21 @@ class UFTP:
         self.ftp.connect(host, port)
         self.ftp.login("anonymous", password)
 
-    def authenticate(self):
+    def authenticate(self, security, base_url, base_dir=""):
         """authenticate to the auth server and return a tuple (host, port, one-time-password)"""
-        url = self.base_url
+        if isinstance(security, Credential):
+            transport = Transport(security)
+        elif isinstance(security, Transport):
+            transport = security._clone()
+        else:
+            raise TypeError("Need Credential or Transport object")
+        if base_dir != "" and not base_dir.endswith("/"):
+            base_dir += "/"
         req = {
             "persistent": "true",
-            "serverPath": self.base_dir + self.uftp_session_tag,
+            "serverPath": base_dir + self.uftp_session_tag,
         }
-        params = self.transport.post(url=url, json=req).json()
+        params = transport.post(url=base_url, json=req).json()
         return params["serverHost"], params["serverPort"], params["secret"]
 
     __perms = {"r": stat.S_IRUSR, "w": stat.S_IWUSR, "x": stat.S_IXUSR}

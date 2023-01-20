@@ -39,7 +39,11 @@ setup(
         "fs.opener": [
             "uftp = pyunicore.uftpfs:UFTPOpener",
         ],
-        "console_scripts": ["unicore-port-forwarder=pyunicore.forwarder:main"],
+        "console_scripts": [
+            "unicore-port-forwarder=pyunicore.forwarder:main",
+            "unicore-cwl-runner=pyunicore.cwltool:main",
+            "unicore-fusedriver=pyunicore.uftpfuse:main",
+        ],
     },
     license="License :: OSI Approved :: BSD",
     url="https://github.com/HumanBrainProject/pyunicore",

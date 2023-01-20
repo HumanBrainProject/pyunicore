@@ -1,13 +1,17 @@
-#!/usr/bin/env python3
 import os
 from errno import EIO
 from errno import ENOENT
 from errno import ENOSYS
 from time import time
 
-from fuse import FUSE
-from fuse import FuseOSError
-from fuse import Operations
+try:
+    from fusepy import FUSE
+    from fusepy import FuseOSError
+    from fusepy import Operations
+except ImportError:
+    from fuse import FUSE
+    from fuse import FuseOSError
+    from fuse import Operations
 
 from pyunicore.uftp import UFTP
 

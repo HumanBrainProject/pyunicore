@@ -3,7 +3,6 @@ from fs.ftpfs import FTPFS
 from fs.opener import Opener
 
 import pyunicore.credentials as uc_credentials
-from pyunicore.client import Transport
 from pyunicore.uftp import UFTP
 
 
@@ -35,11 +34,9 @@ class UFTPFS(FTPFS):
 
     """
 
-    def __init__(self, auth_url, credentials, base_path="/"):
+    def __init__(self, auth_url, creds, base_path="/"):
         """Creates a new UFTP FS instance authenticating using the given URL and credentials"""
-        tr = Transport(credentials)
-        uftp = UFTP(tr, auth_url, base_path)
-        uftp_host, uftp_port, uftp_password = uftp.authenticate()
+        uftp_host, uftp_port, uftp_password = UFTP().authenticate(creds, auth_url, base_path)
         super().__init__(uftp_host, port=uftp_port, user="anonymous", passwd=uftp_password)
         self.base_path = base_path
 
@@ -63,17 +60,20 @@ class UFTPOpener(Opener):
 
     protocols = ["uftp"]
 
-    def open_fs(self, fs_url, parse_result, writeable, create, cwd):
-        tok = parse_result.resource.split("/rest/")
+    def _parse(self, resource_url):
+        tok = resource_url.split("/rest/")
         auth_url = "https://" + tok[0]
         tok2 = tok[1].split(":")
         auth_url = auth_url + "/rest/" + tok2[0]
         base_dir = tok2[1] if len(tok) > 1 else "/"
+        return auth_url, base_dir
+
+    def open_fs(self, fs_url, parse_result, writeable, create, cwd):
+        auth_url, base_dir = self._parse(parse_result.resource)
         cred = uc_credentials.create_credential(
             username=parse_result.username,
             password=parse_result.password,
             token=parse_result.params.get("token", None),
             identity=parse_result.params.get("identity", None),
         )
-        uftpfs = UFTPFS(auth_url, cred, base_dir)
-        return uftpfs
+        return UFTPFS(auth_url, cred, base_dir)
