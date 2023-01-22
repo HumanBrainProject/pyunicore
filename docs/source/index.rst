@@ -23,6 +23,10 @@ and a UNICORE implementation of a
 Development of this library was funded in part by the
 `Human Brain Project <https://www.humanbrainproject.eu>`_
 
+PyUNICORE is Open Source under the :ref:`BSD License <license>`,
+the source code is on `GitHub <https://github.com/HumanBrainProject/pyunicore>`_.
+
+
 Installation
 ------------
 
@@ -45,35 +49,19 @@ You can install (one or more) extras with pip:
 
     pip install -U pyunicore[crypto,fs,fuse]
 
-Using PyUNICORE
----------------
-
-  :doc:`basic_usage`
-      Getting started and basic usage examples
-
-  :doc:`uftp`
-      Using UFTP for data access, including FUSE mounts
-
-  :doc:`dask`
-      Deploy and operate a Dask cluster on HPC via UNICORE
-
-  :doc:`port_forwarding`
-      Transparently access a service running on the HPC side
-
-License
--------
-
-PyUNICORE is available as Open Source under the :ref:`BSD
-License <license>`, the source code is available
-on `GitHub <https://github.com/HumanBrainProject/pyunicore>`_.
-
 
 .. toctree::
 	:maxdepth: 2
-	:caption: PyUNICORE Documentation
+	:caption: Using PyUNICORE
 
 	basic_usage
 	uftp
 	dask
 	port_forwarding
+
+
+.. toctree::
+	:maxdepth: 1
+	:caption: Links
+
 	license
