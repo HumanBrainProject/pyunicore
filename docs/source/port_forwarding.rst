@@ -7,8 +7,8 @@ This feature requires UNICORE 9.1.0 or later on the server side.
 
 You can use this feature in two ways
 
- * in your own applications via the `pyunicore.client.Job` class.
- * you can also open a tunnel from the command line using the 'pyunicore.forwarder' module
+ * in your own applications via the ``pyunicore.client.Job`` class.
+ * you can also open a tunnel from the command line using the ``pyunicore.forwarder`` module
 
 Here is an example for a command line tool invocation:
 
@@ -22,7 +22,7 @@ Here is an example for a command line tool invocation:
      $JOB_URL/forward-port?port=REMOTE_PORT \
 
 
-Your application can now connect to "localhost:4322" but all traffic
+Your application can now connect to ``localhost:4322`` but all traffic
 will be forwarded to port 8000 on the login node.
 
 See

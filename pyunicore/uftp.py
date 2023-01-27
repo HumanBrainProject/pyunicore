@@ -127,7 +127,8 @@ class UFTP:
             raise OSError("Could not set time: " % reply)
 
     def close(self):
-        self.ftp.close()
+        if self.ftp is not None:
+            self.ftp.close()
 
     def get_write_socket(self, path, offset):
         path = self.normalize(path)
