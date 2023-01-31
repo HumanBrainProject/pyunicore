@@ -1,6 +1,45 @@
 UFTP
 ----
 
+`UFTP (UNICORE FTP) <https://uftp-docs.readthedocs.io>`_ is a fast file transfer toolkit,
+based on the standard FTP protocol, with an added authentication layer based on UNICORE.
+
+To make a UFTP connection, a user first needs to authenticate to an
+authentication service, which will produce a one-time password, which is
+then used to connect to the actual UFTP file server.
+
+UFTP support in PyUNICORE is based on the `ftplib <https://docs.python.org/3/library/ftplib.html>`_
+standard library.
+
+Basic UFTP usage
+~~~~~~~~~~~~~~~~
+
+Opening an FTP session involves authenticating to an authentication service using
+UNICORE credentials. Depending on the authentication service, different credentials
+might be accepted.
+
+Here is a basic example using username/password.
+
+.. code:: python
+
+  import pyunicore.credentials as uc_credentials
+  import pyunicore.uftp as uc_uftp
+
+  # URL of the authentication service
+  auth_url = "https://localhost:9000/rest/auth/TEST"
+
+  # remote base directory that we want to access
+  base_directory = "/data"
+
+  # authenticate with username/password
+  credential = uc_credentials.UsernamePassword("demouser", "test123")
+
+  uftp_session = uc_uftp.UFTP().connect(credential, auth_url, base_directory)
+
+The object returned by `connect()` is an `ftplib` `FTP` object.
+
+
+
 Using UFTP for PyFilesystem
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -46,7 +85,7 @@ allowing you to mount a remote filesystem via UFTP. Mounting is a two step proce
 
 The following code example gives you the basic idea:
 
-.. code::python
+.. code:: python
 
   import pyunicore.client as uc_client
   import pyunicore.credentials as uc_credentials
@@ -59,8 +98,7 @@ The following code example gives you the basic idea:
 
   # authenticate
   cred = uc_credentials.UsernamePassword("demouser", "test123")
-  uftp = uc_uftp.UFTP(uc_client.Transport(cred), _auth, _base_dir)
-  _host, _port, _password  = uftp.authenticate()
+  _host, _port, _password  = uc_uftp.UFTP().authenticate(cred, _auth, _base_dir)
 
   # run the fuse driver
   fuse = uc_fuse.FUSE(
