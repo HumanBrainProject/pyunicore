@@ -108,7 +108,7 @@ For example
   # Custom job to start worker
 
   worker_jd = {
-  	"Executable" : "srun --tasks=1 conda run -n dask dask-scheduler",
+  	"Executable" : "srun --tasks=1 conda run -n dask dask-worker",
   	"Resources": {
   		"Nodes": "2"
   	}
