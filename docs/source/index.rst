@@ -20,8 +20,10 @@ for filesystem mounts with FUSE, a UFTP driver for
 and a UNICORE implementation of a
 `Dask Cluster <https://distributed.dask.org/en/stable/>`_
 
-Development of this library was funded in part by the
-`Human Brain Project <https://www.humanbrainproject.eu>`_
+This project has received funding from the European Union’s
+Horizon 2020 Framework Programme for Research and Innovation under the
+Specific Grant Agreement Nos. 720270, 785907 and 945539
+(Human Brain Project SGA 1, 2 and 3)
 
 PyUNICORE is Open Source under the :ref:`BSD License <license>`,
 the source code is on `GitHub <https://github.com/HumanBrainProject/pyunicore>`_.
