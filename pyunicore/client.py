@@ -889,7 +889,7 @@ class TransferStatus(Enum):
     DONE = "DONE"
     FAILED = "FAILED"
     ABORTED = "ABORTED"
-     
+
     def ordinal(self):
         i = 0
         for s in TransferStatus:
@@ -1007,7 +1007,7 @@ class WorkflowStatus(Enum):
     SUCCESSFUL = "SUCCESSFUL"
     FAILED = "FAILED"
     ABORTED = "ABORTED"
-        
+
     def ordinal(self):
         i = 0
         for s in WorkflowStatus:
