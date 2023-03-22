@@ -74,6 +74,15 @@ class TestBasic(unittest.TestCase):
         finally:
             allocation.abort()
 
+    def test_issue_auth_token(self):
+        print("*** test_issue_auth_token")
+        client = self.get_client()
+        if client.server_version_info() < (9, 2, 0):
+            print("Skipping, requires server 9.2.0 or later")
+            return
+        token = client.issue_auth_token(lifetime=600, limited=True)
+        print("token: %s" % token)
+
 
 if __name__ == "__main__":
     unittest.main()

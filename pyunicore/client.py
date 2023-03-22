@@ -48,18 +48,16 @@ _WORKFLOWS_RE = r"""
 _WORKFLOWS_RE = re.compile(_WORKFLOWS_RE, re.VERBOSE)
 
 
-def _build_full_url(url, offset, num, tags):
-    """adds optional paging and tags as query to the url"""
-    q_params = []
+def _url_params(offset, num, tags):
+    """for adding optional paging and tags as query params"""
+    q_params = {}
     if offset > 0:
-        q_params.append("offset=%d" % offset)
+        q_params["offset"] = offset
     if num is not None:
-        q_params.append("num=%d" % num)
+        q_params["num"] = num
     if len(tags) > 0:
-        q_params.append("tags=" + ",".join(map(str, tags)))
-    if len(q_params) > 0:
-        url = url + "?" + "&".join(map(str, q_params))
-    return url
+        q_params["tags"] = ",".join(map(str, tags))
+    return q_params
 
 
 class Transport:
@@ -333,16 +331,18 @@ class Client(Resource):
         Use the optional 'offset' and 'num' parameters to handle long result lists
         (for long lists, the server might not return all results!).
         Use the optional tag list to filter the results."""
-        s_url = _build_full_url(self.links["storages"], offset, num, tags)
-        return [Storage(self.transport, url) for url in self.transport.get(url=s_url)["storages"]]
+        q_params = _url_params(offset, num, tags)
+        urls = self.transport.get(url=self.links["storages"], params=q_params)["storages"]
+        return [Storage(self.transport, url) for url in urls]
 
     def get_transfers(self, offset=0, num=200, tags=[]):
         """get a list of all Transfers.
         Use the optional 'offset' and 'num' parameters to handle long result lists
         (for long lists, the server might not return all results!).
         Use the optional tag list to filter the results."""
-        t_url = _build_full_url(self.links["transfers"], offset, num, tags)
-        return [Transfer(self.transport, url) for url in self.transport.get(url=t_url)["transfers"]]
+        q_params = _url_params(offset, num, tags)
+        urls = self.transport.get(url=self.links["transfers"], params=q_params)["transfers"]
+        return [Transfer(self.transport, url) for url in urls]
 
     def get_applications(self):
         apps = []
@@ -363,8 +363,9 @@ class Client(Resource):
         Use the optional 'offset' and 'num' parameters to handle long result lists
         (for long lists, the server might not return all results!).
         Use the optional tag list to filter the results."""
-        j_url = _build_full_url(self.links["jobs"], offset, num, tags)
-        return [Job(self.transport, url) for url in self.transport.get(url=j_url)["jobs"]]
+        q_params = _url_params(offset, num, tags)
+        urls = self.transport.get(url=self.links["jobs"], params=q_params)["jobs"]
+        return [Job(self.transport, url) for url in urls]
 
     def new_job(self, job_description, inputs=[], autostart=True):
         """submit and start a job on the site, optionally uploading input data files"""
@@ -385,13 +386,42 @@ class Client(Resource):
             job.start()
         return job
 
-    def execute(self, cmd):
-        """run a (non-batch) command on the site, executed on a login node"""
+    def execute(self, cmd, login_node=None):
+        """run a (non-batch) command on the site, executed on a login node
+        Args:
+            cmd - the command to run
+            login_node - optionally specify the login node to run on
+        """
         job_description = {"Executable": cmd, "Job type": "INTERACTIVE"}
+        if not login_node:
+            job_description["Login node"] = login_node
         with closing(self.transport.post(url=self.links["jobs"], json=job_description)) as resp:
             job_url = resp.headers["Location"]
 
         return Job(self.transport, job_url)
+
+    def issue_auth_token(self, lifetime=-1, renewable=False, limited=False):
+        """
+        Issue an authentication token (JWT) from this UNICORE server
+        Args:
+            lifetime: lifetime in seconds. If <=0, the server default will be used
+            limited: if True, the token will only be useable on this server
+            renewable: if True, the token can be used to get a new token
+        """
+        url = self.resource_url + "/token"
+        params = {}
+        if lifetime > 0:
+            params["lifetime"] = lifetime
+        if renewable:
+            params["renewable"] = "true"
+        if limited:
+            params["limited"] = "true"
+        with closing(
+            self.transport.get(
+                url=url, headers={"Accept": "text/plain"}, to_json=False, params=params
+            )
+        ) as resp:
+            return resp.text
 
 
 class Application(Resource):
@@ -992,8 +1022,9 @@ class WorkflowService(Resource):
         Use the optional 'offset' and 'num' parameters to handle long result lists
         (for long lists, the server might not return all results!).
         Use the optional tag list to filter the results."""
-        w_url = _build_full_url(self.resource_url, offset, num, tags)
-        return [Workflow(self.transport, url) for url in self.transport.get(url=w_url)["workflows"]]
+        q_params = _url_params(offset, num, tags)
+        urls = self.transport.get(url=self.resource_url, params=q_params)["workflows"]
+        return [Workflow(self.transport, url) for url in urls]
 
     def new_workflow(self, wf_description):
         """submit a workflow"""
@@ -1075,8 +1106,9 @@ class Workflow(Resource):
          Use the optional 'offset' and 'num' parameters to handle long result lists
         (for long lists, the server might not return all results!).
         """
-        j_url = _build_full_url(self.links["jobs"], offset, num, [])
-        return [Job(self.transport, url) for url in self.transport.get(url=j_url)["jobs"]]
+        q_params = _url_params(offset, num, [])
+        urls = self.transport.get(url=self.links["jobs"], params=q_params)["jobs"]
+        return [Job(self.transport, url) for url in urls]
 
     def stat(self, path):
         """lookup the named workflow file and return a PathFile object"""

@@ -73,6 +73,8 @@ class TestBasic(unittest.TestCase):
         transfer2.poll()
         print("Transferred bytes: %s" % transfer2.properties["transferredBytes"])
         self.assertEqual(_length, int(transfer2.properties["transferredBytes"]))
+        for t in site_client.get_transfers():
+            print(t)
 
 
 if __name__ == "__main__":
