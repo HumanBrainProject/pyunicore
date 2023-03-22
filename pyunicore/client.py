@@ -451,13 +451,6 @@ class JobStatus(Enum):
             i += 1
 
 
-def create_job_status(self, jobstate):
-    for s in JobStatus:
-        if s.value[0] == jobstate:
-            return s
-    raise ValueError("No such job state: '%s'" % jobstate)
-
-
 class Job(Resource):
     """wrapper around UNICORE job"""
 
@@ -609,7 +602,7 @@ class Storage(Resource):
         super().__init__(transport, storage_url, cache_time)
 
     def _to_file_url(self, path):
-        return self.links["files"] + pathlib.Path("/" + path.lstrip("/")).as_posix().rstrip("/")
+        return self.resource_url+"/files" + pathlib.Path("/" + path.lstrip("/")).as_posix().rstrip("/")
 
     def contents(self, path="/"):
         """get a simple list of files in the given directory"""
@@ -632,7 +625,7 @@ class Storage(Resource):
         """get a list of files and directories in the given base directory"""
         ret = {}
         for path, meta in self.contents(base)["content"].items():
-            path_url = self.links["files"] + path
+            path_url = self._to_file_url(path)
             path = path.lstrip("/")
             if meta["isDirectory"]:
                 ret[path] = PathDir(self, path_url, path)
@@ -730,7 +723,7 @@ class Storage(Resource):
             "target": remote_url,
             "extraParameters": params,
         }
-        dest = self.links.get("transfers", self.resource_url + "/transfers")
+        dest = self.resource_url + "/transfers"
         with closing(self.transport.post(url=dest, json=json)) as resp:
             tr_url = resp.headers["Location"]
 
@@ -767,7 +760,7 @@ class Storage(Resource):
             "extraParameters": params,
         }
 
-        dest = self.links.get("transfers", self.resource_url + "/transfers")
+        dest = self.resource_url + "/transfers"
         with closing(self.transport.post(url=dest, json=json)) as resp:
             tr_url = resp.headers["Location"]
 
@@ -854,7 +847,6 @@ class PathFile(Path):
                 to_json=False,
             )
         ) as resp:
-
             chunk_size = 10 * 1024
             if isinstance(file, str):
                 with open(file, "wb") as fd:
@@ -889,11 +881,31 @@ class PathFile(Path):
         return True
 
 
+class TransferStatus(Enum):
+    """UNICORE server-to-server transfer states"""
+
+    CREATED = "CREATED"
+    RUNNING = "RUNNING"
+    DONE = "DONE"
+    FAILED = "FAILED"
+    ABORTED = "ABORTED"
+     
+    def ordinal(self):
+        i = 0
+        for s in TransferStatus:
+            if s == self:
+                return i
+            i += 1
+
 class Transfer(Resource):
     """wrapper around a UNICORE server-to-server transfer"""
 
     def __init__(self, transport, tr_url, cache_time=_DEFAULT_CACHE_TIME):
         super().__init__(transport, tr_url, cache_time)
+
+    @property
+    def status(self):
+        return TransferStatus(self.properties["status"])
 
     def is_running(self):
         """checks whether this transfer is still running"""
@@ -907,6 +919,21 @@ class Transfer(Resource):
         url = self.properties["_links"]["action:abort"]["href"]
         with self.transport.post(url=url, json={}):
             pass
+
+    def poll(self, state=TransferStatus.DONE, timeout=0):
+        """wait until this transfer reaches the given status (default : DONE)
+        or a later one (like FAILED or ABORTED).
+        If the optional timeout is reached, a TimeoutError will be raised
+        Args:
+            state - transfer state to wait for (default : TransferStatus.DONE)
+            timeout - timeout in seconds (default: 0 = no timeout)
+        """
+        start_time = int(time.time())
+        while self.status.ordinal() < state.ordinal():
+            wait_time = max(2, self.cache_time + 1)
+            time.sleep(wait_time)
+            if timeout > 0 and int(time.time()) > start_time + timeout:
+                raise TimeoutError("Timeout waiting for transfer to become %s" % state.value)
 
     def __repr__(self):
         return "Transfer: {} running: {}".format(
@@ -970,24 +997,57 @@ class WorkflowService(Resource):
         return Workflow(self.transport, wf_url)
 
 
+
+class WorkflowStatus(Enum):
+    """UNICORE workflow states"""
+
+    UNDEFINED = "UNDEFINED"
+    RUNNING = "RUNNING"
+    HELD = "HELD"
+    SUCCESSFUL = "SUCCESSFUL"
+    FAILED = "FAILED"
+    ABORTED = "ABORTED"
+        
+    def ordinal(self):
+        i = 0
+        for s in WorkflowStatus:
+            if s == self:
+                return i
+            i += 1
+
+
 class Workflow(Resource):
     """wrapper around a UNICORE workflow"""
 
     def __init__(self, transport, wf_url, cache_time=_DEFAULT_CACHE_TIME):
         super().__init__(transport, wf_url, cache_time)
 
+    @property
+    def status(self):
+        return WorkflowStatus(self.properties["status"])
+
     def is_running(self):
         """checks whether this workflow is still running"""
-        return self.properties["status"] not in ("SUCCESSFUL", "FAILED")
+        return self.properties["status"] not in ("SUCCESSFUL", "ABORTED", "FAILED")
 
     def is_held(self):
         """checks whether this workflow is in HELD state"""
         return self.is_running() and self.properties["status"] == "HELD"
 
-    def poll(self):
-        """wait until this workflow completes"""
-        while self.is_running():
-            time.sleep(max(2, self.cache_time + 1))
+    def poll(self, state=WorkflowStatus.SUCCESSFUL, timeout=0):
+        """wait until this workflow reaches the given status (default : SUCCESSFUL)
+        or a later one (like FAILED or ABORTED).
+        If the optional timeout is reached, a TimeoutError will be raised
+        Args:
+            state - transfer state to wait for (default : TransferStatus.DONE)
+            timeout - timeout in seconds (default: 0 = no timeout)
+        """
+        start_time = int(time.time())
+        while self.status.ordinal() < state.ordinal():
+            wait_time = max(2, self.cache_time + 1)
+            time.sleep(wait_time)
+            if timeout > 0 and int(time.time()) > start_time + timeout:
+                raise TimeoutError("Timeout waiting for transfer to become %s" % state.value)
 
     def abort(self):
         """abort this workflow"""
