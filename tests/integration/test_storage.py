@@ -63,6 +63,7 @@ class TestBasic(unittest.TestCase):
         transfer = storage2.receive_file(storage1.resource_url + "/files/script.sh", "script.sh")
         print(transfer)
         from time import sleep
+
         while transfer.is_running():
             sleep(2)
         print("Transferred bytes: %s" % transfer.properties["transferredBytes"])
