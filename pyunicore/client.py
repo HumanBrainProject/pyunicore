@@ -602,7 +602,11 @@ class Storage(Resource):
         super().__init__(transport, storage_url, cache_time)
 
     def _to_file_url(self, path):
-        return self.resource_url+"/files" + pathlib.Path("/" + path.lstrip("/")).as_posix().rstrip("/")
+        return (
+            self.resource_url
+            + "/files"
+            + pathlib.Path("/" + path.lstrip("/")).as_posix().rstrip("/")
+        )
 
     def contents(self, path="/"):
         """get a simple list of files in the given directory"""
@@ -897,6 +901,7 @@ class TransferStatus(Enum):
                 return i
             i += 1
 
+
 class Transfer(Resource):
     """wrapper around a UNICORE server-to-server transfer"""
 
@@ -995,7 +1000,6 @@ class WorkflowService(Resource):
         with closing(self.transport.post(url=self.resource_url, json=wf_description)) as resp:
             wf_url = resp.headers["Location"]
         return Workflow(self.transport, wf_url)
-
 
 
 class WorkflowStatus(Enum):
