@@ -25,7 +25,7 @@ def read_cwl_files(cwl_doc_path, cwl_inputs_object_path=None, debug=False):
     return cwl_doc, cwl_inputs_object
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "cwl_document",
@@ -55,3 +55,7 @@ if __name__ == "__main__":
     print(json.dumps(unicore_job, indent=2, sort_keys=True))
 
     sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
