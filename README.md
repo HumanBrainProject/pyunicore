@@ -246,7 +246,7 @@ inputs:
 outputs: []
 ```
 
-```
+```yaml
 # hello_world.yml
 
 message: "Hello World"
