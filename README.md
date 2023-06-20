@@ -223,6 +223,41 @@ dask_client = Client(uc_cluster, timeout=120)
 That's it! Now Dask will run its computations using the scheduler
 and workers started via UNICORE on the HPC site.
 
+### Convert a CWL job to UNICORE
+
+PyUNICORE provides a tool to convert a CWL CommanLineTool and input into a
+UNICORE job file. Given the following YAML files that describe a
+CommandLineTool wrapper for the echo command and an input file:
+
+```yaml
+# echo.cwl
+
+cwlVersion: v1.2
+
+class: CommandLineTool
+baseCommand: echo
+
+inputs:
+  message:
+    type: string
+    inputBinding:
+      position: 1
+
+outputs: []
+```
+
+```
+# hello_world.yml
+
+message: "Hello World"
+```
+
+A UNICORE job file can be generated using the following command:
+
+```bash
+unicore-cwl-runner echo.cwl hello_world.yml > hello_world.u
+```
+
 ## Helpers
 
 The `pyunicore.helpers` module provides a set of higher-level APIs:
