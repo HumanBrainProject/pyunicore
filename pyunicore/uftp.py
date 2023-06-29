@@ -18,7 +18,7 @@ from pyunicore.credentials import Credential
 class UFTP:
     """
     Authenticate UFTP sessions via Authserver
-    Use ftplib to open the session and interact with the UFTPD server
+    Uses ftplib to open the session and interact with the UFTPD server
     """
 
     uftp_session_tag = "___UFTP___MULTI___FILE___SESSION___MODE___"
@@ -87,6 +87,8 @@ class UFTP:
         for x in raw_info["perm"]:
             mode = mode | UFTP.__perms.get(x, stat.S_IRUSR)
         st["st_mode"] = mode
+        if raw_info.get("UNIX.mode", None) is not None:
+            st["st_mode"] = int(raw_info["UNIX.mode"], 8)
         ttime = int(mktime(strptime(raw_info["modify"], "%Y%m%d%H%M%S")))
         st["st_mtime"] = ttime
         st["st_atime"] = ttime
@@ -119,22 +121,33 @@ class UFTP:
             raise OSError("Could not rename: " % reply)
         self.ftp.voidcmd("RNTO %s" % target)
 
-    def set_time(self, mtime, path):
+    def set_time(self, path, mtime):
         path = self.normalize(path)
         stime = strftime("%Y%m%d%H%M%S", localtime(mtime))
         reply = self.ftp.sendcmd(f"MFMT {stime} {path}")
         if not reply.startswith("213"):
             raise OSError("Could not set time: " % reply)
 
+    def chmod(self, path, mode):
+        path = self.normalize(path)
+        reply = self.ftp.sendcmd(f"MFF UNIX.mode={oct(mode)[2:]}; {path}")
+        if not reply.startswith("213"):
+            raise OSError("Could not chmod: " % reply)
+
     def close(self):
         if self.ftp is not None:
             self.ftp.close()
 
+    def _send_range(self, offset, length, rfc=False):
+        end_byte = offset + length - 1 if rfc else offset + length
+        self.ftp.sendcmd(f"RANG {offset} {end_byte}")
+
     def get_write_socket(self, path, offset):
         path = self.normalize(path)
-        reply = self.ftp.sendcmd(f"RANG {offset} {maxsize}")
-        if not reply.startswith("350"):
-            raise OSError("Error setting RANG: %s" % reply)
+        if offset > 0:
+            self._send_range(offset, maxsize)
+        else:
+            self.ftp.sendcmd(f"ALLO {maxsize}")
         return self.ftp.transfercmd("STOR %s" % path)
 
     def get_read_socket(self, path, offset):

@@ -1,3 +1,4 @@
+import argparse
 import os
 from errno import EIO
 from errno import ENOENT
@@ -101,7 +102,9 @@ class UFTPDriver(Operations):
         return uftp_session
 
     def chmod(self, path, mode):
-        raise FuseOSError(ENOSYS)
+        if self.debug:
+            print(f"chmod {path} {mode}")
+        self.uftp_session.chmod(path, mode)
 
     def chown(self, path, uid, gid):
         raise FuseOSError(ENOSYS)
@@ -127,6 +130,8 @@ class UFTPDriver(Operations):
             raise FuseOSError(ENOENT)
 
     def mkdir(self, path, mode):
+        if self.debug:
+            print(f"mkdir {path} {mode}")
         return self.uftp_session.mkdir(path, mode)
 
     def open(self, path, fi_flags):
@@ -163,6 +168,8 @@ class UFTPDriver(Operations):
         self.file_map.__delitem__(fh)
 
     def rmdir(self, path):
+        if self.debug:
+            print(f"rmdir {path}")
         return self.uftp_session.rmdir(path)
 
     def symlink(self, target, source):
@@ -170,7 +177,7 @@ class UFTPDriver(Operations):
 
     def truncate(self, path, length, fh=None):
         if self.debug:
-            print("truncate %s" % path)
+            print(f"truncate size={length} {path}")
         pass
 
     def unlink(self, path):
@@ -181,7 +188,7 @@ class UFTPDriver(Operations):
             _time = time()
         else:
             _time = times[0]
-        self.uftp_session.set_time(_time, path)
+        self.uftp_session.set_time(path, _time)
 
     def write(self, path, data, offset, fh):
         if self.debug:
@@ -191,9 +198,7 @@ class UFTPDriver(Operations):
         return len(data)
 
 
-if __name__ == "__main__":
-    import argparse
-
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-d",
@@ -213,7 +218,6 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    _debug = args.debug
     _pwd = args.password
     if _pwd is None:
         _pwd = os.getenv("UFTP_PASSWORD")
@@ -223,7 +227,7 @@ if __name__ == "__main__":
         )
     _host, _port = args.address.split(":")
 
-    fuse = FUSE(
+    FUSE(
         UFTPDriver(_host, int(_port), _pwd),
         args.mount_point,
         debug=args.debug,
@@ -233,3 +237,7 @@ if __name__ == "__main__":
         max_read=131072,
         max_write=131072,
     )
+
+
+if __name__ == "__main__":
+    main()
