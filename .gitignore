@@ -10,3 +10,4 @@ pyunicore.egg-info/
 .coverage/
 .coverage
 build/
+/.pytest_cache/
