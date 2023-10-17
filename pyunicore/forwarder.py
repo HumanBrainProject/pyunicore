@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 from pyunicore.client import Transport
 from pyunicore.credentials import create_credential
 
+
 class Forwarder:
     """Forwarding helper"""
 
