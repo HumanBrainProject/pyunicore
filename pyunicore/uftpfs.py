@@ -1,4 +1,6 @@
 """ UFTP extension to the pyfilesystem FTPFS class """
+from os import getenv
+
 from fs.ftpfs import FTPFS
 from fs.opener import Opener
 
@@ -68,12 +70,30 @@ class UFTPOpener(Opener):
         base_dir = tok2[1] if len(tok) > 1 else "/"
         return auth_url, base_dir
 
-    def open_fs(self, fs_url, parse_result, writeable, create, cwd):
-        auth_url, base_dir = self._parse(parse_result.resource)
-        cred = uc_credentials.create_credential(
+    def _read_token(self, token_spec):
+        token = None
+        if token_spec:
+            if token_spec.startswith("@@"):
+                env_name = token_spec[2:]
+                token = getenv(env_name, None)
+            elif token_spec.startswith("@"):
+                file_name = token_spec[1:]
+                with open(file_name) as f:
+                    token = f.read().strip()
+            else:
+                token = token_spec
+        return token
+
+    def _create_credential(self, parse_result):
+        token = self._read_token(parse_result.params.get("token", None))
+        return uc_credentials.create_credential(
             username=parse_result.username,
             password=parse_result.password,
-            token=parse_result.params.get("token", None),
+            token=token,
             identity=parse_result.params.get("identity", None),
         )
+
+    def open_fs(self, fs_url, parse_result, writeable, create, cwd):
+        auth_url, base_dir = self._parse(parse_result.resource)
+        cred = self._create_credential(parse_result)
         return UFTPFS(auth_url, cred, base_dir)
