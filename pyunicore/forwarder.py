@@ -7,7 +7,6 @@ from urllib.parse import urlparse
 from pyunicore.client import Transport
 from pyunicore.credentials import create_credential
 
-
 class Forwarder:
     """Forwarding helper"""
 
@@ -38,6 +37,8 @@ class Forwarder:
         self.transport = transport
         self.quiet = not debug
         self.local_port = 0
+        self.service_socket = None
+        self.client_socket = None
 
     def connect(self):
         """connect to the backend service and return the connected socket"""
@@ -97,10 +98,22 @@ class Forwarder:
             sock = context.wrap_socket(sock)
         return sock
 
-    def start_forwarding(self, socket1, socket2):
+    def start_forwarding(self):
         self.quiet or print("Start forwarding.")
-        threading.Thread(target=self.transfer, args=(socket1, socket2)).start()
-        threading.Thread(target=self.transfer, args=(socket2, socket1)).start()
+        threading.Thread(target=self.transfer, args=(self.client_socket, self.service_socket)).start()
+        threading.Thread(target=self.transfer, args=(self.service_socket, self.client_socket)).start()
+
+    def stop_forwarding(self):
+        try:
+            if self.client_socket:
+                self.client_socket.close()
+        except OSError:
+            pass
+        try:
+            if self.service_socket:
+                self.service_socket.close()
+        except OSError:
+            pass
 
     def transfer(self, source, destination):
         desc = f"{source.getpeername()} --> {destination.getpeername()}"
@@ -135,10 +148,10 @@ class Forwarder:
             server.listen(2)
             while True:
                 self.quiet or print("Waiting for client connection.")
-                client_socket, _ = server.accept()
-                self.quiet or print("Client %s connected." % str(client_socket.getpeername()))
-                service_socket = self.connect()
-                self.start_forwarding(client_socket, service_socket)
+                self.client_socket, _ = server.accept()
+                self.quiet or print("Client %s connected." % str(self.client_socket.getpeername()))
+                self.service_socket = self.connect()
+                self.start_forwarding()
 
 
 def _parse_forwarding_params(endpoint, service_port=None, service_host=None, login_node=None):
