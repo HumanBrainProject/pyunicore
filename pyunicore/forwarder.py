@@ -101,8 +101,12 @@ class Forwarder:
 
     def start_forwarding(self):
         self.quiet or print("Start forwarding.")
-        threading.Thread(target=self.transfer, args=(self.client_socket, self.service_socket)).start()
-        threading.Thread(target=self.transfer, args=(self.service_socket, self.client_socket)).start()
+        threading.Thread(
+            target=self.transfer, args=(self.client_socket, self.service_socket)
+        ).start()
+        threading.Thread(
+            target=self.transfer, args=(self.service_socket, self.client_socket)
+        ).start()
 
     def stop_forwarding(self):
         try:
