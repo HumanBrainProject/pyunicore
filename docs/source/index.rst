@@ -57,6 +57,7 @@ You can install (one or more) extras with pip:
 	:caption: Using PyUNICORE
 
 	basic_usage
+	authentication
 	uftp
 	dask
 	port_forwarding

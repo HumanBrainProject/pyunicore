@@ -115,10 +115,13 @@ class Transport:
 
     def _headers(self, kwargs):
         headers = {
-            "Authorization": self.credential.get_auth_header(),
             "Accept": "application/json",
             "Content-Type": "application/json",
         }
+        auth = self.credential.get_auth_header()
+        if auth:
+            headers['Authorization'] = auth
+
         if self.use_security_sessions and self.last_session_id is not None:
             headers["X-UNICORE-SecuritySession"] = self.last_session_id
 
@@ -306,6 +309,8 @@ class Client(Resource):
         cache_time=_DEFAULT_CACHE_TIME,
     ):
         super().__init__(transport, site_url, cache_time)
+        if isinstance(self.transport.credential, pyunicore.credentials.Anonymous):
+            check_authentication=False
         self.check_authentication = check_authentication
         if self.check_authentication:
             self.assert_authentication()
