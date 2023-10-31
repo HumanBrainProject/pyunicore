@@ -1,5 +1,4 @@
 import json
-import os
 import unittest
 
 import pyunicore.client as uc_client
@@ -16,7 +15,6 @@ class TestAuth(unittest.TestCase):
         base_url = "https://localhost:8080/DEMO-SITE/rest/core"
         transport = uc_client.Transport(credential)
         return uc_client.Client(transport, base_url)
-        print("token: %s" % token)
 
     def test_username_auth(self):
         print("*** test_username_auth")
@@ -38,6 +36,7 @@ class TestAuth(unittest.TestCase):
             return
         token = client.issue_auth_token(lifetime=600, limited=True)
         print("token: %s" % token)
+
 
 if __name__ == "__main__":
     unittest.main()
