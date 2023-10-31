@@ -145,6 +145,14 @@ class BasicToken(Credential):
     def get_auth_header(self):
         return "Basic " + self.token
 
+class Anonymous(Credential):
+    """
+    Produces no header - anonymous access
+    """
+
+    def get_auth_header(self):
+        return None
+
 
 class JWTToken(Credential):
     """
