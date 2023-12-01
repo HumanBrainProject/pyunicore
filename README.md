@@ -21,6 +21,11 @@ Specific Grant Agreement Nos. 720270, 785907 and 945539
 
 See LICENSE file for licensing information
 
+## Documentation
+
+The complete documentation of PyUNICORE can be viewed 
+[here](https://pyunicore.readthedocs.io/en/latest/)
+ 
 ## Installation
 
 Install from PyPI with
@@ -38,7 +43,7 @@ You can install (one or more) extras with pip:
 
     pip install -U pyunicore[crypto,fs,fuse]
 
-## Examples
+## Basic usage
 
 ### Creating a client for a UNICORE site
 
@@ -55,6 +60,9 @@ credential = uc_credentials.UsernamePassword("demouser", "test123")
 client = uc_client.Client(credential, base_url)
 print(json.dumps(client.properties, indent = 2))
 ```
+
+PyUNICORE supports a variety of 
+[authentication options](https://pyunicore.readthedocs.io/en/latest/authentication.html).
 
 ### Run a job and read result files
 
@@ -107,20 +115,7 @@ fs_url = "uftp://demouser:test123@localhost:9000/rest/auth/TEST:/data"
 uftp_fs = open_fs(fs_url)
 ```
 
-The URL format is
-
-    uftp://[username]:[password]@[auth-server-url]:[base-directory]?[token=...][identity=...]
-
-The FS driver supports three types of authentication
-
-  * Username/Password - give `username` and `password`
-  * SSH Key - give `username` and the `identity` parameter,
-    where `identity` is the filename of a private key.
-    Specify the `password` if needed to load the private key
-  * Bearer token - give the token value via the `token` parameter
-
-(note: the SSH key authentication using this library requires
-UFTP Auth server 2.7.0 or later)
+[More...](https://pyunicore.readthedocs.io/en/latest/uftp.html#using-uftp-for-pyfilesystem)
 
 ### Mounting remote filesystems via UFTP
 
@@ -130,29 +125,9 @@ allowing you to mount a remote filesystem via UFTP. Mounting is a two step proce
   * authenticate to an Auth server, giving you the UFTPD host/port and one-time password
   * run the FUSE driver
 
-The following code example gives you the basic idea:
+[More...](https://pyunicore.readthedocs.io/en/latest/uftp.html#mounting-remote-filesystems-via-uftp)
 
-```Python
-import pyunicore.client as uc_client
-import pyunicore.credentials as uc_credentials
-import pyunicore.uftp as uc_uftp
-import pyunicore.uftpfuse as uc_fuse
-
-_auth = "https://localhost:9000/rest/auth/TEST"
-_base_dir = "/opt/shared-data"
-_local_mount_dir = "/tmp/mount"
-
-# authenticate
-cred = uc_credentials.UsernamePassword("demouser", "test123")
-uftp = uc_uftp.UFTP(uc_client.Transport(cred), _auth, _base_dir)
-_host, _port, _password  = uftp.authenticate()
-
-# run the fuse driver
-fuse = uc_fuse.FUSE(
-uc_fuse.UFTPDriver(_host, _port, _password), _local_mount_dir, foreground=False, nothreads=True)
-```
-
-### Tunneling / port forwarding
+## Tunneling / port forwarding
 
 Opens a local server socket for clients to connect to, where traffic
 gets forwarded to a service on a HPC cluster login (or compute) node.
@@ -164,64 +139,17 @@ You can use this feature in two ways
  * you can also open a tunnel from the command line using the
    'pyunicore.forwarder' module
 
-Here is an example for a command line tool invocation:
+[More...](https://pyunicore.readthedocs.io/en/latest/port_forwarding.html)
 
-```
-LOCAL_PORT=4322
-JOB_URL=https://localhost:8080/DEMO-SITE/rest/core/jobs/some_job_id
-REMOTE_PORT=8000
-python3 -m pyunicore.forwarder  --token <your_auth_token> \
-  -L $LOCAL_PORT \
-   $JOB_URL/forward-port?port=REMOTE_PORT \
-```
-
-Your application can now connect to "localhost:4322" but all traffic
-will be forwarded to port 8000 on the login node.
-
-See
-```
-python3 -m pyunicore.forwarder --help
-```
-for all options.
-
-### Dask cluster implementation (experimental)
+## Dask cluster implementation (experimental)
 
 PyUNICORE provides an implementation of a Dask Cluster, allowing to
 run the Dask client on your local host (or in a Jupyter notebook in
 the Cloud), and have the Dask scheduler and workers running remotely
 on the HPC site.
 
-A basic usage example:
+[More...](https://pyunicore.readthedocs.io/en/latest/dask.html)
 
-```Python
-import pyunicore.client as uc_client
-import pyunicore.credentials as uc_credentials
-import pyunicore.dask as uc_dask
-
-# Create a UNICORE client for accessing the HPC cluster
-base_url = "https://localhost:8080/DEMO-SITE/rest/core"
-credential = uc_credentials.UsernamePassword("demouser", "test123")
-submitter = uc_client.Client(credential, base_url)
-
-# Create the UNICORECluster instance
-
-uc_cluster = uc_dask.UNICORECluster(
-   submitter,
-   queue = "batch",
-   project = "my-project",
-   debug=True)
-
-# Start two workers
-uc_cluster.scale(2, wait_for_startup=True)
-
-# Create a Dask client connected to the UNICORECluster
-
-from dask.distributed import Client
-dask_client = Client(uc_cluster, timeout=120)
-```
-
-That's it! Now Dask will run its computations using the scheduler
-and workers started via UNICORE on the HPC site.
 
 ### Convert a CWL job to UNICORE
 
