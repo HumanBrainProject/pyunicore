@@ -26,7 +26,7 @@ Running a job and read result files
 
   my_job = {'Executable': 'date'}
 
-  job = uc_client.new_job(job_description=my_job, inputs=[])
+  job = client.new_job(job_description=my_job, inputs=[])
   print(json.dumps(job.properties, indent = 2))
 
   job.poll() # wait for job to finish
