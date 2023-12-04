@@ -4,7 +4,7 @@ import pyunicore.helpers.jobs.resources as resources
 
 class TestJobDescription:
     def test_to_dict(self):
-        res = resources.Resources(nodes=2)
+        res = resources.Resources(nodes=2, queue="batch")
         job = description.Description(
             executable="test-executable",
             project="test-project",

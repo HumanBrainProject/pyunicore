@@ -30,7 +30,7 @@ class TestJob:
                 "IgnoreNonZeroExitCode": "false",
                 "Job type": "normal",
                 "Project": "test-project",
-                "Resources": {"Nodes": 1, "Queue": "batch"},
+                "Resources": {},
                 "RunUserPostcommandOnLoginNode": "true",
                 "RunUserPrecommandOnLoginNode": "true",
                 "Site name": "test-site",

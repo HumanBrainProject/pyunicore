@@ -12,8 +12,8 @@ class Resources(_api_object.ApiRequestObject):
     Args:
         runtime (str, optional): Job runtime (wall time).
             In seconds by default, append "min", "h", or "d" for other units.
-        queue (str, default="batch"): Batch system queue/partition to use.
-        nodes (int, default=1): Number of nodes.
+        queue (str, optional): Batch system queue/partition to use.
+        nodes (int, optional): Number of nodes.
         cpus (int, optional): Total number of CPUs.
         cpus_per_node (int, optional): Number of CPUs per node.
         memory (str, optional): Memory per node.
@@ -24,8 +24,8 @@ class Resources(_api_object.ApiRequestObject):
     """
 
     runtime: Optional[str] = None
-    queue: str = "batch"
-    nodes: int = 1
+    queue: Optional[str] = None
+    nodes: Optional[int] = None
     cpus: Optional[int] = None
     cpus_per_node: Optional[int] = None
     memory: Optional[str] = None

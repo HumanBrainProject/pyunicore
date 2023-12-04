@@ -45,8 +45,8 @@ class Description(_api_object.ApiRequestObject):
         exports (list[Export], optional): Stage-out / data export.
         have_client_stage_in (bool, default=False): Tell the server that the
             client does / does not want to send any additional files.
-        job_type (str, default="normal): 'normal', 'interactive', 'raw'
-            Whether to run the job via the batch system ('normal', default) or
+        job_type (str, default="batch): 'batch', 'on_login_node', 'raw'
+            Whether to run the job via the batch system ('batch', default) or
             on a login node ('interactive'), or as a batch job but with a
             user-specified file containing the batch system directives.
         login_node (str, optional): For 'interactive' jobs, select a login node
