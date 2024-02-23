@@ -48,7 +48,7 @@ _WORKFLOWS_RE = r"""
 _WORKFLOWS_RE = re.compile(_WORKFLOWS_RE, re.VERBOSE)
 
 
-def _url_params(offset, num, tags):
+def _url_params(offset, num, tags, filter=None):
     """for adding optional paging and tags as query params"""
     q_params = {}
     if offset > 0:
@@ -57,46 +57,41 @@ def _url_params(offset, num, tags):
         q_params["num"] = num
     if len(tags) > 0:
         q_params["tags"] = ",".join(map(str, tags))
+    if filter is not None:
+        q_params["filter"] = filter
     return q_params
 
 
 class Transport:
     """wrapper around requests, which
-        - adds HTTP Authorization header
+        - adds HTTP Authorization header based on the supplied credentials
         - transparently handles security sessions
         - handles user preferences
-        - can be configured with an OIDC refresh handler
 
     see also
         https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api/index.html#user-preferences
         https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api/index.html#security-session-handling
-
-    Args:
-        credential: the credential
-        timeout: timeout for HTTP calls (defaults to 120 seconds)
-        use_security_sessions: if true, UNICORE's security sessions mechanism
-            will be used (to speed up request processing)
-        verify: if true, SSL verification of the server's certificate will be done
     """
 
     def __init__(
         self,
-        credential,
-        oidc=True,
+        credential: pyunicore.credentials.Credential,
         verify=False,
-        refresh_handler=None,
         use_security_sessions=True,
         timeout=120,
     ):
+        """
+        Create a new Transport.
+
+        Args:
+            credential: the credential
+            timeout: timeout for HTTP calls (defaults to 120 seconds)
+            use_security_sessions: if true, UNICORE's security sessions mechanism
+                will be used (to speed up request processing)
+            verify: if true, SSL verification of the server's certificate will be done
+        """
         super().__init__()
-        if isinstance(credential, str):
-            """stay backwards compatible"""
-            if oidc:
-                self.credential = pyunicore.credentials.OIDCToken(credential, refresh_handler)
-            else:
-                self.credential = pyunicore.credentials.BasicToken(credential)
-        else:
-            self.credential = credential
+        self.credential = credential
         self.verify = verify
         self.use_security_sessions = use_security_sessions
         self.last_session_id = None
@@ -198,10 +193,18 @@ class Transport:
 
 class Resource:
     """Base class for accessing a UNICORE REST endpoint with (cached)
-    properties and some common methods
+    properties and some common methods.
     """
 
     def __init__(self, security, resource_url, cache_time=_DEFAULT_CACHE_TIME):
+        """
+        Create a new Resource.
+        Args:
+            security: this can be either a Credential or a Transport
+            resource_url: the endpoint to connect to
+            cache_time: the minimum time in seconds between calls to the endpoint
+                    when getting properties  
+        """
         super().__init__()
         if isinstance(security, pyunicore.credentials.Credential):
             self.transport = Transport(security)
@@ -254,8 +257,8 @@ class Registry(Resource):
     Will collect the BASE URLs of all registered sites
     """
 
-    def __init__(self, transport, url, cache_time=_DEFAULT_CACHE_TIME):
-        super().__init__(transport, url, cache_time)
+    def __init__(self, security, url, cache_time=_DEFAULT_CACHE_TIME):
+        super().__init__(security, url, cache_time)
         self.refresh()
 
     def refresh(self):
@@ -303,12 +306,12 @@ class Client(Resource):
 
     def __init__(
         self,
-        transport,
+        security,
         site_url,
         check_authentication=True,
         cache_time=_DEFAULT_CACHE_TIME,
     ):
-        super().__init__(transport, site_url, cache_time)
+        super().__init__(security, site_url, cache_time)
         if isinstance(self.transport.credential, pyunicore.credentials.Anonymous):
             check_authentication = False
         self.check_authentication = check_authentication
@@ -331,12 +334,16 @@ class Client(Resource):
         v = self.properties["server"]["version"]
         return tuple([int(x) for x in tuple(v.split("-")[0].split("."))])
 
-    def get_storages(self, offset=0, num=200, tags=[]):
+    def get_storages(self, offset=0, num=200, tags=[], all=False):
         """get a list of all Storages on this site
         Use the optional 'offset' and 'num' parameters to handle long result lists
         (for long lists, the server might not return all results!).
-        Use the optional tag list to filter the results."""
-        q_params = _url_params(offset, num, tags)
+        Use the optional tag list to filter the results.
+        (UNICORE 10): by default, the storage list will not include any job
+        directories. Set the 'all' flag to True to also show job directories.
+        """
+        filter = "all" if all else None
+        q_params = _url_params(offset, num, tags, filter)
         urls = self.transport.get(url=self.links["storages"], params=q_params)["storages"]
         return [Storage(self.transport, url) for url in urls]
 
@@ -434,12 +441,12 @@ class Application(Resource):
 
     def __init__(
         self,
-        transport,
+        security,
         app_url,
         submit_url=None,
         cache_time=_DEFAULT_CACHE_TIME,
     ):
-        super().__init__(transport, app_url, cache_time)
+        super().__init__(security, app_url, cache_time)
         if submit_url is None:
             submit_url = app_url.split("/rest/core/factories/")[0] + "/rest/core/jobs"
         self.submit_url = submit_url
@@ -633,8 +640,8 @@ class Compute(Resource):
 class Storage(Resource):
     """wrapper around a UNICORE Storage resource"""
 
-    def __init__(self, transport, storage_url, cache_time=_DEFAULT_CACHE_TIME):
-        super().__init__(transport, storage_url, cache_time)
+    def __init__(self, security, storage_url, cache_time=_DEFAULT_CACHE_TIME):
+        super().__init__(security, storage_url, cache_time)
 
     def _to_file_url(self, path):
         return (
@@ -940,8 +947,8 @@ class TransferStatus(Enum):
 class Transfer(Resource):
     """wrapper around a UNICORE server-to-server transfer"""
 
-    def __init__(self, transport, tr_url, cache_time=_DEFAULT_CACHE_TIME):
-        super().__init__(transport, tr_url, cache_time)
+    def __init__(self, security, tr_url, cache_time=_DEFAULT_CACHE_TIME):
+        super().__init__(security, tr_url, cache_time)
 
     @property
     def status(self):
@@ -988,9 +995,8 @@ class WorkflowService(Resource):
     """Entrypoint for the UNICORE Workflow API
 
     >>> workflows_url = '...' # e.g. "https://localhost:8080/WORKFLOW/rest/workflows"
-    >>> credemtial = ...
-    >>> transport = Transport(credential)
-    >>> workflow_service = WorkflowService(transport, workflows_url)
+    >>> credential = ...
+    >>> workflow_service = WorkflowService(credential, workflows_url)
     >>> # to get the list of workflows
     >>> workflows = client.get_workflows()
     >>> # to start a new workflow:
@@ -1000,12 +1006,12 @@ class WorkflowService(Resource):
 
     def __init__(
         self,
-        transport,
+        security,
         workflows_url,
         check_authentication=True,
         cache_time=_DEFAULT_CACHE_TIME,
     ):
-        super().__init__(transport, workflows_url, cache_time)
+        super().__init__(security, workflows_url, cache_time)
         self.check_authentication = check_authentication
         if self.check_authentication:
             self.assert_authentication()
@@ -1059,8 +1065,8 @@ class WorkflowStatus(Enum):
 class Workflow(Resource):
     """wrapper around a UNICORE workflow"""
 
-    def __init__(self, transport, wf_url, cache_time=_DEFAULT_CACHE_TIME):
-        super().__init__(transport, wf_url, cache_time)
+    def __init__(self, security, wf_url, cache_time=_DEFAULT_CACHE_TIME):
+        super().__init__(security, wf_url, cache_time)
 
     @property
     def status(self):

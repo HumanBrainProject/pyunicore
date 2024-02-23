@@ -197,7 +197,6 @@ The `pyunicore.helpers` module provides a set of higher-level APIs:
 * Defining descriptions as a dataclass and easily converting to a `dict` as required by `pyunicore.client.Client.new_job` via a `to_dict()` method:
   * `pyunicore.helpers.jobs.Description` for `pyunicore.client.Client.new_job()`
   * `pyunicore.helpers.workflows.Description` for `pyunicore.client.WorkflowService.new_workflow()`
-* All possible job statuses that may be returned by the jobs API (`pyunicore.helpers.JobStatus`).
 * Defining a workflow description
 
 ### Connecting to a Registry

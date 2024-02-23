@@ -20,7 +20,7 @@ class Description(_api_object.ApiRequestObject):
     Args:
         executable (str, optional) : Command line.
         project (str, optional): Accounting project.
-        resources (Resources): The job's resource requests.
+        resources (Resources, optional): The job's resource requests.
         application_name (str, optional): Application name.
         application_version (str, optional): Application version.
         arguments (list[str], optional): Command line arguments.
@@ -45,13 +45,15 @@ class Description(_api_object.ApiRequestObject):
         exports (list[Export], optional): Stage-out / data export.
         have_client_stage_in (bool, default=False): Tell the server that the
             client does / does not want to send any additional files.
-        job_type (str, default="batch): 'batch', 'on_login_node', 'raw'
+        job_type (str, default="batch): 'batch', 'on_login_node', 'raw', 'allocate'
             Whether to run the job via the batch system ('batch', default) or
             on a login node ('interactive'), or as a batch job but with a
-            user-specified file containing the batch system directives.
-        login_node (str, optional): For 'interactive' jobs, select a login node
-            (by name, as configured server side. Wildcards '*' and '?' can be
-            used).
+            user-specified file containing the batch system directives ('raw').
+            The 'allocate' job type will only create an allocation, 
+            without running anything.
+        login_node (str, optional): For jobs of the 'on_login_node' type, select
+            a login node (by name, as configured server side. 
+            Wildcards '*' and '?' can be used).
         bss_file (str, optional): For 'raw' jobs, specify the relative or
             absolute file name of a file containing batch system directives.
             UNICORE will append the user executable.
@@ -65,7 +67,7 @@ class Description(_api_object.ApiRequestObject):
 
     executable: Optional[str] = None
     project: Optional[str] = None
-    resources: _resources.Resources = dataclasses.field(default_factory=_resources.Resources)
+    resources: Optional[_resources.Resources] = dataclasses.field(default_factory=_resources.Resources)
     application_name: Optional[str] = None
     application_version: Optional[str] = None
     arguments: Optional[List[str]] = None
@@ -74,16 +76,16 @@ class Description(_api_object.ApiRequestObject):
     stdout: Optional[str] = "stdout"
     stderr: Optional[str] = "stderr"
     stdin: Optional[str] = None
-    ignore_non_zero_exit_code: bool = False
+    ignore_non_zero_exit_code: Optional[bool] = False
     user_precommand: Optional[str] = None
-    run_user_precommand_on_login_node: bool = True
-    user_precommand_ignore_non_zero_exitcode: bool = False
+    run_user_precommand_on_login_node: Optional[bool] = True
+    user_precommand_ignore_non_zero_exitcode: Optional[bool] = False
     user_postcommand: Optional[str] = None
-    run_user_postcommand_on_login_node: bool = True
-    user_postcommand_ignore_non_zero_exit_code: bool = False
+    run_user_postcommand_on_login_node: Optional[bool] = True
+    user_postcommand_ignore_non_zero_exit_code: Optional[bool] = False
     imports: Optional[List[data.Import]] = None
     exports: Optional[List[data.Export]] = None
-    have_client_stage_in: bool = False
+    have_client_stage_in: Optional[bool] = False
     job_type: Optional[str] = "normal"
     login_node: Optional[str] = None
     bss_file: Optional[str] = None
