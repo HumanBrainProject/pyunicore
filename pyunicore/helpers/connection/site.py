@@ -3,7 +3,7 @@ from pyunicore import credentials as _credentials
 
 
 def connect_to_site(
-    site_api_url: str, credentials: _credentials.Credential
+    site_api_url: str, credential: _credentials.Credential
 ) -> pyunicore.client.Client:
     """Create a connection to a site's UNICORE API.
 
@@ -20,7 +20,7 @@ def connect_to_site(
     """
     client = _connect_to_site(
         api_url=site_api_url,
-        credentials=credentials,
+        credential=credential,
     )
     if _authentication_failed(client):
         raise _credentials.AuthenticationFailedException(
@@ -30,14 +30,13 @@ def connect_to_site(
     return client
 
 
-def _connect_to_site(api_url: str, credentials: _credentials.Credential) -> pyunicore.client.Client:
-    transport = pyunicore.client.Transport(credentials)
-    client = _create_client(transport=transport, api_url=api_url)
+def _connect_to_site(api_url: str, credential: _credentials.Credential) -> pyunicore.client.Client:
+    client = _create_client(credential=credential, api_url=api_url)
     return client
 
 
-def _create_client(transport: pyunicore.client.Transport, api_url: str) -> pyunicore.client.Client:
-    return pyunicore.client.Client(transport=transport, site_url=api_url)
+def _create_client(credential: _credentials.Credential, api_url: str) -> pyunicore.client.Client:
+    return pyunicore.client.Client(credential, site_url=api_url)
 
 
 def _authentication_failed(client: pyunicore.client.Client) -> bool:

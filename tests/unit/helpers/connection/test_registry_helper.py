@@ -10,8 +10,8 @@ import pyunicore.testing as testing
 
 
 @pytest.fixture()
-def transport():
-    return testing.FakeTransport()
+def credential():
+    return credentials.UsernamePassword(username="test_user", password="test_password")
 
 
 def create_fake_registry(contains: Dict[str, str]) -> functools.partial:
@@ -39,7 +39,7 @@ def test_connect_to_registry(monkeypatch):
 
     result = _registry.connect_to_registry(
         registry_url=registry_url,
-        credentials=creds,
+        credential=creds,
     )
 
     assert isinstance(result, pyunicore.client.Registry)
@@ -76,7 +76,7 @@ def test_connect_to_site_from_registry(monkeypatch, login_successful, expected):
         result = _registry.connect_to_site_from_registry(
             registry_url=registry_url,
             site_name=site,
-            credentials=creds,
+            credential=creds,
         )
 
         assert isinstance(result, expected)
@@ -89,7 +89,7 @@ def test_connect_to_site_from_registry(monkeypatch, login_successful, expected):
         ("test_unavailable_site", ValueError()),
     ],
 )
-def test_get_site_api_url_from_registry(monkeypatch, transport, site, expected):
+def test_get_site_api_url_from_registry(monkeypatch, credential, site, expected):
     monkeypatch.setattr(
         pyunicore.client,
         "Registry",
@@ -99,7 +99,7 @@ def test_get_site_api_url_from_registry(monkeypatch, transport, site, expected):
     with testing.expect_raise_if_exception(expected):
         result = _registry._get_site_api_url(
             site=site,
-            transport=transport,
+            credential=credential,
             registry_url="test_registry_url",
         )
 

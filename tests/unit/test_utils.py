@@ -53,11 +53,6 @@ class TestCredentials(unittest.TestCase):
         credential = uc_credentials.UsernamePassword("demouser", "test123")
         transport = Transport(credential)
         self.assertEqual(header_val, transport._headers({})["Authorization"])
-        # old style
-        transport = Transport(token_str, oidc=False)
-        self.assertEqual(header_val, transport._headers({})["Authorization"])
-        transport2 = transport._clone()
-        self.assertEqual(header_val, transport2._headers({})["Authorization"])
 
 
 class MockRefresh:

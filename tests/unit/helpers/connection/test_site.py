@@ -44,7 +44,7 @@ def test_connect_to_site(monkeypatch, login_successful, expected):
     with testing.expect_raise_if_exception(expected):
         result = _connect.connect_to_site(
             site_api_url=api_url,
-            credentials=creds,
+            credential=creds,
         )
 
         assert isinstance(result, expected)
