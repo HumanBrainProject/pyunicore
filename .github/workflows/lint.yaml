@@ -40,7 +40,7 @@ jobs:
         pip install \
           setuptools \
           flake8 \
-          Flake8-pyproject \
+          flake8-pyproject \
           flake8-blind-except \
           flake8-logging-format \
           flake8_module_name \
