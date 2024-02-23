@@ -71,8 +71,6 @@ The FS driver supports three types of authentication
   * Bearer token - give the token value via the `token` parameter
 
 
-(note: the SSH key authentication using this library requires
-UFTP Auth server 2.7.0 or later)
 
 Mounting remote filesystems via UFTP
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
