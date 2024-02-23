@@ -49,10 +49,10 @@ class Description(_api_object.ApiRequestObject):
             Whether to run the job via the batch system ('batch', default) or
             on a login node ('interactive'), or as a batch job but with a
             user-specified file containing the batch system directives ('raw').
-            The 'allocate' job type will only create an allocation, 
+            The 'allocate' job type will only create an allocation,
             without running anything.
         login_node (str, optional): For jobs of the 'on_login_node' type, select
-            a login node (by name, as configured server side. 
+            a login node (by name, as configured server side.
             Wildcards '*' and '?' can be used).
         bss_file (str, optional): For 'raw' jobs, specify the relative or
             absolute file name of a file containing batch system directives.
@@ -67,7 +67,9 @@ class Description(_api_object.ApiRequestObject):
 
     executable: Optional[str] = None
     project: Optional[str] = None
-    resources: Optional[_resources.Resources] = dataclasses.field(default_factory=_resources.Resources)
+    resources: Optional[_resources.Resources] = dataclasses.field(
+        default_factory=_resources.Resources
+    )
     application_name: Optional[str] = None
     application_version: Optional[str] = None
     arguments: Optional[List[str]] = None

@@ -203,7 +203,7 @@ class Resource:
             security: this can be either a Credential or a Transport
             resource_url: the endpoint to connect to
             cache_time: the minimum time in seconds between calls to the endpoint
-                    when getting properties  
+                    when getting properties
         """
         super().__init__()
         if isinstance(security, pyunicore.credentials.Credential):
