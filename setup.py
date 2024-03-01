@@ -19,7 +19,7 @@ install_requires = [
 
 extras_require = {
     "fuse": ["fusepy>=3.0.1"],
-    "crypto": ["cryptography>=3.3.1"],
+    "crypto": ["cryptography>=3.3.1", "bcrypt>=4.0.0"],
     "fs": ["fs>=2.4.0"],
 }
 
