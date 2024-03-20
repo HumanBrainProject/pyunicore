@@ -11,3 +11,5 @@ pyunicore.egg-info/
 .coverage
 build/
 /.pytest_cache/
+.env
+.vscode

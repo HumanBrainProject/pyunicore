@@ -22,6 +22,18 @@ class TestAuth(unittest.TestCase):
         print(json.dumps(client.access_info(), indent=2))
         self.assertEqual("user", client.properties["client"]["role"]["selected"])
 
+    def test_transport_settings(self):
+        print("*** test_transport_settings")
+        client = self.get_client()
+        ai = client.access_info()
+        print(json.dumps(ai, indent=2))
+        grps = ai["xlogin"]["availableGroups"]
+        for grp in grps:
+            client.transport.preferences = f"group:{grp}"
+            ai = client.access_info()
+            print("Selected group:", ai["xlogin"]["group"])
+            self.assertEqual(grp, ai["xlogin"]["group"])
+
     def test_anonymous_info(self):
         print("*** test_anonymous_info")
         cred = uc_credentials.Anonymous()
