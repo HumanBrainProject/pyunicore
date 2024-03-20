@@ -25,6 +25,7 @@ jobs:
         black \
           --check \
           --config pyproject.toml \
+          --verbose \
           pyunicore tests
   flake8:
     runs-on: ubuntu-latest
