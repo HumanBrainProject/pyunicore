@@ -1,8 +1,8 @@
 import json
 import unittest
 
-import pyunicore.cwlconverter as cwlconverter
-import pyunicore.cwltool as cwltool
+import pyunicore.cwl.cwlconverter as cwlconverter
+import pyunicore.cwl.cwltool as cwltool
 
 
 class TestCWL1(unittest.TestCase):

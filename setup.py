@@ -10,10 +10,10 @@ This library provides a Python wrapper for the UNICORE REST API, making common t
 Visit https://github.com/HumanBrainProject/pyunicore for more information.
 """
 
-python_requires = ">=3"
+python_requires = ">=3.7"
 
 install_requires = [
-    "PyJWT>=2.0",
+    "pyjwt>=2.8",
     "requests>=2.5",
 ]
 
@@ -37,12 +37,13 @@ setup(
     extras_require=extras_require,
     entry_points={
         "fs.opener": [
-            "uftp = pyunicore.uftpfs:UFTPOpener",
+            "uftp = pyunicore.uftp.uftpfs:UFTPOpener",
         ],
         "console_scripts": [
             "unicore-port-forwarder=pyunicore.forwarder:main",
-            "unicore-cwl-runner=pyunicore.cwltool:main",
-            "unicore-fusedriver=pyunicore.uftpfuse:main",
+            "unicore-cwl-runner=pyunicore.cwl.cwltool:main",
+            "unicore-fusedriver=pyunicore.uftp.uftpfuse:main",
+            "unicore=pyunicore.cli.main:main",
         ],
     },
     license="License :: OSI Approved :: BSD",

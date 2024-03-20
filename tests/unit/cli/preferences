@@ -1,0 +1,18 @@
+# User preferences for UCC
+
+authentication-method=USERNAME
+username=demouser
+password=test123
+
+verbose=true
+
+#
+# The address(es) of the registries to contact
+# (space separated list)
+registry=https://localhost:8080/DEMO-SITE/rest/registries/default_registry
+contact-registry=true
+
+#
+# default directory for output
+#
+output=/tmp

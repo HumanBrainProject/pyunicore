@@ -14,18 +14,18 @@ for filesystem mounts with FUSE, a UFTP driver for
 and a UNICORE implementation of a
 [Dask Cluster](https://distributed.dask.org/en/stable/)
 
-This project has received funding from the European Union’s 
-Horizon 2020 Framework Programme for Research and Innovation under the 
-Specific Grant Agreement Nos. 720270, 785907 and 945539 
+This project has received funding from the European Union’s
+Horizon 2020 Framework Programme for Research and Innovation under the
+Specific Grant Agreement Nos. 720270, 785907 and 945539
 (Human Brain Project SGA 1, 2 and 3)
 
 See LICENSE file for licensing information
 
 ## Documentation
 
-The complete documentation of PyUNICORE can be viewed 
+The complete documentation of PyUNICORE can be viewed
 [here](https://pyunicore.readthedocs.io/en/latest/)
- 
+
 ## Installation
 
 Install from PyPI with
@@ -61,7 +61,7 @@ client = uc_client.Client(credential, base_url)
 print(json.dumps(client.properties, indent = 2))
 ```
 
-PyUNICORE supports a variety of 
+PyUNICORE supports a variety of
 [authentication options](https://pyunicore.readthedocs.io/en/latest/authentication.html).
 
 ### Run a job and read result files
@@ -188,7 +188,7 @@ unicore-cwl-runner echo.cwl hello_world.yml > hello_world.u
 
 ## Helpers
 
-The `pyunicore.helpers` module provides a set of higher-level APIs:
+The `pyunicore.helpers` module provides helper code for:
 
 * Connecting to
   * a Registry (`pyunicore.helpers.connect_to_registry`).
