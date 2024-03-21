@@ -1,4 +1,3 @@
-""" Dask Distributed cluster implementation """
 import json
 import math
 import time

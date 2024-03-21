@@ -1,8 +1,3 @@
-"""Represents the job description of the UNICORE REST API.
-
-See https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api/job-description/
-
-"""
 import dataclasses
 from typing import Dict
 from typing import List

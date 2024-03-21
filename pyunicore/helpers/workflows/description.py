@@ -1,8 +1,3 @@
-"""Represents the workflow description of the UNICORE REST API.
-
-See https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api/workflow-description
-
-"""
 import dataclasses
 from typing import Dict
 from typing import List

@@ -1,4 +1,3 @@
-""" UFTP extension to the pyfilesystem FTPFS class """
 from os import getenv
 
 from fs.ftpfs import FTPFS

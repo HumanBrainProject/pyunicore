@@ -1,7 +1,3 @@
-"""
-    Classes for interacting with a UFTP Auth server, creating a UFTP session
-    and performing various data management functions
-"""
 import os
 import stat
 from ftplib import FTP
