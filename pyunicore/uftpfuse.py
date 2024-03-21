@@ -40,6 +40,7 @@ class UFTPFile:
 
     def open_data(self, position, write_mode=False):
         """open data channel before a sequence of read/write operations"""
+
         self.write_mode = write_mode
         if self.write_mode:
             _sock = self.uftp_session.get_write_socket(self.path, position)
