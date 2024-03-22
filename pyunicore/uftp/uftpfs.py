@@ -4,7 +4,7 @@ from fs.ftpfs import FTPFS
 from fs.opener import Opener
 
 import pyunicore.credentials as uc_credentials
-from pyunicore.uftp import UFTP
+from pyunicore.uftp.uftp import UFTP
 
 
 class UFTPFS(FTPFS):

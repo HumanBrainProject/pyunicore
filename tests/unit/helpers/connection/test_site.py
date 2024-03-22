@@ -5,7 +5,7 @@ import pytest
 import pyunicore.client as pyunicore
 import pyunicore.credentials as credentials
 import pyunicore.helpers.connection.site as _connect
-import pyunicore.testing as testing
+import tests.testing as testing
 
 
 @pytest.fixture()

@@ -4,7 +4,7 @@ import sys
 
 import yaml
 
-import pyunicore.cwlconverter
+import pyunicore.cwl.cwlconverter as cwlconverter
 
 
 def read_cwl_files(cwl_doc_path, cwl_inputs_object_path=None, debug=False):
@@ -51,7 +51,7 @@ def main():
         unicore_job,
         file_list,
         outputs_list,
-    ) = pyunicore.cwlconverter.convert_cmdline_tool(cwl_doc, cwl_inputs_object, debug=debug)
+    ) = cwlconverter.convert_cmdline_tool(cwl_doc, cwl_inputs_object, debug=debug)
     print(json.dumps(unicore_job, indent=2, sort_keys=True))
 
     sys.exit(0)

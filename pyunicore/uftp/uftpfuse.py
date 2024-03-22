@@ -14,7 +14,7 @@ except ImportError:
     from fuse import FuseOSError
     from fuse import Operations
 
-from pyunicore.uftp import UFTP
+from pyunicore.uftp.uftp import UFTP
 
 
 class UFTPFile:

@@ -1,7 +1,7 @@
 import pytest
 
-from pyunicore import testing
 from pyunicore.helpers.workflows import variable
+from tests import testing
 
 
 class TestVariable:

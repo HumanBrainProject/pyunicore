@@ -1,7 +1,7 @@
 import unittest
 from os import environ
 
-from pyunicore.uftpfs import UFTPOpener
+from pyunicore.uftp.uftpfs import UFTPOpener
 
 
 class TestUFTPFS(unittest.TestCase):

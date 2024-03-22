@@ -426,7 +426,7 @@ class Client(Resource):
 
         return Job(self.transport, job_url)
 
-    def issue_auth_token(self, lifetime=-1, renewable=False, limited=False):
+    def issue_auth_token(self, lifetime=-1, renewable=False, limited=False) -> str:
         """
         Issue an authentication token (JWT) from this UNICORE server
         Args:
