@@ -95,13 +95,14 @@ class Transport:
         self.verify = verify
         self.use_security_sessions = use_security_sessions
         self.last_session_id = None
-        self.preferences = None
+        self._preferences = None
         self.timeout = timeout
+        self.settings_changed = True
 
     def _clone(self):
         """create a copy of this transport"""
         tr = Transport(self.credential)
-        tr.preferences = self.preferences
+        tr._preferences = self._preferences
         tr.use_security_sessions = self.use_security_sessions
         tr.last_session_id = self.last_session_id
         tr.timeout = self.timeout
@@ -120,14 +121,24 @@ class Transport:
         if self.use_security_sessions and self.last_session_id is not None:
             headers["X-UNICORE-SecuritySession"] = self.last_session_id
 
-        if self.preferences is not None:
-            headers["X-UNICORE-User-Preferences"] = self.preferences
+        if self._preferences is not None:
+            headers["X-UNICORE-User-Preferences"] = self._preferences
 
         if "headers" in kwargs:
             headers.update(kwargs["headers"])
             del kwargs["headers"]
 
         return headers
+
+    @property
+    def preferences(self):
+        return self._preferences
+
+    @preferences.setter
+    def preferences(self, value):
+        self._preferences = value
+        self.last_session_id = None
+        self.settings_changed = True
 
     def check_error(self, res):
         """checks for error and extracts any error info sent by the server"""
@@ -163,6 +174,7 @@ class Transport:
         self.check_error(res)
         if self.use_security_sessions:
             self.last_session_id = res.headers.get("X-UNICORE-SecuritySession", None)
+        self.settings_changed = False
         return res
 
     def get(self, to_json=True, **kwargs):
@@ -221,8 +233,10 @@ class Resource:
     def properties(self):
         """get resource properties (these are cached for cache_time seconds)"""
         now = datetime.now()
-        if self.cache_time <= 0 or (
-            timedelta(seconds=self.cache_time) < now - self._last_retrieved
+        if (
+            self.transport.settings_changed
+            or self.cache_time <= 0
+            or (timedelta(seconds=self.cache_time) < now - self._last_retrieved)
         ):
             self._last_properties = self.transport.get(url=self.resource_url)
             self._last_retrieved = now
