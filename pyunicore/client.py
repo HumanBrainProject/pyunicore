@@ -407,8 +407,9 @@ class Client(Resource):
         if len(inputs) > 0:
             working_dir = job.working_dir
             for input_item in inputs:
+                f_name = os.path.basename(input_item)
                 with open(input_item, "rb") as f:
-                    working_dir.upload(f, input_item)
+                    working_dir.upload(f, f_name)
         if autostart and job_description.get("haveClientStageIn", None) == "true":
             job.start()
         return job
