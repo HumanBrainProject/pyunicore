@@ -1,5 +1,7 @@
 import os
 import unittest
+from io import BytesIO
+from time import sleep
 
 import pyunicore.client as uc_client
 import pyunicore.credentials as uc_credentials
@@ -43,13 +45,12 @@ class TestBasic(unittest.TestCase):
         home = self.get_home_storage()
         _path = "tests/integration/files/script.sh"
         _length = os.stat(_path).st_size
-        home.upload(_path, "script.sh")
-        uploaded_file = home.stat("script.sh")
-        self.assertEqual(_length, int(uploaded_file.properties["size"]))
-        from io import BytesIO
-
+        remote_file = home.stat("script.sh")
+        with open(_path, "rb") as f:
+            remote_file.upload(f)
+        self.assertEqual(_length, int(remote_file.properties["size"]))
         _out = BytesIO()
-        uploaded_file.download(_out)
+        remote_file.download(_out)
         self.assertEqual(_length, len(str(_out.getvalue(), "UTF-8")))
 
     def test_upload_download_data(self):
@@ -57,13 +58,11 @@ class TestBasic(unittest.TestCase):
         home = self.get_home_storage()
         _data = "this is some test data"
         _length = len(_data)
-        home.upload(destination="test.txt", data=_data)
-        uploaded_file = home.stat("test.txt")
-        self.assertEqual(_length, int(uploaded_file.properties["size"]))
-        from io import BytesIO
-
+        remote_file = home.stat("test.txt")
+        remote_file.upload(_data)
+        self.assertEqual(_length, int(remote_file.properties["size"]))
         _out = BytesIO()
-        uploaded_file.download(_out)
+        remote_file.download(_out)
         self.assertEqual(_length, len(str(_out.getvalue(), "UTF-8")))
 
     def test_transfer(self):
@@ -71,13 +70,12 @@ class TestBasic(unittest.TestCase):
         storage1 = self.get_home_storage()
         _path = "tests/integration/files/script.sh"
         _length = os.stat(_path).st_size
-        storage1.upload(_path, "script.sh")
+        with open(_path, "rb") as f:
+            storage1.stat("script.sh").upload(f)
         site_client = self.get_client()
         storage2 = site_client.new_job({}).working_dir
         transfer = storage2.receive_file(storage1.resource_url + "/files/script.sh", "script.sh")
         print(transfer)
-        from time import sleep
-
         while transfer.is_running():
             sleep(2)
         print("Transferred bytes: %s" % transfer.properties["transferredBytes"])

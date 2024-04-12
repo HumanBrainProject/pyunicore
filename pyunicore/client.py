@@ -725,25 +725,6 @@ class Storage(Resource):
         """create directory"""
         return self.mkdir(name)
 
-    def upload(self, source, destination):
-        """upload source (str-like or file-like) to the remote file "destination".
-
-        Remote directories will be created automatically, if required.
-
-        Args:
-            source:     the data/file to upload
-            destination: the remote file name / path
-        """
-        if source is None:
-            raise ValueError("Must give data to upload")
-        if destination is None:
-            raise ValueError("Must give destination file name for upload")
-        _headers = {"Content-Type": "application/octet-stream"}
-        with self.transport.put(
-            url=self._to_file_url(destination), headers=_headers, data=source
-        ) as r:
-            r.close()
-
     def send_file(
         self,
         file_name,
