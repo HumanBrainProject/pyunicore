@@ -52,6 +52,20 @@ class TestBasic(unittest.TestCase):
         uploaded_file.download(_out)
         self.assertEqual(_length, len(str(_out.getvalue(), "UTF-8")))
 
+    def test_upload_download_data(self):
+        print("*** test_upload_download_data")
+        home = self.get_home_storage()
+        _data = "this is some test data"
+        _length = len(_data)
+        home.upload(destination="test.txt", data=_data)
+        uploaded_file = home.stat("test.txt")
+        self.assertEqual(_length, int(uploaded_file.properties["size"]))
+        from io import BytesIO
+
+        _out = BytesIO()
+        uploaded_file.download(_out)
+        self.assertEqual(_length, len(str(_out.getvalue(), "UTF-8")))
+
     def test_transfer(self):
         print("*** test_transfer")
         storage1 = self.get_home_storage()

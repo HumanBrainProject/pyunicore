@@ -725,33 +725,24 @@ class Storage(Resource):
         """create directory"""
         return self.mkdir(name)
 
-    def upload(self, input_file, destination=None):
-        """upload file "input_file" to the remote file "destination".
+    def upload(self, source, destination):
+        """upload source (str-like or file-like) to the remote file "destination".
 
         Remote directories will be created automatically, if required.
-        If "destination" is not given, it is derived from the local
-        file path.
-
-        Examples:
-        - input_file = "test.txt" -> upload to "test.txt" in the base directory
-        of the storage
-        - input_file = "/tmp/test.txt" -> upload to "test.txt" in the base directory
-        - input_file = "folder1/test.txt" -> upload to "folder1/test.txt",
-          automatically creating the "folder1" subdirectory
 
         Args:
-            input_file : the path to the local file
-            destination: (optional) the remote file name / path
-
+            source:     the data/file to upload
+            destination: the remote file name / path
         """
+        if source is None:
+            raise ValueError("Must give data to upload")
         if destination is None:
-            if os.path.isabs(input_file):
-                destination = os.path.basename(input_file)
-            else:
-                destination = input_file
+            raise ValueError("Must give destination file name for upload")
         _headers = {"Content-Type": "application/octet-stream"}
-        with open(input_file, "rb") as fd:
-            self.transport.put(url=self._to_file_url(destination), headers=_headers, data=fd)
+        with self.transport.put(
+            url=self._to_file_url(destination), headers=_headers, data=source
+        ) as r:
+            r.close()
 
     def send_file(
         self,
@@ -916,8 +907,21 @@ class PathFile(Path):
                 for chunk in resp.iter_content(chunk_size):
                     file.write(chunk)
 
+    def upload(self, source):
+        """upload data or file
+
+        Args:
+            source (str-like or file-like): this will be uploaded
+
+        """
+        _headers = {"Content-Type": "application/octet-stream"}
+        with self.transport.put(
+            url=self.resource_url, headers=_headers, stream=True, data=source
+        ) as r:
+            r.close()
+
     def raw(self, offset=0, size=-1):
-        """access the raw http response for streaming purposes.
+        """access the raw http response for a streaming download.
         The optional 'offset' and 'size' parameters allow to download only
         part of the file.
         NOTE: this is the raw response from the server and might not be
