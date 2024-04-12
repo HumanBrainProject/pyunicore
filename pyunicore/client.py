@@ -407,7 +407,8 @@ class Client(Resource):
         if len(inputs) > 0:
             working_dir = job.working_dir
             for input_item in inputs:
-                working_dir.upload(input_item)
+                with open(input_item, "rb") as f:
+                    working_dir.upload(f, input_item)
         if autostart and job_description.get("haveClientStageIn", None) == "true":
             job.start()
         return job
@@ -725,6 +726,20 @@ class Storage(Resource):
         """create directory"""
         return self.mkdir(name)
 
+    def upload(self, source, destination):
+        """upload data to the destination file on this storage
+
+        Args:
+            source (str-like or file-like): this will be uploaded
+            destination: target path (parent directory will be created if needed)
+
+        """
+        _headers = {"Content-Type": "application/octet-stream"}
+        with self.transport.put(
+            url=self._to_file_url(destination), headers=_headers, stream=True, data=source
+        ) as r:
+            r.close()
+
     def send_file(
         self,
         file_name,
@@ -887,19 +902,6 @@ class PathFile(Path):
             else:
                 for chunk in resp.iter_content(chunk_size):
                     file.write(chunk)
-
-    def upload(self, source):
-        """upload data or file
-
-        Args:
-            source (str-like or file-like): this will be uploaded
-
-        """
-        _headers = {"Content-Type": "application/octet-stream"}
-        with self.transport.put(
-            url=self.resource_url, headers=_headers, stream=True, data=source
-        ) as r:
-            r.close()
 
     def raw(self, offset=0, size=-1):
         """access the raw http response for a streaming download.

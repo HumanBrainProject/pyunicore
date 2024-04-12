@@ -5,8 +5,8 @@ Issue tracker: https://github.com/HumanBrainProject/pyunicore
 
 Version 1.1.0 (mmm dd, 2024)
 ----------------------------
- - new feature: added upload() method on PathFile object
- - API CHANGE: remove Storage.upload() method
+ - API CHANGE: Storage.upload() method now accepts str-like or
+file-like data to upload and requires destination name
 
 Version 1.0.1 (Mar 22, 2024)
 ----------------------------
