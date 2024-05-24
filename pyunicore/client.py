@@ -407,9 +407,7 @@ class Client(Resource):
         if len(inputs) > 0:
             working_dir = job.working_dir
             for input_item in inputs:
-                f_name = os.path.basename(input_item)
-                with open(input_item, "rb") as f:
-                    working_dir.upload(f, f_name)
+                working_dir.upload(input_item)
         if autostart and job_description.get("haveClientStageIn", None) == "true":
             job.start()
         return job
@@ -727,7 +725,33 @@ class Storage(Resource):
         """create directory"""
         return self.mkdir(name)
 
-    def upload(self, source, destination):
+    def upload(self, file_name, destination=None):
+        """upload local file "file_name" to the remote file "destination".
+
+        Remote directories will be created automatically, if required.
+        If "destination" is not given, it is derived from the local
+        file path.
+
+        Examples:
+        - file_name = "test.txt" -> upload to "test.txt" in the base directory
+        of the storage
+        - file_name = "/tmp/test.txt" -> upload to "test.txt" in the base directory
+        - file_name = "folder1/test.txt" -> upload to "folder1/test.txt",
+          automatically creating the "folder1" subdirectory
+
+         Args:
+            file_name  : the path to the local file
+            destination: (optional) the remote file name / path
+        """
+        if destination is None:
+            if os.path.isabs(file_name):
+                destination = os.path.basename(file_name)
+            else:
+                destination = file_name
+        with open(file_name, "rb") as fd:
+            self.put(source=fd, destination=destination)
+
+    def put(self, source, destination):
         """upload data to the destination file on this storage
 
         Args:

@@ -5,8 +5,8 @@ Issue tracker: https://github.com/HumanBrainProject/pyunicore
 
 Version 1.1.0 (mmm dd, 2024)
 ----------------------------
- - API CHANGE: Storage.upload() method now accepts str-like or
-file-like data to upload and requires destination name
+ - API CHANGE: new Storage.put_file() method accepting
+ str-like or file-like data to upload to a remote destination
 
 Version 1.0.1 (Mar 22, 2024)
 ----------------------------

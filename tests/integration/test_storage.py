@@ -46,7 +46,7 @@ class TestBasic(unittest.TestCase):
         _path = "tests/integration/files/script.sh"
         _length = os.stat(_path).st_size
         with open(_path, "rb") as f:
-            home.upload(f, "script.sh")
+            home.put(f, "script.sh")
         remote_file = home.stat("script.sh")
         self.assertEqual(_length, int(remote_file.properties["size"]))
         _out = BytesIO()
@@ -58,7 +58,7 @@ class TestBasic(unittest.TestCase):
         home = self.get_home_storage()
         _data = "this is some test data"
         _length = len(_data)
-        home.upload(_data, "test.txt")
+        home.put(_data, "test.txt")
         remote_file = home.stat("test.txt")
         self.assertEqual(_length, int(remote_file.properties["size"]))
         _out = BytesIO()
@@ -71,7 +71,7 @@ class TestBasic(unittest.TestCase):
         _path = "tests/integration/files/script.sh"
         _length = os.stat(_path).st_size
         with open(_path, "rb") as f:
-            storage1.upload(f, "script.sh")
+            storage1.put(f, "script.sh")
         site_client = self.get_client()
         storage2 = site_client.new_job({}).working_dir
         transfer = storage2.receive_file(storage1.resource_url + "/files/script.sh", "script.sh")
