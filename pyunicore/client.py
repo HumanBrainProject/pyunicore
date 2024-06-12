@@ -26,7 +26,7 @@ import pyunicore.credentials
 
 _DEFAULT_CACHE_TIME = 5  # in seconds
 
-_HBP_REGISTRY_URL = "https://hbp-unic.fz-juelich.de:7112" "/HBP/rest/registries/default_registry"
+_HBP_REGISTRY_URL = "https://unicore.fz-juelich.de" "/HBP/rest/registries/default_registry"
 
 _FACTORY_RE = r"""
 ^                                 # start of line

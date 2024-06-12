@@ -1,4 +1,5 @@
 """ Base command class """
+
 import argparse
 import getpass
 import json
@@ -46,17 +47,19 @@ class Base:
                 except ValueError:
                     pass
 
-    def add_base_args(self):
-        self.parser.add_argument(
+    def add_base_args(self) -> argparse._ArgumentGroup:
+        general_options = self.parser.add_argument_group("General options")
+        general_options.add_argument(
             "-v", "--verbose", required=False, action="store_true", help="Be verbose"
         )
-        self.parser.add_argument(
+        general_options.add_argument(
             "-c",
             "--configuration",
             metavar="CONFIG",
             default=f"{os.getenv('HOME')}/.ucc/properties",
             help="Configuration file",
         )
+        return general_options
 
     def add_command_args(self):
         pass
@@ -90,9 +93,13 @@ class Base:
                 password = _p
         return password
 
-    def create_registry(self) -> pyunicore.client.Registry:
+    def create_registry(self) -> pyunicore.client.Registry | None:
         self.create_credential()
-        return pyunicore.client.Registry(self.credential, self.config["registry"])
+        self.contact_registry = self.config.get("contact-registry", True)
+        if self.contact_registry:
+            return pyunicore.client.Registry(self.credential, self.config["registry"])
+        else:
+            return None
 
     def verbose(self, msg):
         if self.is_verbose:
@@ -110,7 +117,7 @@ class IssueToken(Base):
     def add_command_args(self):
         self.parser.prog = "unicore issue-token"
         self.parser.description = self.get_synopsis()
-        self.parser.add_argument("URL", help="Token endpoint URL")
+        self.parser.add_argument("URL", help="Token endpoint URL", nargs="?")
         self.parser.add_argument("-s", "--sitename", required=False, type=str, help="Site name")
         self.parser.add_argument(
             "-l",
@@ -139,18 +146,24 @@ class IssueToken(Base):
         )
 
     def get_synopsis(self):
-        return """Get a JWT token from a UNICORE/X server"""
+        return """Gets a JWT authentication token from a UNICORE token endpoint.
+                  Lifetime and other properties can be configured."""
 
     def run(self, args):
         super().run(args)
-        endpoint = self.args.URL
         site_name = self.args.sitename
         if site_name:
-            endpoint = self.registry.site(site_name).resource_url
+            if self.registry:
+                endpoint = self.registry.site(site_name).resource_url
+            else:
+                raise ValueError(
+                    "Sitename resolution requires registry - please check your configuration!"
+                )
         else:
-            if endpoint is None:
-                raise ValueError("Either --sitename or URL must be given.")
-            endpoint = endpoint.split("/token")[0]
+            endpoint = self.args.URL
+        if not endpoint:
+            raise ValueError("Either URL or --sitename must be given.")
+        endpoint = endpoint.split("/token")[0]
         token = self.issue_token(
             url=endpoint,
             lifetime=self.args.lifetime,
