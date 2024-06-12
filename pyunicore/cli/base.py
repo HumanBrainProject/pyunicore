@@ -4,10 +4,10 @@ import argparse
 import getpass
 import json
 import os.path
-from base64 import b64decode
-
 import pyunicore.client
 import pyunicore.credentials
+
+from base64 import b64decode
 
 
 class Base:
