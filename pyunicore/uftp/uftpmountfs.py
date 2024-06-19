@@ -43,20 +43,24 @@ class UFTPMOUNTFS(OSFS):
         self.base_path = base_path
         self.mount_dir = mount_dir
         self._ensure_unmount(mount_dir)
-        print(self._run_fusedriver(self.host, self.port, uftp_password, self.mount_dir))
+        self._run_fusedriver(uftp_password)
         super().__init__(mount_dir)
 
-    def _ensure_unmount(self, mount_point):
+    def close(self):
+        self._ensure_unmount()
+        super().close()
+
+    def _ensure_unmount(self):
         """
         Unmounts the requested directory
         """
-        cmd = "fusermount -u '%s'" % mount_point
+        cmd = "fusermount -u '%s'" % self.mount_dir
         return self._run_command(cmd)
 
-    def _run_fusedriver(self, host, port, pwd, mount_point, debug=False):
+    def _run_fusedriver(self, pwd):
         cmds = [
             "export UFTP_PASSWORD=%s" % pwd,
-            f"python3 -m pyunicore.uftp.uftpfuse {host}:{port} '{mount_point}'",
+            f"python3 -m pyunicore.uftp.uftpfuse {self.host}:{self.port} '{self.mount_dir}'",
         ]
         cmd = ""
         for c in cmds:
@@ -74,7 +78,7 @@ class UFTPMOUNTFS(OSFS):
             exit_code = cpe.returncode
         return exit_code, raw_output.decode("UTF-8")
 
-    def hassyspath(self, path):
+    def hassyspath(self, _):
         return False
 
     def __repr__(self):
