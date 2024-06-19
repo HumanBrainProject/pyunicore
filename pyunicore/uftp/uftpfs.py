@@ -16,7 +16,7 @@ class UFTPFS(FTPFS):
     Example: create with auth URL and username/password credentials
 
       from pyunicore.credentials import UsernamePassword
-      from pyunicore.uftpfs import UFTPFS
+      from pyunicore.uftp.uftpfs import UFTPFS
 
       auth = "https://localhost:9000/rest/auth/TEST
       creds = UsernamePassword("demouser", "test123")

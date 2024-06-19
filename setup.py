@@ -38,6 +38,7 @@ setup(
     entry_points={
         "fs.opener": [
             "uftp = pyunicore.uftp.uftpfs:UFTPOpener",
+            "uftpmount = pyunicore.uftp.uftpmountfs:UFTPMountOpener",
         ],
         "console_scripts": [
             "unicore-port-forwarder=pyunicore.forwarder:main",

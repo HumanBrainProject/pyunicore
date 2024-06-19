@@ -7,6 +7,8 @@ Version 1.1.0 (mmm dd, 2024)
 ----------------------------
  - API CHANGE: new Storage.put_file() method accepting
  str-like or file-like data to upload to a remote destination
+ - new feature: new pyfilesystem implementation "uftpmount" which mounts
+ the remote directory and then accesses it via the local FS (OSFS)
 
 Version 1.0.1 (Mar 22, 2024)
 ----------------------------
