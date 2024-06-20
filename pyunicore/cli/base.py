@@ -183,7 +183,7 @@ class IssueToken(Base):
         _p += "=" * (-len(_p) % 4)  # padding
         payload = json.loads(b64decode(_p))
         print(f"Subject:      {payload['sub']}")
-        print(f"Lifetime (s): {payload['exp']-payload['iat']}")
+        print(f"Lifetime (s): {payload['exp'] - payload['iat']}")
         print(f"Issued by:    {payload['iss']}")
         print(f"Valid for:    {payload.get('aud', '<unlimited>')}")
         print(f"Renewable:    {payload.get('renewable', 'no')}")
