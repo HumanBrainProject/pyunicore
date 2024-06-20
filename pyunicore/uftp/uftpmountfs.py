@@ -42,7 +42,7 @@ class UFTPMOUNTFS(OSFS):
         self.host, self.port, uftp_password = UFTP().authenticate(creds, auth_url, base_path)
         self.base_path = base_path
         self.mount_dir = mount_dir
-        self._ensure_unmount(mount_dir)
+        self._ensure_unmount()
         self._run_fusedriver(uftp_password)
         super().__init__(mount_dir)
 
