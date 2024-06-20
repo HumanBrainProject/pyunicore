@@ -1,12 +1,11 @@
+import subprocess
 from os import getenv
 
-from fs.osfs import OSFS
 from fs.opener import Opener
+from fs.osfs import OSFS
 
 import pyunicore.credentials as uc_credentials
 from pyunicore.uftp.uftp import UFTP
-
-import subprocess
 
 
 class UFTPMOUNTFS(OSFS):

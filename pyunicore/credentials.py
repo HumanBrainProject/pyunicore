@@ -9,17 +9,17 @@ try:
 except ImportError:
     pass
 
-from abc import ABCMeta, abstractmethod
-from base64 import b64encode
-from jwt import (
-    decode as jwt_decode,
-    encode as jwt_encode,
-    ExpiredSignatureError,
-)
 import datetime
-import requests
+from abc import ABCMeta
+from abc import abstractmethod
+from base64 import b64encode
 from os import getenv
 from os.path import isabs
+
+import requests
+from jwt import ExpiredSignatureError
+from jwt import decode as jwt_decode
+from jwt import encode as jwt_encode
 
 
 class AuthenticationFailedException(Exception):  # noqa N818

@@ -4,8 +4,8 @@ import time
 from multiprocessing import get_context
 from urllib.parse import urlparse
 
-from distributed.core import rpc
 from distributed.core import Status
+from distributed.core import rpc
 from distributed.deploy.cluster import Cluster
 
 from pyunicore.client import JobStatus

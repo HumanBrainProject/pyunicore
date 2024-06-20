@@ -3,7 +3,8 @@
 import json
 
 from pyunicore.cli.base import Base
-from pyunicore.client import Client, Job
+from pyunicore.client import Client
+from pyunicore.client import Job
 
 
 class Exec(Base):

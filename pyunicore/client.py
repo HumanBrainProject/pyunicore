@@ -12,15 +12,16 @@ try:
 except ImportError:
     pass
 
-from contextlib import closing
-from datetime import datetime, timedelta
-from enum import Enum
-
 import os
 import pathlib
 import re
-import requests
 import time
+from contextlib import closing
+from datetime import datetime
+from datetime import timedelta
+from enum import Enum
+
+import requests
 
 import pyunicore.credentials
 
