@@ -46,3 +46,8 @@ repos:
           - flake8-logging-format
           - flake8_module_name
           - pep8-naming
+
+  -   repo: https://github.com/asottile/reorder-python-imports
+      rev: v3.13.0
+      hooks:
+      - id: reorder-python-imports
