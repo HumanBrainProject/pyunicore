@@ -1,11 +1,14 @@
 """ Main client class """
+
 import platform
 import sys
 
 import pyunicore.cli.base
+import pyunicore.cli.exec
 
 _commands = {
     "issue-token": pyunicore.cli.base.IssueToken,
+    "exec": pyunicore.cli.exec.Exec,
 }
 
 

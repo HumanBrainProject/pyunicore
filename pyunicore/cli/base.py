@@ -125,24 +125,24 @@ class IssueToken(Base):
             required=False,
             type=int,
             default=-1,
-            help="Initial lifetime (in seconds) for token.",
+            help="Initial lifetime (in seconds) for token",
         )
         self.parser.add_argument(
             "-R",
             "--renewable",
             required=False,
             action="store_true",
-            help="Token can be used to get a fresh token.",
+            help="Token can be used to get a fresh token",
         )
         self.parser.add_argument(
             "-L",
             "--limited",
             required=False,
             action="store_true",
-            help="Token should be limited to the issuing server.",
+            help="Token should be limited to the issuing server",
         )
         self.parser.add_argument(
-            "-I", "--inspect", required=False, action="store_true", help="Inspect the issued token."
+            "-I", "--inspect", required=False, action="store_true", help="Inspect the issued token"
         )
 
     def get_synopsis(self):
