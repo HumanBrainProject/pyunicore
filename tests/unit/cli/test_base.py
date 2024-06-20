@@ -14,7 +14,7 @@ class TestBase(unittest.TestCase):
             cmd.config["registry"],
         )
         cmd.create_credential()
-        self.assertTrue(type(cmd.credential) == UsernamePassword)
+        self.assertTrue(isinstance(cmd.credential, UsernamePassword))
 
 
 if __name__ == "__main__":
