@@ -23,7 +23,9 @@ from enum import Enum
 
 import requests
 
-import pyunicore.credentials
+from pyunicore.credentials import Anonymous
+from pyunicore.credentials import AuthenticationFailedException
+from pyunicore.credentials import Credential
 
 _DEFAULT_CACHE_TIME = 5  # in seconds
 
@@ -76,7 +78,7 @@ class Transport:
 
     def __init__(
         self,
-        credential: pyunicore.credentials.Credential,
+        credential: Credential,
         verify=False,
         use_security_sessions=True,
         timeout=120,
@@ -209,7 +211,9 @@ class Resource:
     properties and some common methods.
     """
 
-    def __init__(self, security, resource_url, cache_time=_DEFAULT_CACHE_TIME):
+    def __init__(
+        self, security: Credential | Transport, resource_url: str, cache_time=_DEFAULT_CACHE_TIME
+    ):
         """
         Create a new Resource.
         Args:
@@ -219,7 +223,7 @@ class Resource:
                     when getting properties
         """
         super().__init__()
-        if isinstance(security, pyunicore.credentials.Credential):
+        if isinstance(security, Credential):
             self.transport = Transport(security)
         elif isinstance(security, Transport):
             self.transport = security._clone()
@@ -272,7 +276,7 @@ class Registry(Resource):
     Will collect the BASE URLs of all registered sites
     """
 
-    def __init__(self, security, url, cache_time=_DEFAULT_CACHE_TIME):
+    def __init__(self, security: Credential | Transport, url: str, cache_time=_DEFAULT_CACHE_TIME):
         super().__init__(security, url, cache_time)
         self.refresh()
 
@@ -321,13 +325,13 @@ class Client(Resource):
 
     def __init__(
         self,
-        security,
-        site_url,
+        security: Credential | Transport,
+        site_url: str,
         check_authentication=True,
         cache_time=_DEFAULT_CACHE_TIME,
     ):
         super().__init__(security, site_url, cache_time)
-        if isinstance(self.transport.credential, pyunicore.credentials.Anonymous):
+        if isinstance(self.transport.credential, Anonymous):
             check_authentication = False
         self.check_authentication = check_authentication
         if self.check_authentication:
@@ -336,9 +340,7 @@ class Client(Resource):
     def assert_authentication(self):
         '''Asserts that the remote role is not "anonymous"'''
         if self.access_info()["role"]["selected"] == "anonymous":
-            raise pyunicore.credentials.AuthenticationFailedException(
-                "Failure to authenticate at %s" % self.resource_url
-            )
+            raise AuthenticationFailedException("Failure to authenticate at %s" % self.resource_url)
 
     def access_info(self):
         """get authentication and authentication information about the current user"""
@@ -394,8 +396,13 @@ class Client(Resource):
         urls = self.transport.get(url=self.links["jobs"], params=q_params)["jobs"]
         return [Job(self.transport, url) for url in urls]
 
-    def new_job(self, job_description, inputs=[], autostart=True):
-        """submit and start a job on the site, optionally uploading input data files"""
+    def new_job(self, job_description: dict, inputs=None, autostart: bool = True):
+        """Submit and start a job on the site, optionally uploading local input data files
+        The input files can be either a simple array of local file names, or a dictionary
+        with the destination names as keys and the local file names as values.
+        """
+        if inputs is None:
+            inputs = []
         if len(inputs) > 0 or job_description.get("haveClientStageIn") is True:
             job_description["haveClientStageIn"] = "true"
         with closing(self.transport.post(url=self.links["jobs"], json=job_description)) as resp:
@@ -408,12 +415,15 @@ class Client(Resource):
         if len(inputs) > 0:
             working_dir = job.working_dir
             for input_item in inputs:
-                working_dir.upload(input_item)
-        if autostart and job_description.get("haveClientStageIn", None) == "true":
+                if isinstance(inputs, dict):
+                    working_dir.upload(inputs[input_item], destination=input_item)
+                else:
+                    working_dir.upload(input_item)
+        if autostart:
             job.start()
         return job
 
-    def execute(self, cmd, login_node=None):
+    def execute(self, cmd: str, login_node=None):
         """run a (non-batch) command on the site, executed on a login node
         Args:
             cmd - the command to run
@@ -456,8 +466,8 @@ class Application(Resource):
 
     def __init__(
         self,
-        security,
-        app_url,
+        security: Credential | Transport,
+        app_url: str,
         submit_url=None,
         cache_time=_DEFAULT_CACHE_TIME,
     ):
@@ -507,11 +517,18 @@ class JobStatus(Enum):
                 return i
             i += 1
 
+    def __repr__(self):
+        return self._name_
+
+    __str__ = __repr__
+
 
 class Job(Resource):
     """wrapper around UNICORE job"""
 
-    def __init__(self, security, job_url, cache_time=_DEFAULT_CACHE_TIME):
+    def __init__(
+        self, security: Credential | Transport, job_url: str, cache_time=_DEFAULT_CACHE_TIME
+    ):
         super().__init__(security, job_url, cache_time)
 
     @property
@@ -572,10 +589,10 @@ class Job(Resource):
                 raise TimeoutError("Timeout waiting for job to become %s" % state.value)
 
     def __repr__(self):
-        return "Job: {} submitted: {} running: {}".format(
+        return "Job: {} submitted: {} status: {}".format(
             self.resource_url,
             self.properties["submissionTime"],
-            self.is_running(),
+            self.status,
         )
 
     __str__ = __repr__
@@ -588,7 +605,9 @@ class Allocation(Job):
     correct job ID, so the task is started in the allocation.
     """
 
-    def __init__(self, security, job_url, cache_time=_DEFAULT_CACHE_TIME):
+    def __init__(
+        self, security: Credential | Transport, job_url: str, cache_time=_DEFAULT_CACHE_TIME
+    ):
         super().__init__(security, job_url, cache_time)
 
     def new_job(self, job_description, inputs=[], autostart=True):
@@ -621,10 +640,10 @@ class Allocation(Job):
                 break
 
     def __repr__(self):
-        return "Allocation: {} submitted: {} running: {}".format(
+        return "Allocation: {} submitted: {} status: {}".format(
             self.resource_url,
             self.properties["submissionTime"],
-            self.is_running(),
+            self.status,
         )
 
     __str__ = __repr__
@@ -633,7 +652,9 @@ class Allocation(Job):
 class Compute(Resource):
     """wrapper around a UNICORE compute resource (a specific cluster with queues)"""
 
-    def __init__(self, security, resource_url, cache_time=_DEFAULT_CACHE_TIME):
+    def __init__(
+        self, security: Credential | Transport, resource_url: str, cache_time=_DEFAULT_CACHE_TIME
+    ):
         super().__init__(security, resource_url, cache_time)
 
     def __repr__(self):
@@ -655,7 +676,9 @@ class Compute(Resource):
 class Storage(Resource):
     """wrapper around a UNICORE Storage resource"""
 
-    def __init__(self, security, storage_url, cache_time=_DEFAULT_CACHE_TIME):
+    def __init__(
+        self, security: Credential | Transport, storage_url: str, cache_time=_DEFAULT_CACHE_TIME
+    ):
         super().__init__(security, storage_url, cache_time)
 
     def _to_file_url(self, path):
@@ -682,7 +705,7 @@ class Storage(Resource):
             ret = PathFile(self, path_url, path)
         return ret
 
-    def listdir(self, base="/"):
+    def listdir(self, base="/") -> dict:
         """get a list of files and directories in the given base directory"""
         ret = {}
         for path, meta in self.contents(base)["content"].items():
@@ -848,7 +871,7 @@ class Storage(Resource):
 class Path(Resource):
     """common base for files and directories"""
 
-    def __init__(self, storage, path_url, name, cache_time=_DEFAULT_CACHE_TIME):
+    def __init__(self, storage: Storage, path_url: str, name: str, cache_time=_DEFAULT_CACHE_TIME):
         super().__init__(storage.transport, path_url, cache_time)
         self.name = name
         self.storage = storage
@@ -878,7 +901,7 @@ class Path(Resource):
 
 
 class PathDir(Path):
-    def __init__(self, storage, path_url, name, cache_time=_DEFAULT_CACHE_TIME):
+    def __init__(self, storage: Storage, path_url: str, name: str, cache_time=_DEFAULT_CACHE_TIME):
         super().__init__(storage, path_url, name, cache_time)
 
     def isdir(self):
@@ -891,7 +914,7 @@ class PathDir(Path):
 
 
 class PathFile(Path):
-    def __init__(self, storage, path_url, name, cache_time=_DEFAULT_CACHE_TIME):
+    def __init__(self, storage: Storage, path_url: str, name: str, cache_time=_DEFAULT_CACHE_TIME):
         super().__init__(storage, path_url, name, cache_time)
 
     def download(self, file):
@@ -974,7 +997,7 @@ class TransferStatus(Enum):
 class Transfer(Resource):
     """wrapper around a UNICORE server-to-server transfer"""
 
-    def __init__(self, security, tr_url, cache_time=_DEFAULT_CACHE_TIME):
+    def __init__(self, security: Credential, tr_url: Transport, cache_time=_DEFAULT_CACHE_TIME):
         super().__init__(security, tr_url, cache_time)
 
     @property
@@ -1033,8 +1056,8 @@ class WorkflowService(Resource):
 
     def __init__(
         self,
-        security,
-        workflows_url,
+        security: Credential | Transport,
+        workflows_url: str,
         check_authentication=True,
         cache_time=_DEFAULT_CACHE_TIME,
     ):
@@ -1050,9 +1073,7 @@ class WorkflowService(Resource):
     def assert_authentication(self):
         '''Asserts that the remote role is not "anonymous"'''
         if self.access_info()["role"]["selected"] == "anonymous":
-            raise pyunicore.credentials.AuthenticationFailedException(
-                "Failure to authenticate at %s" % self.resource_url
-            )
+            raise AuthenticationFailedException("Failure to authenticate at %s" % self.resource_url)
 
     def get_workflows(self, offset=0, num=None, tags=[]):
         """get the list of workflows.
@@ -1092,7 +1113,9 @@ class WorkflowStatus(Enum):
 class Workflow(Resource):
     """wrapper around a UNICORE workflow"""
 
-    def __init__(self, security, wf_url, cache_time=_DEFAULT_CACHE_TIME):
+    def __init__(
+        self, security: Credential | Transport, wf_url: str, cache_time=_DEFAULT_CACHE_TIME
+    ):
         super().__init__(security, wf_url, cache_time)
 
     @property

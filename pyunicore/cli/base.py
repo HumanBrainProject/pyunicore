@@ -64,7 +64,7 @@ class Base:
     def add_command_args(self):
         pass
 
-    def run(self, args):
+    def setup(self, args):
         self.args = self.parser.parse_args(args)
         self.is_verbose = self.args.verbose
         self.config_file = self.args.configuration
@@ -72,8 +72,14 @@ class Base:
         self.create_credential()
         self.registry = self.create_registry()
 
+    def get_description(self):
+        return "N/A"
+
     def get_synopsis(self):
         return "N/A"
+
+    def get_group(self):
+        return "Other"
 
     def create_credential(self):
         auth_method = self.config.get("authentication-method", "USERNAME").upper()
@@ -149,12 +155,18 @@ class IssueToken(Base):
         return """Gets a JWT authentication token from a UNICORE token endpoint.
                   Lifetime and other properties can be configured."""
 
+    def get_description(self):
+        return "issue an authentication token"
+
+    def get_group(self):
+        return "Utilities"
+
     def run(self, args):
-        super().run(args)
+        super().setup(args)
         site_name = self.args.sitename
         if site_name:
             if self.registry:
-                endpoint = self.registry.site(site_name).resource_url
+                endpoint = self.registry.site_urls[site_name]
             else:
                 raise ValueError(
                     "Sitename resolution requires registry - please check your configuration!"

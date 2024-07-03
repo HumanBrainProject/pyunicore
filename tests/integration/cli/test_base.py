@@ -4,6 +4,7 @@ import pyunicore.cli.base as base
 
 
 class TestBase(unittest.TestCase):
+
     def test_base_setup(self):
         cmd = base.Base()
         cmd.config_file = "tests/integration/cli/preferences"

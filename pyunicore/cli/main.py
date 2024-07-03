@@ -5,10 +5,15 @@ import sys
 
 import pyunicore.cli.base
 import pyunicore.cli.exec
+import pyunicore.cli.io
 
 _commands = {
-    "issue-token": pyunicore.cli.base.IssueToken,
+    "cancel-job": pyunicore.cli.exec.CancelJob,
     "exec": pyunicore.cli.exec.Exec,
+    "issue-token": pyunicore.cli.base.IssueToken,
+    "list-jobs": pyunicore.cli.exec.ListJobs,
+    "ls": pyunicore.cli.io.LS,
+    "run": pyunicore.cli.exec.Run,
 }
 
 
@@ -33,7 +38,7 @@ The following commands are available:""" % pyunicore._version.get_versions().get
     )
     print(s)
     for cmd in sorted(_commands):
-        print(f" {cmd:20} - {get_command(cmd).get_synopsis()}")
+        print(f" {cmd:20} - {get_command(cmd).get_description()}")
     print("Enter 'unicore <command> -h' for help on a particular command.")
 
 
