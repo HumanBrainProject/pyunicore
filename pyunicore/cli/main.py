@@ -9,6 +9,7 @@ import pyunicore.cli.io
 
 _commands = {
     "cancel-job": pyunicore.cli.exec.CancelJob,
+    "cp": pyunicore.cli.io.CP,
     "exec": pyunicore.cli.exec.Exec,
     "issue-token": pyunicore.cli.base.IssueToken,
     "list-jobs": pyunicore.cli.exec.ListJobs,
@@ -36,6 +37,7 @@ Usage: unicore <command> [OPTIONS] <args>
 The following commands are available:""" % pyunicore._version.get_versions().get(
         "version", "n/a"
     )
+    print(_header)
     print(s)
     for cmd in sorted(_commands):
         print(f" {cmd:20} - {get_command(cmd).get_description()}")
@@ -61,6 +63,15 @@ def run(args):
     if command is None:
         raise ValueError(f"No such command: {cmd}")
     command.run(args[1:])
+
+
+_header = """ _    _ _   _ _____ _____ ____  _____  ______
+| |  | | \\ | |_   _/ ____/ __ \\|  __ \\|  ____|
+| |  | |  \\| | | || |   | |  | | |__) | |__
+| |  | | . ` | | || |   | |  | |  _  /|  __|
+| |__| | |\\  |_| |_ |____ |__| | | \\ \\| |____
+ \\____/|_| \\_|_____\\_____\\____/|_|  \\_\\______|
+"""
 
 
 def main():

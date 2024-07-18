@@ -75,6 +75,9 @@ class TestBasic(unittest.TestCase):
         try:
             print(allocation)
             allocation.wait_until_available()
+            if allocation.status != uc_client.JobStatus.RUNNING:
+                print("Skipping, allocation not available.")
+                return
             job_desc = {"Executable": "date"}
             job = allocation.new_job(job_desc)
             print(job)

@@ -884,6 +884,9 @@ class Path(Resource):
         """is a file"""
         return False
 
+    def size(self):
+        return self.properties["size"]
+
     def get_metadata(self, name=None):
         if name:
             return self.properties["metadata"][name]
