@@ -534,7 +534,9 @@ class Job(Resource):
     @property
     def working_dir(self):
         """return the Storage for accessing this job's working directory"""
-        return Storage(self.transport, self.links["workingDirectory"])
+        wd = Storage(self.transport, self.links["workingDirectory"])
+        wd._wait_until_ready()
+        return wd
 
     @property
     def status(self):
@@ -680,6 +682,17 @@ class Storage(Resource):
         self, security: Credential | Transport, storage_url: str, cache_time=_DEFAULT_CACHE_TIME
     ):
         super().__init__(security, storage_url, cache_time)
+
+    def _wait_until_ready(self, timeout=-1):
+        """since some storages take some time to initialise, this method allows to wait
+        until the storage is READY
+        """
+        i = 0
+        while "READY" != self.properties.get("resourceStatus", "n/a"):
+            time.sleep(1)
+            i += 1
+            if timeout > 0 and i > timeout:
+                raise TimeoutError()
 
     def _to_file_url(self, path):
         return (
