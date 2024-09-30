@@ -3,12 +3,14 @@ Changelog for PyUNICORE
 
 Issue tracker: https://github.com/HumanBrainProject/pyunicore
 
-Version 1.1.0 (mmm dd, 2024)
+Version 1.1.0 (Sep 30, 2024)
 ----------------------------
  - API CHANGE: new Storage.put_file() method accepting
    str-like or file-like data to upload to a remote destination
  - new feature: new pyfilesystem implementation "uftpmount" which mounts
    the remote directory and then accesses it via the local FS (OSFS)
+ - fix: make sure job working directory is ready for use (fixes a
+   potential race condition with UNICORE 10.1)
 
 Version 1.0.1 (Mar 22, 2024)
 ----------------------------
