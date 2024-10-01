@@ -5,6 +5,8 @@
     https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api/index.html
 """
 
+from __future__ import annotations
+
 try:
     from urllib3 import disable_warnings
 
