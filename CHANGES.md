@@ -3,6 +3,10 @@ Changelog for PyUNICORE
 
 Issue tracker: https://github.com/HumanBrainProject/pyunicore
 
+Version 1.1.1 (Oct 01, 2024)
+----------------------------
+ - fix: type annotations did not work on Python3.7
+
 Version 1.1.0 (Sep 30, 2024)
 ----------------------------
  - API CHANGE: new Storage.put_file() method accepting
