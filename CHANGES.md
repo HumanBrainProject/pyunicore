@@ -3,6 +3,10 @@ Changelog for PyUNICORE
 
 Issue tracker: https://github.com/HumanBrainProject/pyunicore
 
+Version 1.2.0 (MMM dd, 2024)
+----------------------------
+ - UFTP FUSE driver: add '--read-only' option
+
 Version 1.1.1 (Oct 01, 2024)
 ----------------------------
  - fix: type annotations did not work on Python3.7

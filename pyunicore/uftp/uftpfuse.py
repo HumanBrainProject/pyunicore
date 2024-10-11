@@ -3,16 +3,12 @@ import os
 from errno import EIO
 from errno import ENOENT
 from errno import ENOSYS
+from errno import EROFS
 from time import time
 
-try:
-    from fusepy import FUSE
-    from fusepy import FuseOSError
-    from fusepy import Operations
-except ImportError:
-    from fuse import FUSE
-    from fuse import FuseOSError
-    from fuse import Operations
+from fuse import FUSE
+from fuse import FuseOSError
+from fuse import Operations
 
 from pyunicore.uftp.uftp import UFTP
 
@@ -87,7 +83,7 @@ class UFTPDriver(Operations):
     authenticating to an Authserver or UNICORE/X)
     """
 
-    def __init__(self, host, port, password, debug=False):
+    def __init__(self, host, port, password, debug=False, read_only=False):
         self.host = host
         self.port = port
         self.password = password
@@ -96,6 +92,7 @@ class UFTPDriver(Operations):
         self.file_map = {}
         self.next_file_handle = 0
         self.debug = debug
+        self.read_only = read_only
 
     def new_session(self):
         uftp_session = UFTP()
@@ -105,6 +102,8 @@ class UFTPDriver(Operations):
     def chmod(self, path, mode):
         if self.debug:
             print(f"chmod {path} {mode}")
+        if self.read_only:
+            raise FuseOSError(EROFS)
         self.uftp_session.chmod(path, mode)
 
     def chown(self, path, uid, gid):
@@ -113,6 +112,8 @@ class UFTPDriver(Operations):
     def create(self, path, mode):
         if self.debug:
             print(f"create {path} {mode}")
+        if self.read_only:
+            raise FuseOSError(EROFS)
         fh = self.open(path, os.O_WRONLY)
         f = self.file_map[fh]
         f.write(0, [])
@@ -133,9 +134,13 @@ class UFTPDriver(Operations):
     def mkdir(self, path, mode):
         if self.debug:
             print(f"mkdir {path} {mode}")
+        if self.read_only:
+            raise FuseOSError(EROFS)
         return self.uftp_session.mkdir(path, mode)
 
     def open(self, path, fi_flags):
+        if self.read_only and (os.O_WRONLY & fi_flags):
+            raise FuseOSError(EROFS)
         fh = self.next_file_handle
         if os.O_RDWR & fi_flags:
             raise FuseOSError(EIO)
@@ -159,6 +164,8 @@ class UFTPDriver(Operations):
         raise FuseOSError(ENOSYS)
 
     def rename(self, old, new):
+        if self.read_only:
+            raise FuseOSError(EROFS)
         return self.uftp_session.rename(old, new)
 
     def release(self, path, fh):
@@ -169,6 +176,8 @@ class UFTPDriver(Operations):
         self.file_map.__delitem__(fh)
 
     def rmdir(self, path):
+        if self.read_only:
+            raise FuseOSError(EROFS)
         if self.debug:
             print(f"rmdir {path}")
         return self.uftp_session.rmdir(path)
@@ -177,14 +186,20 @@ class UFTPDriver(Operations):
         raise FuseOSError(ENOSYS)
 
     def truncate(self, path, length, fh=None):
+        if self.read_only:
+            raise FuseOSError(EROFS)
         if self.debug:
             print(f"truncate size={length} {path}")
         pass
 
     def unlink(self, path):
+        if self.read_only:
+            raise FuseOSError(EROFS)
         return self.uftp_session.rm(path)
 
     def utimens(self, path, times=None):
+        if self.read_only:
+            raise FuseOSError(EROFS)
         if times is None:
             _time = time()
         else:
@@ -208,6 +223,12 @@ def main():
         help="debug mode (also keeps process in the foreground)",
     )
     parser.add_argument(
+        "-r",
+        "--read-only",
+        action="store_true",
+        help="read-only mode, prevents writes, renames, etc",
+    )
+    parser.add_argument(
         "-P",
         "--password",
         help="one-time password (if not given, it is expected in the environment UFTP_PASSWORD)",
@@ -229,7 +250,7 @@ def main():
     _host, _port = args.address.split(":")
 
     FUSE(
-        UFTPDriver(_host, int(_port), _pwd),
+        UFTPDriver(_host, int(_port), _pwd, debug=args.debug, read_only=args.read_only),
         args.mount_point,
         debug=args.debug,
         foreground=args.debug,
