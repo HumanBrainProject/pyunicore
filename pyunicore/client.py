@@ -585,6 +585,8 @@ class Job(Resource):
         """
         if state == JobStatus.UNDEFINED:
             raise ValueError("Cannot wait for %s" % state)
+        if self.status.ordinal() >= JobStatus.SUCCESSFUL.ordinal():
+            return
         start_time = int(time.time())
         while self.status.ordinal() < state.ordinal():
             wait_time = max(2, self.cache_time + 1)

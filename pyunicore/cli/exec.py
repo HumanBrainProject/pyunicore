@@ -5,6 +5,7 @@ import json
 from pyunicore.cli.base import Base
 from pyunicore.client import Client
 from pyunicore.client import Job
+from pyunicore.client import JobStatus
 
 
 class JobExecutionBase(Base):
@@ -85,11 +86,7 @@ class Exec(JobExecutionBase):
         self.parser.description = self.get_synopsis()
         self.parser.add_argument("commands", help="Command(s) to run", nargs="*")
         self.parser.add_argument(
-            "-L",
-            "--login-node",
-            required=False,
-            type=str,
-            help="Login node to use",
+            "-L", "--login-node", required=False, type=str, help="Login node to use"
         )
         self.parser.add_argument(
             "-Q", "--keep", required=False, action="store_true", help="Don't remove finished job"
@@ -182,18 +179,7 @@ class ListJobs(Base):
         self.parser.description = self.get_synopsis()
         self.parser.add_argument("-s", "--sitename", required=False, type=str, help="Site name")
         self.parser.add_argument(
-            "-a",
-            "--asynchronous",
-            required=False,
-            action="store_true",
-            help="Just submit, don't wait for finish",
-        )
-        self.parser.add_argument(
-            "-l",
-            "--long",
-            required=False,
-            action="store_true",
-            help="Detailed output",
+            "-l", "--long", required=False, action="store_true", help="Detailed output"
         )
         self.parser.add_argument(
             "-T",
@@ -244,7 +230,7 @@ class CancelJob(Base):
         self.parser.add_argument("job_url", help="Job URL(s)", nargs="*")
 
     def get_synopsis(self):
-        return """Cancels UNICORE job(s). The job(s) are referenced either by URLs."""
+        return """Cancels UNICORE job(s)."""
 
     def get_description(self):
         return "cancel job(s)"
@@ -257,6 +243,73 @@ class CancelJob(Base):
         for endpoint in self.args.job_url:
             self.verbose("Cancelling: %s" % endpoint)
             Job(self.credential, job_url=endpoint).abort()
+
+
+class GetJobStatus(Base):
+    def add_command_args(self):
+        self.parser.prog = "unicore job-status"
+        self.parser.description = self.get_synopsis()
+        self.parser.add_argument("job_url", help="Job URL(s)", nargs="*")
+        self.parser.add_argument(
+            "-w",
+            "--wait-for",
+            required=False,
+            help="Wait for the given job status (STAGINGIN, QUEUED, RUNNING, "
+            "STAGINGOUT, SUCCESSFUL)",
+        )
+        self.parser.add_argument(
+            "-t",
+            "--timeout",
+            required=False,
+            type=int,
+            default=0,
+            help="Timeout for job status polling",
+        )
+        self.parser.add_argument(
+            "-l", "--long", required=False, action="store_true", help="More detailed job status"
+        )
+        self.parser.add_argument(
+            "-a", "--all", required=False, action="store_true", help="Full details (including log)"
+        )
+
+    def get_synopsis(self):
+        return """Gets the status of UNICORE job(s)."""
+
+    def get_description(self):
+        return "get job status"
+
+    def get_group(self):
+        return "Job execution"
+
+    def run(self, args):
+        super().setup(args)
+        for endpoint in self.args.job_url:
+            job = Job(self.credential, job_url=endpoint)
+            if self.args.wait_for is not None:
+                s = JobStatus(self.args.wait_for)
+                if self.args.timeout > 0:
+                    t = "(timeout: %s sec.)" % self.args.timeout
+                else:
+                    t = ""
+                self.verbose(f"Waiting for job to be {s} ... {t}")
+                job.poll(state=s, timeout=self.args.timeout)
+            else:
+                self.show_status(job)
+
+    def show_status(self, job):
+        s = f"{job.resource_url} {job.status}"
+        if job.status.ordinal() >= JobStatus.SUCCESSFUL.ordinal():
+            s = f"{s} exit code: {job.properties['exitCode']}"
+        print(s)
+        if self.args.long or self.args.all:
+            print("  Working directory:", job.properties["_links"]["workingDirectory"]["href"])
+            jt = job.properties["jobType"]
+            print("  Job type:         ", jt)
+            if jt != "ON_LOGIN_NODE":
+                print("  Queue:            ", job.properties.get("queue", "n/a"))
+        if self.args.all:
+            for log in job.properties["log"]:
+                print("  Log:", log)
 
 
 class JobWrapper:
