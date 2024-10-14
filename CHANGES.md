@@ -6,6 +6,8 @@ Issue tracker: https://github.com/HumanBrainProject/pyunicore
 Version 1.2.0 (MMM dd, 2024)
 ----------------------------
  - UFTP FUSE driver: add '--read-only' option
+ - New feature: commandline client script 'unicore' with a number
+   of commands modeled after the 'ucc' commandline client
 
 Version 1.1.1 (Oct 01, 2024)
 ----------------------------
