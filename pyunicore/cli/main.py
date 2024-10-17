@@ -9,12 +9,14 @@ import pyunicore.cli.io
 
 _commands = {
     "cancel-job": pyunicore.cli.exec.CancelJob,
+    "cat": pyunicore.cli.io.Cat,
     "cp": pyunicore.cli.io.CP,
     "exec": pyunicore.cli.exec.Exec,
     "issue-token": pyunicore.cli.base.IssueToken,
     "job-status": pyunicore.cli.exec.GetJobStatus,
     "list-jobs": pyunicore.cli.exec.ListJobs,
     "ls": pyunicore.cli.io.LS,
+    "rest": pyunicore.cli.base.REST,
     "run": pyunicore.cli.exec.Run,
 }
 

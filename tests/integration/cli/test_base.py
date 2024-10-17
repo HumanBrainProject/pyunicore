@@ -20,6 +20,27 @@ class TestBase(unittest.TestCase):
         args = ["-c", config_file, ep, "--lifetime", "700", "--inspect", "--limited", "--renewable"]
         cmd.run(args)
 
+    def test_rest_get(self):
+        cmd = base.REST()
+        config_file = "tests/integration/cli/preferences"
+        ep = "https://localhost:8080/DEMO-SITE/rest/core"
+        args = ["-c", config_file, "GET", ep]
+        cmd.run(args)
+
+    def test_rest_post_put_delete(self):
+        cmd = base.REST()
+        config_file = "tests/integration/cli/preferences"
+        ep = "https://localhost:8080/DEMO-SITE/rest/core/sites"
+        d = "{}"
+        args = ["-c", config_file, "--data", d, "POST", ep]
+        cmd.run(args)
+        d = "{'tags': 'test123'}"
+        ep = cmd._last_location
+        args = ["-c", config_file, "--data", d, "PUT", ep]
+        cmd.run(args)
+        args = ["-c", config_file, "DELETE", ep]
+        cmd.run(args)
+
 
 if __name__ == "__main__":
     unittest.main()

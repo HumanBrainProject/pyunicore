@@ -201,3 +201,92 @@ class IssueToken(Base):
         print(f"Issued by:    {payload['iss']}")
         print(f"Valid for:    {payload.get('aud', '<unlimited>')}")
         print(f"Renewable:    {payload.get('renewable', 'no')}")
+
+
+class REST(Base):
+    def add_command_args(self):
+        self.parser.prog = "unicore rest"
+        self.parser.description = self.get_synopsis()
+        self.parser.add_argument("command", help="Operation (GET, PUT, POST, DELETE)")
+        self.parser.add_argument("URL", help="Endpoint URL(s)", nargs="*")
+        self.parser.add_argument(
+            "-A",
+            "--accept",
+            required=False,
+            default="application/json",
+            help="Value for the 'Accept' header (default: 'application/json')",
+        )
+        self.parser.add_argument(
+            "-C",
+            "--content-type",
+            required=False,
+            default="application/json",
+            help="Value for the 'Content-Type' header (default: 'application/json')",
+        )
+        self.parser.add_argument(
+            "-i",
+            "--include",
+            required=False,
+            action="store_true",
+            help="Include the response headers in the output",
+        )
+        self.parser.add_argument("-D", "--data", required=False, help="JSON data for PUT/POST")
+
+    def get_synopsis(self):
+        return """Low-level REST API operations."""
+
+    def get_description(self):
+        return "perform a low-level REST API operation"
+
+    def get_group(self):
+        return "Utilities"
+
+    def run(self, args):
+        super().setup(args)
+        cmd = self.args.command
+        if not cmd:
+            raise ValueError("REST operation (GET, PUT, POST, DELETE) required.")
+        _headers = {"Accept": self.args.accept, "Content-Type": self.args.content_type}
+        for endpoint in self.args.URL:
+            self.verbose(f"HTTP {cmd} {endpoint}")
+            self.to_json = "application/json" in self.args.accept
+            tr = pyunicore.client.Transport(credential=self.credential, use_security_sessions=False)
+            if "GET".startswith(cmd.upper()):
+                response = tr.get(to_json=False, url=endpoint, headers=_headers)
+            elif "POST".startswith(cmd.upper()):
+                response = tr.post(url=endpoint, headers=_headers, data=self._read_data())
+            elif "PUT".startswith(cmd.upper()):
+                response = tr.put(url=endpoint, headers=_headers, data=self._read_data())
+            elif "DELETE".startswith(cmd.upper()):
+                response = tr.delete(url=endpoint)
+            else:
+                raise ValueError("Unsupported operation '%s'" % cmd)
+            if response:
+                self._print_response(response)
+
+    def _print_response(self, response, print_body=True):
+        print(f"HTTP/1.1 {response.status_code} {response.reason}")
+        if self.args.include:
+            self._print_headers(response)
+        if response.headers.get("Location"):
+            self._last_location = response.headers["Location"]
+            print(self._last_location)
+        if print_body and response.status_code not in [201, 204]:
+            if self.to_json:
+                print(json.dumps(response.json(), indent=2))
+            else:
+                print(response.content)
+
+    def _print_headers(self, response):
+        for h in response.headers:
+            print(f"{h}: {response.headers[h]}")
+
+    def _read_data(self):
+        if self.args.data:
+            d = self.args.data
+            if d.startswith("@"):
+                with open(d[1:]) as f:
+                    d = f.read()
+            return d
+        else:
+            return None

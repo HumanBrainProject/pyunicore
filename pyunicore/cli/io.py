@@ -102,7 +102,7 @@ class CP(IOBase):
                 have_stdout = True
                 target = os.fdopen(sys.stdout.fileno(), "wb", closefd=False)
             elif os.path.isdir(target_path):
-                target = normalized(target_path + "/" + os.path.basename(fname))
+                target = normalized(target_path + "/" + basename(fname))
             else:
                 target = target_path
             self.verbose(f"... {source_endpoint}/files{fname} -> {target}")
@@ -124,18 +124,42 @@ class CP(IOBase):
         target_endpoint, target_path = self.parse_location(self.args.target)
         for s in self.args.source:
             source_endpoint, source_path = self.parse_location(s)
-            if len(self.args.source) > 1:
-                target = target_path + "/" + basename(source_path)
-            else:
-                target = target_path
-                if target.endswith("/"):
-                    target = target + basename(source_path)
-                if target.endswith("."):
-                    target = target + "/" + basename(source_path)
             if source_endpoint is not None:
-                self._download(source_endpoint, source_path, target)
+                self._download(source_endpoint, source_path, target_path)
             else:
-                self._upload(source_path, target_endpoint, target)
+                self._upload(source_path, target_endpoint, target_path)
+
+
+class Cat(IOBase):
+    def add_command_args(self):
+        self.parser.prog = "unicore cat"
+        self.parser.description = self.get_synopsis()
+        self.parser.add_argument("source", nargs="+", help="Source(s)")
+
+    def get_synopsis(self):
+        return """Prints remote file(s) to standard output"""
+
+    def get_description(self):
+        return "cat remote files"
+
+    def _cat(self, source_endpoint, source_path):
+        storage = Storage(self.credential, storage_url=source_endpoint)
+        base_dir, file_pattern = split_path(source_path)
+        for fname in crawl_remote(storage, base_dir, file_pattern):
+            p = storage.stat(fname)
+            target = os.fdopen(sys.stdout.fileno(), "wb", closefd=False)
+            self.verbose(f"... {source_endpoint}/files{fname}")
+            p.download(target)
+            target.close()
+
+    def run(self, args):
+        super().setup(args)
+        for s in self.args.source:
+            source_endpoint, source_path = self.parse_location(s)
+            if source_endpoint is not None:
+                self._cat(source_endpoint, source_path)
+            else:
+                raise ValueError("Not a remote file: %s" % s)
 
 
 def normalized(path: str):

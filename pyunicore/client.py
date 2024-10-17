@@ -204,8 +204,8 @@ class Transport:
         return self.run_method(requests.post, **kwargs)
 
     def delete(self, **kwargs):
-        """send a DELETE to the current endpoint"""
-        self.run_method(requests.delete, **kwargs).close()
+        """send a DELETE to the current endpoint and return the response"""
+        return self.run_method(requests.delete, **kwargs)
 
 
 class Resource:
@@ -256,7 +256,7 @@ class Resource:
 
     def delete(self):
         """delete/destroy this resource"""
-        self.transport.delete(url=self.resource_url)
+        self.transport.delete(url=self.resource_url).close()
 
     def set_properties(self, props):
         """set/update resource properties"""
@@ -756,15 +756,15 @@ class Storage(Resource):
 
     def rmdir(self, name):
         """remove a directory and all its content"""
-        return self.transport.delete(url=self._to_file_url(name))
+        self.transport.delete(url=self._to_file_url(name)).close()
 
     def rm(self, name):
         """remove a file"""
-        return self.transport.delete(url=self._to_file_url(name))
+        self.transport.delete(url=self._to_file_url(name)).close()
 
     def makedirs(self, name):
         """create directory"""
-        return self.mkdir(name)
+        self.mkdir(name)
 
     def upload(self, file_name, destination=None):
         """upload local file "file_name" to the remote file "destination".
