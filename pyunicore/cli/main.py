@@ -5,7 +5,6 @@ import sys
 
 import pyunicore.cli.base
 import pyunicore.cli.exec
-import pyunicore.cli.info
 import pyunicore.cli.io
 
 _commands = {
