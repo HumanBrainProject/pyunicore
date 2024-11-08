@@ -1,4 +1,4 @@
-""" Exec and related commands """
+from __future__ import annotations
 
 import json
 
@@ -9,6 +9,7 @@ from pyunicore.client import JobStatus
 
 
 class JobExecutionBase(Base):
+    """Base class for job execution commands"""
 
     def add_command_args(self):
         self.parser.add_argument("-s", "--sitename", required=False, type=str, help="Site name")
@@ -80,6 +81,8 @@ class JobExecutionBase(Base):
 
 
 class Exec(JobExecutionBase):
+    """Execute a non batch command (i.e. on a login node)"""
+
     def add_command_args(self):
         super().add_command_args()
         self.parser.prog = "unicore exec"
@@ -131,6 +134,7 @@ class Exec(JobExecutionBase):
 
 
 class Run(JobExecutionBase):
+    """Run a UNICORE job"""
 
     def add_command_args(self):
         super().add_command_args()
@@ -174,6 +178,8 @@ class Run(JobExecutionBase):
 
 
 class ListJobs(Base):
+    """List UNICORE jobs"""
+
     def add_command_args(self):
         self.parser.prog = "unicore list-jobs"
         self.parser.description = self.get_synopsis()
@@ -224,6 +230,8 @@ class ListJobs(Base):
 
 
 class CancelJob(Base):
+    """Cancel a UNICORE job"""
+
     def add_command_args(self):
         self.parser.prog = "unicore cancel-job"
         self.parser.description = self.get_synopsis()
@@ -246,6 +254,10 @@ class CancelJob(Base):
 
 
 class GetJobStatus(Base):
+    """Get the status of a UNICORE job. Also, allow to wait for the job to reach
+    a certain state.
+    """
+
     def add_command_args(self):
         self.parser.prog = "unicore job-status"
         self.parser.description = self.get_synopsis()

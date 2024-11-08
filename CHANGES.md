@@ -3,11 +3,14 @@ Changelog for PyUNICORE
 
 Issue tracker: https://github.com/HumanBrainProject/pyunicore
 
-Version 1.2.0 (MMM dd, 2024)
+Version 1.2.0 (Nov 08, 2024)
 ----------------------------
+
  - UFTP FUSE driver: add '--read-only' option
  - New feature: commandline client script 'unicore' with a number
    of commands modeled after the 'ucc' commandline client
+ - fix: the Job.working_dir function was hanging in case the working
+   directory could not be created
 
 Version 1.1.1 (Oct 01, 2024)
 ----------------------------

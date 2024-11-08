@@ -1,5 +1,3 @@
-""" Base command class """
-
 from __future__ import annotations
 
 import argparse
@@ -122,6 +120,8 @@ class Base:
 
 
 class IssueToken(Base):
+    """Get an authentication token from a UNICORE server"""
+
     def add_command_args(self):
         self.parser.prog = "unicore issue-token"
         self.parser.description = self.get_synopsis()
@@ -204,6 +204,8 @@ class IssueToken(Base):
 
 
 class REST(Base):
+    """Low-level REST API operations (GET, PUT, POST, DELETE)"""
+
     def add_command_args(self):
         self.parser.prog = "unicore rest"
         self.parser.description = self.get_synopsis()

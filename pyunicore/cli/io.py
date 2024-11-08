@@ -1,4 +1,4 @@
-""" Storage-related commands """
+from __future__ import annotations
 
 import fnmatch
 import os
@@ -13,6 +13,7 @@ from pyunicore.client import Storage
 
 
 class IOBase(Base):
+    """Base class for storage related commands"""
 
     def get_group(self):
         return "Data management"
@@ -33,6 +34,8 @@ class IOBase(Base):
 
 
 class LS(IOBase):
+    """List remote directories"""
+
     def add_command_args(self):
         self.parser.prog = "unicore ls"
         self.parser.description = self.get_synopsis()
@@ -80,6 +83,8 @@ class LS(IOBase):
 
 
 class CP(IOBase):
+    """Copy file(s)"""
+
     def add_command_args(self):
         self.parser.prog = "unicore cp"
         self.parser.description = self.get_synopsis()
@@ -131,6 +136,8 @@ class CP(IOBase):
 
 
 class Cat(IOBase):
+    """Print a remote file to standard output"""
+
     def add_command_args(self):
         self.parser.prog = "unicore cat"
         self.parser.description = self.get_synopsis()
