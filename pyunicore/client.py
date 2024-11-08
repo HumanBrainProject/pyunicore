@@ -701,8 +701,10 @@ class Storage(Resource):
             if "INITIALIZING" == st:
                 time.sleep(1)
                 i += 1
-            if "ERROR" == st or (timeout > 0 and i > timeout):
-                raise OSError()
+            if "ERROR" == st:
+                raise OSError("Storage error")
+            if timeout > 0 and i > timeout:
+                raise OSError("Timeout waiting for Storage to become useable")
 
     def _to_file_url(self, path):
         return (
