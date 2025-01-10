@@ -39,41 +39,8 @@ Here is a basic example using username/password.
 The object returned by `connect()` is an `ftplib` `FTP` object.
 
 
-
-Using UFTP for PyFilesystem
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-You can create a `PyFilesystem <https://github.com/PyFilesystem/pyfilesystem2>`_
-`FS` object either directly in code, or implicitely via a URL.
-
-The convenient way is via URL:
-
-.. code:: python
-
-  from fs import open_fs
-  fs_url = "uftp://demouser:test123@localhost:9000/rest/auth/TEST:/data"
-  uftp_fs = open_fs(fs_url)
-
-
-The URL format is
-
-.. code:: console
-
-    uftp://[username]:[password]@[auth-server-url]:[base-directory]?[token=...][identity=...]
-
-
-The FS driver supports three types of authentication
-
-  * Username/Password - give `username` and `password`
-  * SSH Key - give `username` and the `identity` parameter,
-    where `identity` is the filename of a private key.
-    Specify the `password` if needed to load the private key
-  * Bearer token - give the token value via the `token` parameter
-
-
-
-Mounting remote filesystems via UFTP
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Mounting remote filesystems via UFTP and FUSE
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 PyUNICORE contains a FUSE driver based on `fusepy <https://pypi.org/project/fusepy>`_,
 allowing you to mount a remote filesystem via UFTP. Mounting is a two step process,
@@ -101,3 +68,54 @@ The following code example gives you the basic idea:
   # run the fuse driver
   fuse = uc_fuse.FUSE(
   uc_fuse.UFTPDriver(_host, _port, _password), _local_mount_dir, foreground=False, nothreads=True)
+
+
+Using UFTP for PyFilesystem
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+`PyFilesystem <https://github.com/PyFilesystem/pyfilesystem2>`_ is a virtual filesystem
+for Python supporting a variety of protocols.
+
+PyUNICORE contains two "drivers" that leverage UFTP.
+
+The first one accesses data directly via UFTP. You can create a PyFilesystem `FS`
+object either directly in code, or implicitely via a URL.
+The convenient way is via URL:
+
+.. code:: python
+
+  from fs import open_fs
+  fs_url = "uftp://demouser:test123@localhost:9000/rest/auth/TEST:/data"
+  uftp_fs = open_fs(fs_url)
+
+
+The URL format is
+
+.. code:: console
+
+    uftp://[username]:[password]@[auth-server-url]:[base-directory]?[token=...][identity=...]
+
+
+The FS driver supports three types of authentication
+
+  * Username/Password - give `username` and `password`
+  * SSH Key - give `username` and the `identity` parameter,
+    where `identity` is the filename of a private key.
+    Specify the `password` if needed to load the private key
+  * Bearer token - give the token value via the `token` parameter
+
+The `base-directory` parameter denotes the remote directory that is to be accessed.
+
+The second driver mounts the remote filesystem via FUSE, and then accesses
+data "locally". The URL format is
+
+.. code:: console
+
+    uftpmount://[username]:[password]@[auth-server-url]:[base-directory==mount-directory]?[token=...][identity=...]
+
+with the same authentication options as before.
+
+The mount directory is given
+
+The `base-directory==mount-directory` parameter denotes the remote directory that is to be accessed,
+as well as the local directory where it should be mounted.

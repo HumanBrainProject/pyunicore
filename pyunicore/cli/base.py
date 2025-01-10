@@ -83,10 +83,15 @@ class Base:
 
     def create_credential(self):
         auth_method = self.config.get("authentication-method", "USERNAME").upper()
-        if "USERNAME" == auth_method:
+        if "OIDC-AGENT" == auth_method:
+            account_name = self.config.get("oidc-agent.account")
+            self.credential = pyunicore.credentials.OIDCAgentToken(account_name)
+        elif "USERNAME" == auth_method:
             username = self.config["username"]
             password = self._get_password()
-        self.credential = pyunicore.credentials.create_credential(username, password)
+            self.credential = pyunicore.credentials.create_credential(username, password)
+        elif "ANONYMOUS" == auth_method:
+            self.credential = pyunicore.credentials.Anonymous()
 
     def _get_password(self, key="password") -> str:
         password = self.config.get(key)

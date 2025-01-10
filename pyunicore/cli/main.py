@@ -5,6 +5,7 @@ import sys
 
 import pyunicore.cli.base
 import pyunicore.cli.exec
+import pyunicore.cli.info
 import pyunicore.cli.io
 
 _commands = {
@@ -12,6 +13,7 @@ _commands = {
     "cat": pyunicore.cli.io.Cat,
     "cp": pyunicore.cli.io.CP,
     "exec": pyunicore.cli.exec.Exec,
+    "info": pyunicore.cli.info.Info,
     "issue-token": pyunicore.cli.base.IssueToken,
     "job-status": pyunicore.cli.exec.GetJobStatus,
     "list-jobs": pyunicore.cli.exec.ListJobs,

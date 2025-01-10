@@ -10,9 +10,12 @@ except ImportError:
     pass
 
 import datetime
+import json
+import socket
 from abc import ABCMeta
 from abc import abstractmethod
 from base64 import b64encode
+from os import environ
 from os import getenv
 from os.path import isabs
 
@@ -200,6 +203,44 @@ class JWTToken(Credential):
 
     def get_auth_header(self):
         return "Bearer " + self.create_token()
+
+
+class OIDCAgentToken(OIDCToken):
+    """
+    Produces a header value "Bearer <auth_token>"
+
+    Args:
+        token: the value of the auth token
+        refresh_handler: optional refresh handler that provides a get_token() method which
+                         will be invoked to refresh the bearer token
+    """
+
+    def __init__(self, account_name):
+        super().__init__(token=None, refresh_handler=None)
+        self.account = account_name
+        self.token = self.get_token()
+
+    def get_token(self) -> str:
+        params = {}
+        params["account"] = self.account
+        params["request"] = "access_token"
+        # TODO: params["scope"] = ...
+        try:
+            socket_path = environ.get("OIDC_SOCK")
+        except KeyError:
+            raise OSError("OIDC Agent not running (environment variable OIDC_SOCK not found)")
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
+            sock.connect(socket_path)
+            sock.sendall(json.dumps(params).encode("utf-8"))
+            res = b""
+            while True:
+                part = sock.recv(4096)
+                res += part
+                if len(part) < 4096:
+                    break
+            reply = json.loads(res.decode("utf-8"))
+            if "success" == reply.get("status", None):
+                return reply["access_token"]
 
 
 def create_credential(username=None, password=None, token=None, identity=None):
