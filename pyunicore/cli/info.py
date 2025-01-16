@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from pyunicore.cli.base import Base
 from pyunicore.client import Resource
 
@@ -20,6 +22,9 @@ class Info(Base):
             "-l", "--long", required=False, action="store_true", help="Show detailed info"
         )
 
+    def _require_registry(self):
+        return True
+
     def get_synopsis(self):
         return """Show information about endpoint(s). If no explicit endpoints are given,
         the endpoints in the registry are used. The optional pattern allows to limit which
@@ -39,13 +44,18 @@ class Info(Base):
             endpoints = self.args.URL
 
         for url in endpoints:
+            if self.args.pattern:
+                if not re.match(self.args.pattern, url):
+                    continue
             c = Resource(self.credential, resource_url=url)
             self.show_endpoint_details(c)
 
     def show_endpoint_details(self, ep: Resource):
         print(ep.resource_url)
-        if "/rest/core" in ep.resource_url:
+        if ep.resource_url.endswith("/rest/core"):
             self._show_details_core(ep)
+        elif "/rest/core/storages/" in ep.resource_url:
+            self._show_details_storage(ep)
         else:
             print(" * no further details available.")
 
@@ -65,3 +75,8 @@ class Info(Base):
         roles = props["client"]["role"].get("availableRoles", [])
         if len(roles) > 0:
             print(f" * available roles: {roles}")
+
+    def _show_details_storage(self, ep: Resource):
+        props = ep.properties
+        print(f" * mount point: {props['mountPoint']}")
+        print(f" * free space : {int(props['freeSpace']/1024/1024)} MB")

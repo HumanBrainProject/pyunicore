@@ -55,8 +55,8 @@ class TestCredentials(unittest.TestCase):
         self.assertEqual(header_val, transport._headers({})["Authorization"])
 
 
-class MockRefresh:
-    def get_token(self):
+class MockRefresh(uc_credentials.RefreshHandler):
+    def refresh_token(self):
         return "foobar"
 
 

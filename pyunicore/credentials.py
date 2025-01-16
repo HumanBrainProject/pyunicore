@@ -10,18 +10,19 @@ except ImportError:
     pass
 
 import datetime
+import getpass
 import json
 import socket
 from abc import ABCMeta
 from abc import abstractmethod
 from base64 import b64encode
+from contextlib import closing
 from os import environ
 from os import getenv
 from os.path import isabs
+from os.path import isfile
 
 import requests
-from jwt import ExpiredSignatureError
-from jwt import decode as jwt_decode
 from jwt import encode as jwt_encode
 
 
@@ -42,96 +43,13 @@ class Credential:
         ...
 
 
-class UsernamePassword(Credential):
+class Anonymous(Credential):
     """
-    Produces a HTTP Basic authorization header value
-
-    Args:
-        username: the username
-        password: the password
+    Produces no header - anonymous access
     """
-
-    def __init__(self, username, password):
-        self.username = username
-        self.password = password
 
     def get_auth_header(self):
-        t = f"{self.username}:{self.password}"
-        return "Basic " + b64encode(bytes(t, "ascii")).decode("ascii")
-
-
-class OIDCToken(Credential):
-    """
-    Produces a header value "Bearer <auth_token>"
-
-    Args:
-        token: the value of the auth token
-        refresh_handler: optional refresh handler that provides a get_token() method which
-                         will be invoked to refresh the bearer token
-    """
-
-    def __init__(self, token, refresh_handler=None):
-        self.token = token
-        self.refresh_handler = refresh_handler
-
-    def get_auth_header(self):
-        if self.refresh_handler is not None:
-            self.token = self.refresh_handler.get_token()
-        return "Bearer " + self.token
-
-
-class RefreshHandler:
-    """helper to refresh an OAuth token"""
-
-    def __init__(self, refresh_config, token=None):
-        """
-        token: initial access token (can be None)
-        refresh_config: a dict containing url, client_id, client_secret, refresh_token
-        """
-        self.refresh_config = refresh_config
-        self.token = token
-        if not token:
-            self.refresh()
-
-    def is_valid_token(self):
-        """
-        check if the given token is still valid
-        TODO check whether token was revoked
-        """
-        try:
-            jwt_decode(
-                self.token,
-                options={
-                    "verify_signature": False,
-                    "verify_nbf": False,
-                    "verify_exp": True,
-                    "verify_aud": False,
-                },
-            )
-            return True
-        except ExpiredSignatureError:
-            return False
-
-    def refresh(self):
-        """refresh the token"""
-        params = dict(
-            client_id=self.refresh_config["client_id"],
-            client_secret=self.refresh_config["client_secret"],
-            refresh_token=self.refresh_config["refresh_token"],
-            grant_type="refresh_token",
-        )
-        url = "%stoken" % self.refresh_config["url"]
-
-        res = requests.post(url, headers={"Accept": "application/json"}, data=params)
-        res.raise_for_status()
-        self.token = res.json()["access_token"]
-        return self.token
-
-    def get_token(self):
-        """get a valid access token. If necessary, refresh it."""
-        if not self.is_valid_token():
-            self.refresh()
-        return self.token
+        return None
 
 
 class BasicToken(Credential):
@@ -146,22 +64,79 @@ class BasicToken(Credential):
         self.token = token
 
     def get_auth_header(self):
-        return "Basic " + self.token
+        return "Basic " + self.get_token()
+
+    def get_token(self):
+        return self.token
 
 
-class Anonymous(Credential):
+class BearerToken(Credential):
     """
-    Produces no header - anonymous access
+    Produces a header value "Basic <auth_token>"
+
+    Args:
+        token: the value of the auth token
     """
+
+    def __init__(self, token):
+        self.token = token
 
     def get_auth_header(self):
-        return None
+        return "Bearer " + self.get_token()
+
+    def get_token(self):
+        return self.token
 
 
-class JWTToken(Credential):
+class UsernamePassword(BasicToken):
+    """
+    Produces a HTTP Basic authorization header value from
+    the given username and password
+
+    Args:
+        username: the username
+        password: the password
+    """
+
+    def __init__(self, username, password):
+        self.username = username
+        self.token = b64encode(bytes(f"{username}:{password}", "ascii")).decode("ascii")
+
+
+class RefreshHandler:
+    """helper to refresh an OAuth token"""
+
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def refresh_token(self):
+        """returns a valid access token (refreshing it if necessary)"""
+        ...
+
+
+class OIDCToken(BearerToken):
+    """
+    Produces a header value "Bearer <auth_token>"
+
+    Args:
+        token: the (intial) value of the access token
+        refresh_handler: optional refresh handler that provides a refresh_token()
+                         method which will be invoked to refresh the bearer token
+    """
+
+    def __init__(self, token: str, refresh_handler: RefreshHandler = None):
+        super().__init__(token)
+        self.refresh_handler = refresh_handler
+
+    def get_token(self):
+        if self.refresh_handler is not None:
+            self.token = self.refresh_handler.refresh_token()
+        return self.token
+
+
+class JWTToken(BearerToken):
     """
     Produces a signed JWT token ("Bearer <auth_token>")
-    uses pyjwt
 
     Args:
         subject - the subject user name or user X.500 DN
@@ -190,7 +165,7 @@ class JWTToken(Credential):
         self.secret = secret
         self.etd = etd
 
-    def create_token(self):
+    def get_token(self):
         now = datetime.datetime.now(tz=datetime.timezone.utc)
         payload = {
             "etd": str(self.etd).lower(),
@@ -199,32 +174,26 @@ class JWTToken(Credential):
             "iat": now,
             "exp": now + datetime.timedelta(seconds=self.lifetime),
         }
-        return jwt_encode(payload, self.secret, algorithm=self.algorithm)
-
-    def get_auth_header(self):
-        return "Bearer " + self.create_token()
+        self.token = jwt_encode(payload, self.secret, algorithm=self.algorithm)
+        return self.token
 
 
 class OIDCAgentToken(OIDCToken):
     """
     Produces a header value "Bearer <auth_token>"
+    The token is retrieved from a running oidc-agent
+    (https://indigo-dc.gitbook.io/oidc-agent)
 
     Args:
-        token: the value of the auth token
-        refresh_handler: optional refresh handler that provides a get_token() method which
-                         will be invoked to refresh the bearer token
+        account_name: the account to use
     """
 
     def __init__(self, account_name):
         super().__init__(token=None, refresh_handler=None)
         self.account = account_name
-        self.token = self.get_token()
 
     def get_token(self) -> str:
-        params = {}
-        params["account"] = self.account
-        params["request"] = "access_token"
-        # TODO: params["scope"] = ...
+        params = dict(account=self.account, request="access_token")
         try:
             socket_path = environ.get("OIDC_SOCK")
         except KeyError:
@@ -240,7 +209,119 @@ class OIDCAgentToken(OIDCToken):
                     break
             reply = json.loads(res.decode("utf-8"))
             if "success" == reply.get("status", None):
-                return reply["access_token"]
+                self.token = reply["access_token"]
+        return self.token
+
+
+class OIDCServerToken(OIDCToken):
+    """
+    Produces a header value "Bearer <auth_token>"
+    The token is retrieved from an OIDC server (e.g. Keycloak)
+
+    Args:
+        config: dictionary with configuration items
+
+        oidc.endpoint: OIDC token endpoint
+        oidc.username: username
+        oidc.password: password. If not set, it will be queried via getpass
+        oidc.otp: OTP value for 2FA. If set to 'QUERY', it will be queried via getpass
+        oidc.grantType: OIDC grant type (default: 'password')
+        oidc.scope: OIDC scope (default: 'openid')
+        oidc.storeRefreshToken: whether to store the refresh token (default: 'true')
+        oidc.refreshTokenFile: file name for refresh tokens (default: '$HOME/.ucc/refresh-tokens')
+    """
+
+    def __init__(self, config: dict):
+        super().__init__(token=None, refresh_handler=None)
+        self.config = config
+        self.refresh_token = None
+        self.load_refresh_token()
+
+    def get_token(self) -> str:
+        self.check_refresh()
+        if self.token is not None:
+            return self.token
+        username = self.config["oidc.username"]
+        password = self.config.get("oidc.password")
+        if password is None:
+            password = getpass.getpass("OIDC server password for '%s': " % username)
+        params = dict(
+            grant_type=self.config.get("oidc.grantType", "password"),
+            username=username,
+            password=password,
+            scope=self.config.get("oidc.scope", "openid"),
+        )
+        otp = self.config.get("oidc.otp")
+        if otp == "QUERY":
+            otp = getpass.getpass("OTP: ")
+        if otp is not None:
+            params["otp"] = otp
+        response = self._execute_call(params)
+        self._handle_response(response)
+        return self.token
+
+    def check_refresh(self):
+        if self.refresh_token is None:
+            return
+        params = dict(grant_type="refresh_token", refresh_token=self.refresh_token)
+        try:
+            response = self._execute_call(params)
+            self._handle_response(response)
+        except requests.HTTPError:
+            pass
+
+    def load_refresh_token(self):
+        """if available, use the refresh token"""
+        if not self.config.get("oidc.storeRefreshToken", True):
+            return
+        token_filename = self.config.get("oidc.refreshTokenFile")
+        if token_filename is None:
+            token_filename = environ.get("HOME") + ".ucc/refresh-tokens"
+        refresh_tokens = {}
+        if isfile(token_filename):
+            with open(token_filename) as f:
+                refresh_tokens = json.load(f)
+                endpoint = self.config["oidc.endpoint"]
+                ep_info = refresh_tokens.get(endpoint)
+                if ep_info is not None:
+                    self.refresh_token = ep_info.get("refresh_token")
+        return refresh_tokens
+
+    def store_refresh_token(self):
+        """store the refresh token"""
+        if not self.config.get("oidc.storeRefreshToken", True):
+            return
+        if self.refresh_token is None:
+            return
+        token_filename = self.config.get("oidc.refreshTokenFile")
+        if token_filename is None:
+            token_filename = environ.get("HOME") + ".ucc/refresh-tokens"
+        refresh_tokens = self.load_refresh_token()
+        endpoint = self.config["oidc.endpoint"]
+        refresh_tokens[endpoint] = {"refresh_token": self.refresh_token}
+        with open(token_filename, "w") as f:
+            f.write(json.dumps(refresh_tokens))
+
+    def _execute_call(self, params):
+        endpoint = self.config["oidc.endpoint"]
+        auth: Credential = None
+        auth_mode = self.config.get("oidc.authentication", "POST").upper()
+        if auth_mode == "POST":
+            params["client_id"] = self.config["oidc.clientID"]
+            params["client_secret"] = self.config["oidc.clientSecret"]
+        else:
+            auth = UsernamePassword(self.config["oidc.clientID"], self.config["oidc.clientSecret"])
+        headers = {}
+        if auth is not None:
+            headers["Authorization"] = auth.get_auth_header()
+        with closing(requests.post(endpoint, data=params, headers=headers)) as response:
+            response.raise_for_status()
+            return response.json()
+
+    def _handle_response(self, response: dict):
+        self.refresh_token = response.get("refresh_token")
+        self.store_refresh_token()
+        self.token = response.get("access_token")
 
 
 def create_credential(username=None, password=None, token=None, identity=None):

@@ -20,7 +20,6 @@ class TestUFTPFS(unittest.TestCase):
         parse_result = P()
         cred = UFTPOpener()._create_credential(parse_result)
         self.assertEqual(cred.username, "demouser")
-        self.assertEqual(cred.password, "test123")
 
     def test_credential_token(self):
         print("*** test_credential_token")

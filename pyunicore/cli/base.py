@@ -86,6 +86,8 @@ class Base:
         if "OIDC-AGENT" == auth_method:
             account_name = self.config.get("oidc-agent.account")
             self.credential = pyunicore.credentials.OIDCAgentToken(account_name)
+        elif "OIDC-SERVER" == auth_method:
+            self.credential = pyunicore.credentials.OIDCServerToken(self.config)
         elif "USERNAME" == auth_method:
             username = self.config["username"]
             password = self._get_password()
@@ -104,10 +106,11 @@ class Base:
                 password = _p
         return password
 
+    def _require_registry(self) -> bool:
+        return self.config.get("contact-registry", True)
+
     def create_registry(self) -> pyunicore.client.Registry | None:
-        self.create_credential()
-        self.contact_registry = self.config.get("contact-registry", True)
-        if self.contact_registry:
+        if self._require_registry():
             return pyunicore.client.Registry(self.credential, self.config["registry"])
         else:
             return None

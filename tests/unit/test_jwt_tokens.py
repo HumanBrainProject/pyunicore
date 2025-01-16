@@ -16,7 +16,7 @@ class TestJWTCredentials(unittest.TestCase):
             algorithm="HS256",
             etd=True,
         )
-        print(credential.create_token())
+        print(credential.get_token())
 
 
 if __name__ == "__main__":
