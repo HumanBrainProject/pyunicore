@@ -54,8 +54,8 @@ The following code example gives you the basic idea:
 
   import pyunicore.client as uc_client
   import pyunicore.credentials as uc_credentials
-  import pyunicore.uftp as uc_uftp
-  import pyunicore.uftpfuse as uc_fuse
+  import pyunicore.uftp.uftp as uc_uftp
+  import pyunicore.uftp.uftpfuse as uc_fuse
 
   _auth = "https://localhost:9000/rest/auth/TEST"
   _base_dir = "/opt/shared-data"

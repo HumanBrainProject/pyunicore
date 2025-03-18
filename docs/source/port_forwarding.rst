@@ -19,11 +19,12 @@ Here is an example for a command line tool invocation:
   REMOTE_PORT=8000
   python3 -m pyunicore.forwarder --token <your_auth_token> \
      -L $LOCAL_PORT \
-     $JOB_URL/forward-port?port=REMOTE_PORT \
+     $JOB_URL/forward-port?port=$REMOTE_PORT \
 
 
 Your application can now connect to ``localhost:4322`` but all traffic
-will be forwarded to port 8000 on the login node.
+will be forwarded to port 8000 on the HPC login node where your application
+is running.
 
 See
 
@@ -32,3 +33,15 @@ See
   python3 -m pyunicore.forwarder --help
 
 for all options.
+
+If you want to tunnel to a compute node, you need to specify the compute node in your command line:
+
+.. code:: console
+
+  LOCAL_PORT=4322
+  JOB_URL=https://localhost:8080/DEMO-SITE/rest/core/jobs/some_job_id
+  REMOTE_PORT=8000
+  COMPUTE_NODE=cnode1234
+  python3 -m pyunicore.forwarder --token <your_auth_token> \
+     -L $LOCAL_PORT \
+     $JOB_URL/forward-port?port=$REMOTE_PORT?host=$COMPUTE_NODE \
