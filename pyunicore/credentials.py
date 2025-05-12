@@ -72,7 +72,7 @@ class BasicToken(Credential):
 
 class BearerToken(Credential):
     """
-    Produces a header value "Basic <auth_token>"
+    Produces a header value "Bearer <auth_token>"
 
     Args:
         token: the value of the auth token

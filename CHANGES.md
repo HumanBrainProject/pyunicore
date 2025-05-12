@@ -3,7 +3,7 @@ Changelog for PyUNICORE
 
 Issue tracker: https://github.com/HumanBrainProject/pyunicore
 
-Version 1.3.0 (mmm dd, 2025)
+Version 1.3.0 (May 12, 2025)
 ----------------------------
  - new feature: CLI: implemented more authentication options
    (oidc-agent, oidc-server, anonymous)

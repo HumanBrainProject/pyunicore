@@ -38,11 +38,11 @@ class UFTPMOUNTFS(OSFS):
 
     def __init__(self, auth_url, creds, base_path="/", mount_dir="./uftp_mount"):
         """Creates a new UFTP FS instance authenticating using the given URL and credentials"""
-        self.host, self.port, uftp_password = UFTP().authenticate(creds, auth_url, base_path)
+        self.host, self.port, self.uftp_password = UFTP().authenticate(creds, auth_url, base_path)
         self.base_path = base_path
         self.mount_dir = mount_dir
         self._ensure_unmount()
-        self._run_fusedriver(uftp_password)
+        self._run_fusedriver(self.uftp_password)
         super().__init__(mount_dir)
 
     def close(self):

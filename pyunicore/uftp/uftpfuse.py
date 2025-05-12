@@ -87,16 +87,18 @@ class UFTPDriver(Operations):
         self.host = host
         self.port = port
         self.password = password
-        self.uftp_session = self.new_session()
         self.last_file = None
         self.file_map = {}
         self.next_file_handle = 0
         self.debug = debug
         self.read_only = read_only
+        self.uftp_session = self.new_session()
 
     def new_session(self):
         uftp_session = UFTP()
         uftp_session.open_uftp_session(self.host, self.port, self.password)
+        if self.debug:
+            print("UFTP session initialised.")
         return uftp_session
 
     def chmod(self, path, mode):
@@ -229,9 +231,20 @@ def main():
         help="read-only mode, prevents writes, renames, etc",
     )
     parser.add_argument(
+        "-f",
+        "--foreground",
+        action="store_true",
+        help="run fusedriver in foreground",
+    )
+    parser.add_argument(
         "-P",
         "--password",
         help="one-time password (if not given, it is expected in the environment UFTP_PASSWORD)",
+    )
+    parser.add_argument(
+        "-o",
+        "--fuse-options",
+        help="additional options (key1=value1,key2=value2,...) for fusepy",
     )
     parser.add_argument("address", help="UFTPD server's address (host:port)")
     parser.add_argument(
@@ -248,17 +261,26 @@ def main():
             "UFTP one-time password must be given with '-P ...' or as environment UFTP_PASSWORD"
         )
     _host, _port = args.address.split(":")
-
+    foreground = args.foreground or args.debug
+    extra_opts = _parse_args(args.fuse_options)
+    driver = UFTPDriver(_host, int(_port), _pwd, debug=args.debug, read_only=args.read_only)
     FUSE(
-        UFTPDriver(_host, int(_port), _pwd, debug=args.debug, read_only=args.read_only),
+        driver,
         args.mount_point,
         debug=args.debug,
-        foreground=args.debug,
+        foreground=foreground,
         nothreads=True,
-        big_writes=True,
-        max_read=131072,
-        max_write=131072,
+        **extra_opts,
     )
+
+
+def _parse_args(args: str) -> dict:
+    result = {}
+    if args:
+        for opt in args.split(","):
+            kv = opt.split("=")
+            result[kv[0]] = kv[1]
+    return result
 
 
 if __name__ == "__main__":
