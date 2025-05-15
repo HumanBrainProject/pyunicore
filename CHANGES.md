@@ -3,6 +3,11 @@ Changelog for PyUNICORE
 
 Issue tracker: https://github.com/HumanBrainProject/pyunicore
 
+
+Version 1.3.1 (May 15, 2025)
+----------------------------
+ - fix: allow single-valued extra options for the FUSE driver
+
 Version 1.3.0 (May 12, 2025)
 ----------------------------
  - new feature: CLI: implemented more authentication options

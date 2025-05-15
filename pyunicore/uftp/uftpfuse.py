@@ -278,7 +278,7 @@ def _parse_args(args: str) -> dict:
     result = {}
     if args:
         for opt in args.split(","):
-            kv = opt.split("=")
+            kv = opt.split("=") if "=" in opt else [opt, True]
             result[kv[0]] = kv[1]
     return result
 
