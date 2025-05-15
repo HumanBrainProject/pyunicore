@@ -35,7 +35,7 @@ class UFTP:
         self.ftp.connect(host, port)
         self.ftp.login("anonymous", password)
 
-    def authenticate(self, security, base_url, base_dir=""):
+    def authenticate(self, security, base_url, base_dir="", preferences=None, persistent=True):
         """authenticate to the auth server and return a tuple (host, port, one-time-password)"""
         if isinstance(security, Credential):
             transport = Transport(security)
@@ -45,10 +45,13 @@ class UFTP:
             raise TypeError("Need Credential or Transport object")
         if base_dir != "" and not base_dir.endswith("/"):
             base_dir += "/"
+        if preferences is not None:
+            transport.preferences = preferences
         req = {
-            "persistent": "true",
             "serverPath": base_dir + self.uftp_session_tag,
         }
+        if persistent:
+            req["persistent"] = "true"
         params = transport.post(url=base_url, json=req).json()
         return params["serverHost"], params["serverPort"], params["secret"]
 
