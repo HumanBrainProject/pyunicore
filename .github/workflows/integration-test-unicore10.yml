@@ -15,7 +15,7 @@ jobs:
 
     services:
       unicore:
-        image: ghcr.io/unicore-eu/unicore-testing-all:10.0.0
+        image: ghcr.io/unicore-eu/unicore-testing-all:10.2.0
         ports:
           - 8080:8080
 
