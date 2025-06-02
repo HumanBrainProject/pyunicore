@@ -3,10 +3,14 @@ Changelog for PyUNICORE
 
 Issue tracker: https://github.com/HumanBrainProject/pyunicore
 
+Version 1.3.3 (June 2, 2025)
+----------------------------
+ - fix: UFTPFS: add workaround for bug in base class FTPFS
+
 Version 1.3.2 (May 15, 2025)
 ----------------------------
  - fix: add "preferences" and "persistent" options to the
-   UFTP.autheticate() function
+   UFTP.authenticate() function
 
 
 Version 1.3.1 (May 15, 2025)

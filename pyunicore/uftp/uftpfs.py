@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from os import getenv
 
 from fs.ftpfs import FTPFS
@@ -49,10 +50,13 @@ class UFTPFS(FTPFS):
         return False
 
     def validatepath(self, path):
-        path = super().validatepath(path)
-        if path.startswith("/"):
-            path = "./" + path
-        return path
+        _p = "." + super().validatepath(path)
+        print(f"validatepath: {path}->{_p}")
+        return _p
+
+    # work around for bug in FPTFS - _read_dir() should never be used
+    def _read_dir(self, path):
+        return OrderedDict({})
 
     def __repr__(self):
         return f"UFTPFS({self.host!r}, port={self.port!r}), base_path={self.base_path!r}"
@@ -98,5 +102,6 @@ class UFTPOpener(Opener):
 
     def open_fs(self, fs_url, parse_result, writeable, create, cwd):
         auth_url, base_dir = self._parse(parse_result.resource)
+        print("Base dir: ", base_dir)
         cred = self._create_credential(parse_result)
         return UFTPFS(auth_url, cred, base_dir)
