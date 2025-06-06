@@ -54,13 +54,14 @@ class Info(Base):
         print(ep.resource_url)
         if ep.resource_url.endswith("/rest/core"):
             self._show_details_core(ep)
-        elif "/rest/core/storages/" in ep.resource_url:
+        elif re.match(".*/rest/core/storages/.+", ep.resource_url):
             self._show_details_storage(ep)
         else:
             print(" * no further details available.")
 
     def _show_details_core(self, ep: Resource):
         props = ep.properties
+        print(" * type: UNICORE/X base")
         print(f" * server v{props['server']['version']}")
         xlogin = props["client"]["xlogin"]
         role = props["client"]["role"]["selected"]
@@ -78,5 +79,9 @@ class Info(Base):
 
     def _show_details_storage(self, ep: Resource):
         props = ep.properties
+        t = "storage"
+        if ep.resource_url.endswith("-uspace"):
+            t = t + " (job directory)"
+        print(f" * type: {t}")
         print(f" * mount point: {props['mountPoint']}")
         print(f" * free space : {int(props['freeSpace']/1024/1024)} MB")

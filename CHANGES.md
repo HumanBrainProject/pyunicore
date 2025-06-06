@@ -3,6 +3,10 @@ Changelog for PyUNICORE
 
 Issue tracker: https://github.com/HumanBrainProject/pyunicore
 
+Version 1.4.0 (MMM dd, 2025)
+----------------------------
+ - CLI: implement server-to-server transfers
+
 Version 1.3.3 (June 2, 2025)
 ----------------------------
  - fix: UFTPFS: add workaround for bug in base class FTPFS

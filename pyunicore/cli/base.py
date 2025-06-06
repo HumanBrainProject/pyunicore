@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import getpass
 import json
-import os.path
+import os
 from base64 import b64decode
 
 import pyunicore.client
@@ -275,7 +275,6 @@ class REST(Base):
                 self._print_response(response)
 
     def _print_response(self, response, print_body=True):
-        print(f"HTTP/1.1 {response.status_code} {response.reason}")
         if self.args.include:
             self._print_headers(response)
         if response.headers.get("Location"):
@@ -288,6 +287,7 @@ class REST(Base):
                 print(response.content)
 
     def _print_headers(self, response):
+        print(f"HTTP/1.1 {response.status_code} {response.reason}")
         for h in response.headers:
             print(f"{h}: {response.headers[h]}")
 

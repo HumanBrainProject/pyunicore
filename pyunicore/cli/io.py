@@ -6,10 +6,12 @@ import pathlib
 import re
 import sys
 from os.path import basename
+from urllib.parse import urlparse
 
 from pyunicore.cli.base import Base
 from pyunicore.client import PathFile
 from pyunicore.client import Storage
+from pyunicore.client import Transfer
 
 
 class IOBase(Base):
@@ -90,6 +92,20 @@ class CP(IOBase):
         self.parser.description = self.get_synopsis()
         self.parser.add_argument("source", nargs="+", help="Source(s)")
         self.parser.add_argument("target", help="Target")
+        self.parser.add_argument(
+            "-E",
+            "--extra-parameters",
+            required=False,
+            type=str,
+            help="Additional settings for the transfer (key1=val1,key2=val2)",
+        )
+        self.parser.add_argument(
+            "-a",
+            "--asynchronous",
+            required=False,
+            action="store_true",
+            help="(server-server only) Asynchronous mode, don't wait for transfer to finish",
+        )
 
     def get_synopsis(self):
         return """Copy files from/to local or UNICORE storages"""
@@ -124,15 +140,61 @@ class CP(IOBase):
         self.verbose(f"... {source_path} -> {target_endpoint}/files{target}")
         storage.upload(source_path, destination=target)
 
+    def _stage_in(self, source_url, target_endpoint, target_path, params={}):
+        storage = Storage(self.credential, storage_url=target_endpoint)
+        if target_path.endswith("/"):
+            source_path = urlparse(source_url).path
+            target = normalized(target_path + os.path.basename(source_path))
+        else:
+            target = normalized(target_path)
+        self.verbose(f"... {source_url} -> {target_endpoint}: {target}")
+        return storage.receive_file(
+            remote_url=source_url, file_name=target, additional_parameters=params
+        )
+
+    def _stage_out(self, source_endpoint, source_path, target_url, params={}):
+        storage = Storage(self.credential, storage_url=source_endpoint)
+        self.verbose(f"... {source_endpoint}: {source_path} -> {target_url}")
+        return storage.send_file(
+            remote_url=target_url, file_name=source_path, additional_parameters=params
+        )
+
+    def _is_remote(self, location):
+        return re.match(r"([-a-z0-9]*:)?(http[s]?)?://(.*)", location.lower()) is not None
+
+    def _parse_extra_params(self, param_spec: str):
+        res = {}
+        if param_spec:
+            for kv in param_spec.split(","):
+                k, v = kv.split("=", 1)
+                res[k] = v
+        return res
+
     def run(self, args):
         super().setup(args)
+        params = self._parse_extra_params(self.args.extra_parameters)
         target_endpoint, target_path = self.parse_location(self.args.target)
+        controller: Transfer = None
         for s in self.args.source:
             source_endpoint, source_path = self.parse_location(s)
             if source_endpoint is not None:
-                self._download(source_endpoint, source_path, target_path)
+                if self._is_remote(self.args.target):
+                    controller = self._stage_out(
+                        source_endpoint, source_path, self.args.target, params
+                    )
+                else:
+                    self._download(source_endpoint, source_path, target_path)
+            elif target_endpoint is not None:
+                if self._is_remote(s):
+                    controller = self._stage_in(s, target_endpoint, target_path, params)
             else:
-                self._upload(source_path, target_endpoint, target_path)
+                print(f"Cannot process: {s}->{self.args.target}")
+        if controller:
+            if self.args.asynchronous:
+                print(controller.resource_url)
+            else:
+                self.verbose(f"Waiting for transfer {controller.resource_url} to finish...")
+                controller.poll()
 
 
 class Cat(IOBase):
@@ -166,7 +228,7 @@ class Cat(IOBase):
             if source_endpoint is not None:
                 self._cat(source_endpoint, source_path)
             else:
-                raise ValueError("Not a remote file: %s" % s)
+                raise ValueError("Not a remote UNICORE file: %s" % s)
 
 
 def normalized(path: str):
