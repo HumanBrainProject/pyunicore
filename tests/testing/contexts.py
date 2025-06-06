@@ -1,14 +1,12 @@
 import contextlib
 from typing import Any
-from typing import Union
 
-import _pytest.python_api  # type: ignore
 import pytest  # type: ignore
 
 
 def expect_raise_if_exception(
     expected: Any,
-) -> Union[_pytest.python_api.RaisesContext, contextlib.AbstractContextManager]:
+):
     """Create a context that expects a raised exception or no raised exception.
 
     Args:
