@@ -3,9 +3,10 @@ Changelog for PyUNICORE
 
 Issue tracker: https://github.com/HumanBrainProject/pyunicore
 
-Version 1.4.0 (MMM dd, 2025)
-----------------------------
+Version 1.3.4 (Jul 3, 2025)
+---------------------------
  - CLI: implement server-to-server transfers
+ - uftpfs: remove debug print statement
 
 Version 1.3.3 (June 2, 2025)
 ----------------------------

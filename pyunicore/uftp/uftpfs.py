@@ -50,9 +50,7 @@ class UFTPFS(FTPFS):
         return False
 
     def validatepath(self, path):
-        _p = "." + super().validatepath(path)
-        print(f"validatepath: {path}->{_p}")
-        return _p
+        return "." + super().validatepath(path)
 
     # work around for bug in FPTFS - _read_dir() should never be used
     def _read_dir(self, path):
@@ -102,6 +100,5 @@ class UFTPOpener(Opener):
 
     def open_fs(self, fs_url, parse_result, writeable, create, cwd):
         auth_url, base_dir = self._parse(parse_result.resource)
-        print("Base dir: ", base_dir)
         cred = self._create_credential(parse_result)
         return UFTPFS(auth_url, cred, base_dir)
