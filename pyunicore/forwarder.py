@@ -17,10 +17,12 @@ class Forwarder:
         service_port=None,
         service_host=None,
         login_node=None,
+        unix_socketfile=None,
         debug=False,
     ):
         """Creates a new Forwarder instance
-        The remote service host/port can be already encoded in the endpoint, or given separately
+        The remote service address (host/port or domain socket filename) can be
+        already encoded in the endpoint, or given separately
 
         Args:
             transport: the transport (security sessions should be OFF)
@@ -28,11 +30,13 @@ class Forwarder:
             service_port: the remote service port (if not already encoded in the endpoint)
             service_host: the (optional) remote service host (if not encoded in the endpoint)
             login_node: the /optional) login node to use (if not encoded in the endpoint)
+            unix_socketfile: the name of the remote service's UNIX domain socket file
+                             (in the job working directory)
             debug: set to True for some debug output to the console
         """
         self.endpoint = endpoint
         self.parsed_url = _parse_forwarding_params(
-            self.endpoint, service_port, service_host, login_node
+            self.endpoint, service_port, service_host, login_node, unix_socketfile
         )
         self.transport = transport
         self.quiet = not debug
@@ -101,10 +105,10 @@ class Forwarder:
     def start_forwarding(self):
         self.quiet or print("Start forwarding.")
         threading.Thread(
-            target=self.transfer, args=(self.client_socket, self.service_socket)
+            target=self.transfer, args=(self.client_socket, self.service_socket, "local->remote")
         ).start()
         threading.Thread(
-            target=self.transfer, args=(self.service_socket, self.client_socket)
+            target=self.transfer, args=(self.service_socket, self.client_socket, "remote->local")
         ).start()
 
     def stop_forwarding(self):
@@ -119,8 +123,8 @@ class Forwarder:
         except OSError:
             pass
 
-    def transfer(self, source, destination):
-        desc = f"{source.getpeername()} --> {destination.getpeername()}"
+    def transfer(self, source, destination, name=""):
+        desc = f"{name}: {source.getpeername()} --> {destination.getpeername()}"
         self.quiet or print("Start TCP forwarding %s" % desc)
         buf_size = 32768
         while True:
@@ -132,7 +136,7 @@ class Forwarder:
                     self.quiet or print("Source is at EOF for %s" % desc)
                     break
             except OSError as e:
-                self.quiet or print("I/O ERROR for %s " % desc, e)
+                self.quiet or print("I/O ERROR for %s" % desc, e)
                 for s in source, destination:
                     try:
                         s.close()
@@ -141,7 +145,7 @@ class Forwarder:
                 break
         self.quiet or print("Stopping TCP forwarding %s" % desc)
 
-    def run(self, local_port):
+    def run(self, local_port, keep_alive=False):
         """open a listener, accept client connections and forward them to the backend"""
         with socket.socket() as server:
             server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -156,9 +160,13 @@ class Forwarder:
                 self.quiet or print("Client %s connected." % str(self.client_socket.getpeername()))
                 self.service_socket = self.connect()
                 self.start_forwarding()
+                if not keep_alive:
+                    break
 
 
-def _parse_forwarding_params(endpoint, service_port=None, service_host=None, login_node=None):
+def _parse_forwarding_params(
+    endpoint, service_port=None, service_host=None, login_node=None, unix_socketfile=None
+):
     """If not already present in the endpoint, the parameters like
     service_port are added.
 
@@ -167,6 +175,8 @@ def _parse_forwarding_params(endpoint, service_port=None, service_host=None, log
     """
     parsed_url = urlparse(endpoint)
     q = parsed_url.query
+    if (unix_socketfile is not None) and (service_port is not None):
+        raise ValueError("Only one of 'file' and 'service_host'/'service_port' is allowed")
     if service_port is not None and "port=" not in endpoint:
         if len(q) > 0:
             q += "&"
@@ -179,17 +189,25 @@ def _parse_forwarding_params(endpoint, service_port=None, service_host=None, log
         if len(q) > 0:
             q += "&"
         q += "loginNode=%s" % login_node
+    if unix_socketfile is not None and "file=" not in endpoint:
+        if len(q) > 0:
+            q += "&"
+        q += "file=%s" % login_node
     return parsed_url._replace(query=q)
 
 
-def open_tunnel(job, service_port=None, service_host=None, login_node=None, debug=False):
+def open_tunnel(
+    job, service_port=None, service_host=None, login_node=None, unix_socketfile=None, debug=False
+):
     """open a tunnel to a service running on the HPC side
     and return the connected socket
     """
     endpoint = job.links["forwarding"]
     tr = job.transport._clone()
     tr.use_security_sessions = False
-    forwarder = Forwarder(tr, endpoint, service_port, service_host, login_node, debug)
+    forwarder = Forwarder(
+        tr, endpoint, service_port, service_host, login_node, unix_socketfile, debug
+    )
     return forwarder.connect()
 
 
