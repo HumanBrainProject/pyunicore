@@ -84,4 +84,4 @@ class Info(Base):
             t = t + " (job directory)"
         print(f" * type: {t}")
         print(f" * mount point: {props['mountPoint']}")
-        print(f" * free space : {int(props['freeSpace'] / 1024/1024)} MB")
+        print(f" * free space : {int(props['freeSpace'] / 1024 / 1024)} MB")
