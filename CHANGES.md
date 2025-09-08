@@ -3,6 +3,10 @@ Changelog for PyUNICORE
 
 Issue tracker: https://github.com/HumanBrainProject/pyunicore
 
+Version 1.3.5 (Sep 8, 2025)
+---------------------------
+ - improve forwarder
+
 Version 1.3.4 (Jul 3, 2025)
 ---------------------------
  - CLI: implement server-to-server transfers
