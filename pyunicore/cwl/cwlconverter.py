@@ -1,5 +1,6 @@
 """
- CWL to UNICORE converter and utilities
+CWL to UNICORE converter and utilities
+(proof of concept, not good enough for production use)
 """
 
 

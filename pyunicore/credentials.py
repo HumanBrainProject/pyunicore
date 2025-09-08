@@ -1,5 +1,5 @@
 """
-    Credentials for authenticating
+Helper code to generate credentials for authenticating to UNICORE
 """
 
 try:

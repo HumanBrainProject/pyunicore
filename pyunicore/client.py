@@ -1,8 +1,8 @@
 """
-    Client library for UNICORE
+Client library for UNICORE
 
-    For full info on the UNICORE REST API, see
-    https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api/index.html
+For full info on the UNICORE REST API, see
+https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api/index.html
 """
 
 from __future__ import annotations
@@ -271,7 +271,7 @@ class Resource:
 class Registry(Resource):
     """Client for a UNICORE service Registry
 
-        >>> base_url = '...' # e.g. "https://localhost:8080/REGISTRY/rest/registries/default_registry"  # noqa
+        >>> base_url = '...' # e.g. "https://.../rest/registries/default_registry"
         >>> credential = '...'
         >>> registry = Registry(credential, base_url)
 
