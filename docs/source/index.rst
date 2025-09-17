@@ -13,6 +13,10 @@ making common tasks like file access, job submission and management,
 workflow submission and management more convenient, and integrating
 UNICORE features better with typical Python usage.
 
+PyUNICORE comes with a commandline utility 'unicore', which is modeled
+after the UNICORE Commandline Client (UCC) and supports many of UCC's
+features.
+
 In addition, this library contains code for using
 `UFTP <https://uftp-docs.readthedocs.io>`_ (UNICORE FTP)
 for filesystem mounts with FUSE, a UFTP driver for
@@ -61,6 +65,7 @@ You can install (one or more) extras with pip:
 	uftp
 	dask
 	port_forwarding
+	CLI
 
 
 .. toctree::
