@@ -1,6 +1,6 @@
 # PyUNICORE, a Python library for using UNICORE and UFTP
 
-
+[![Unit tests](https://github.com/HumanBrainProject/pyunicore/actions/workflows/unit-test.yml/badge.svg)](https://github.com/HumanBrainProject/pyunicore/actions/workflows/unit-test.yml)
 [![Integration test](https://github.com/HumanBrainProject/pyunicore/actions/workflows/integration-test.yml/badge.svg)](https://github.com/HumanBrainProject/pyunicore/actions/workflows/integration-test.yml)
 [![PyPI](https://img.shields.io/badge/PyPI-passed-green)](https://pypi.org/project/pyunicore/)
 

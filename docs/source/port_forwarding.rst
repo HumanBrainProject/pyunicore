@@ -45,3 +45,19 @@ If you want to tunnel to a compute node, you need to specify the compute node in
   python3 -m pyunicore.forwarder --token <your_auth_token> \
      -L $LOCAL_PORT \
      $JOB_URL/forward-port?port=$REMOTE_PORT?host=$COMPUTE_NODE \
+
+
+If the remote UNICORE server is 10.2.1 or later, it is also supported to connect to a UNIX domain socket
+file on a login node. This is usually preferable for security reasons. The domain socket file must be in the
+UNICORE job working directory. To connect, simply specify the domain socket filename like so:
+
+.. code:: console
+
+  LOCAL_PORT=4322
+  SOCKET_FILE=sock
+  JOB_URL=https://localhost:8080/DEMO-SITE/rest/core/jobs/some_job_id
+  python3 -m pyunicore.forwarder --token <your_auth_token> \
+     -L $LOCAL_PORT \
+     $JOB_URL/forward-port?file=$SOCKET_FILE \
+
+Again, this will only work if the job is running on a login node.
