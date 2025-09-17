@@ -1,5 +1,10 @@
 # PyUNICORE, a Python library for using UNICORE and UFTP
 
+
+[![Integration test](https://github.com/HumanBrainProject/pyunicore/actions/workflows/integration-test.yml/badge.svg)](https://github.com/HumanBrainProject/pyunicore/actions/workflows/integration-test.yml)
+[![PyPI](https://img.shields.io/badge/PyPI-passed-green)](https://pypi.org/project/pyunicore/)
+
+
 This library covers the UNICORE REST API, making common tasks like
 file access, job submission and management, workflow submission and
 management more convenient, and integrating UNICORE features better
