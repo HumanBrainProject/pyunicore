@@ -2,7 +2,7 @@
 
 [![Unit tests](https://github.com/HumanBrainProject/pyunicore/actions/workflows/unit-test.yml/badge.svg)](https://github.com/HumanBrainProject/pyunicore/actions/workflows/unit-test.yml)
 [![Integration test](https://github.com/HumanBrainProject/pyunicore/actions/workflows/integration-test.yml/badge.svg)](https://github.com/HumanBrainProject/pyunicore/actions/workflows/integration-test.yml)
-[![PyPI](https://img.shields.io/badge/PyPI-passed-green)](https://pypi.org/project/pyunicore/)
+[![PyPI](https://badge.fury.io/py/pyunicore.svg)](https://pypi.org/project/pyunicore/)
 
 
 This library covers the UNICORE REST API, making common tasks like
@@ -18,6 +18,12 @@ for filesystem mounts with FUSE, a UFTP driver for
 [PyFilesystem](https://github.com/PyFilesystem/pyfilesystem2)
 and a UNICORE implementation of a
 [Dask Cluster](https://distributed.dask.org/en/stable/)
+
+
+PyUNICORE comes with a commandline utility 'unicore', which is modeled
+after the UNICORE Commandline Client (UCC) and supports many of UCC's
+features.
+
 
 This project has received funding from the European Union’s
 Horizon 2020 Framework Programme for Research and Innovation under the
