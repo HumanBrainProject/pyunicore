@@ -10,7 +10,7 @@ This library provides a Python wrapper for the UNICORE REST API, making common t
 Visit https://github.com/HumanBrainProject/pyunicore for more information.
 """
 
-python_requires = ">=3.7"
+python_requires = ">=3.9"
 
 install_requires = [
     "pyjwt>=2.8",

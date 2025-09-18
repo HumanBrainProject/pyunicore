@@ -191,9 +191,7 @@ class Transport:
         res = self.run_method(requests.get, **kwargs)
         if not to_json:
             return res
-        json = res.json()
-        res.close()
-        return json
+        return res.json()
 
     def put(self, **kwargs):
         """do a PUT and return the response"""
@@ -256,7 +254,7 @@ class Resource:
 
     def delete(self):
         """delete/destroy this resource"""
-        self.transport.delete(url=self.resource_url).close()
+        self.transport.delete(url=self.resource_url)
 
     def set_properties(self, props):
         """set/update resource properties"""
@@ -764,11 +762,11 @@ class Storage(Resource):
 
     def rmdir(self, name):
         """remove a directory and all its content"""
-        self.transport.delete(url=self._to_file_url(name)).close()
+        self.transport.delete(url=self._to_file_url(name))
 
     def rm(self, name):
         """remove a file"""
-        self.transport.delete(url=self._to_file_url(name)).close()
+        self.transport.delete(url=self._to_file_url(name))
 
     def makedirs(self, name):
         """create directory"""
@@ -809,10 +807,9 @@ class Storage(Resource):
 
         """
         _headers = {"Content-Type": "application/octet-stream"}
-        with self.transport.put(
+        self.transport.put(
             url=self._to_file_url(destination), headers=_headers, stream=True, data=source
-        ) as r:
-            r.close()
+        )
 
     def send_file(
         self,
@@ -820,7 +817,7 @@ class Storage(Resource):
         remote_url,
         protocol=None,
         scheduled=None,
-        additional_parameters={},
+        additional_parameters: dict = {},
     ):
         """launch a server-to-server transfer: send a file from this storage to a remote location
 
@@ -856,7 +853,7 @@ class Storage(Resource):
         file_name,
         protocol=None,
         scheduled=None,
-        additional_parameters={},
+        additional_parameters: dict = {},
     ):
         """launch a server-to-server transfer: pull a file from a remote storage to this storage
 
@@ -1025,7 +1022,9 @@ class TransferStatus(Enum):
 class Transfer(Resource):
     """wrapper around a UNICORE server-to-server transfer"""
 
-    def __init__(self, security: Credential, tr_url: Transport, cache_time=_DEFAULT_CACHE_TIME):
+    def __init__(
+        self, security: Credential | Transport, tr_url: str, cache_time=_DEFAULT_CACHE_TIME
+    ):
         super().__init__(security, tr_url, cache_time)
 
     @property
@@ -1042,7 +1041,7 @@ class Transfer(Resource):
     def abort(self):
         """abort this transfer"""
         url = self.properties["_links"]["action:abort"]["href"]
-        with self.transport.post(url=url, json={}):
+        with closing(self.transport.post(url=url, json={})):
             pass
 
     def poll(self, state=TransferStatus.DONE, timeout=0):
