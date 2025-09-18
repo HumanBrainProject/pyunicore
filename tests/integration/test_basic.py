@@ -32,7 +32,7 @@ class TestBasic(unittest.TestCase):
         exit_code = int(job.properties["exitCode"])
         self.assertEqual(0, exit_code)
         work_dir = job.working_dir
-        stdout = work_dir.stat("/stdout").raw().read()
+        stdout = work_dir.stat("/stdout").read()
         self.assertTrue(len(stdout) > 0)
         print(stdout)
 
@@ -46,7 +46,7 @@ class TestBasic(unittest.TestCase):
         exit_code = int(job.properties["exitCode"])
         self.assertEqual(0, exit_code)
         work_dir = job.working_dir
-        stdout = work_dir.stat("/stdout").raw().read()
+        stdout = work_dir.stat("/stdout").read()
         self.assertTrue(len(stdout) > 0)
         print(stdout)
 
@@ -60,16 +60,13 @@ class TestBasic(unittest.TestCase):
         exit_code = int(job.properties["exitCode"])
         self.assertEqual(0, exit_code)
         work_dir = job.working_dir
-        stdout = work_dir.stat("/stdout").raw().read()
+        stdout = work_dir.stat("/stdout").read()
         self.assertTrue(len(stdout) > 0)
         print(stdout)
 
     def test_alloc_and_run_date(self):
         print("*** test_alloc_and_run_date")
         client = self.get_client()
-        if client.server_version_info() < (9, 0, 0):
-            print("Skipping, requires server 9.0.0 or later")
-            return
         alloc_desc = {"Job type": "ALLOCATE", "Resources": {"Runtime": "10m"}}
         allocation = client.new_job(alloc_desc)
         try:
@@ -86,7 +83,7 @@ class TestBasic(unittest.TestCase):
             exit_code = int(job.properties["exitCode"])
             self.assertEqual(0, exit_code)
             work_dir = job.working_dir
-            stdout = work_dir.stat("/stdout").raw().read()
+            stdout = work_dir.stat("/stdout").read()
             self.assertTrue(len(stdout) > 0)
             print(stdout)
         finally:

@@ -7,23 +7,19 @@ https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api/index.html
 
 from __future__ import annotations
 
-try:
-    from urllib3 import disable_warnings
-
-    disable_warnings()
-except ImportError:
-    pass
-
 import os
 import pathlib
 import re
 import time
+import typing
 from contextlib import closing
+from contextlib import contextmanager
 from datetime import datetime
 from datetime import timedelta
 from enum import Enum
 
-import requests
+import httpx
+import httpx._types
 
 from pyunicore.credentials import Anonymous
 from pyunicore.credentials import AuthenticationFailedException
@@ -68,7 +64,7 @@ def _url_params(offset, num, tags, filter=None):
 
 
 class Transport:
-    """wrapper around requests, which
+    """Handles HTTP calls:
         - adds HTTP Authorization header based on the supplied credentials
         - transparently handles security sessions
         - handles user preferences
@@ -145,20 +141,20 @@ class Transport:
         self.last_session_id = None
         self.settings_changed = True
 
-    def check_error(self, res):
+    def check_error(self, res: httpx.Response):
         """checks for error and extracts any error info sent by the server"""
         if 400 <= res.status_code < 600:
-            reason = res.reason
+            reason = res.reason_phrase
             try:
                 reason = res.json().get("errorMessage", "n/a")
             except ValueError:
                 pass
             msg = f"{res.status_code} Server Error: {reason} for url: {res.url}"
-            raise requests.HTTPError(msg, response=res)
+            raise httpx.HTTPError(msg, response=res)
         else:
             res.raise_for_status()
 
-    def repeat_required(self, res, headers):
+    def repeat_required(self, res: httpx.Response, headers: dict):
         if self.use_security_sessions:
             if 432 == res.status_code:
                 headers.pop("X-UNICORE-SecuritySession", None)
@@ -188,24 +184,32 @@ class Transport:
         Note:
             For the raw response, set `to_json` to false
         """
-        res = self.run_method(requests.get, **kwargs)
+        res = self.run_method(httpx.get, **kwargs)
         if not to_json:
             return res
-        json = res.json()
-        res.close()
-        return json
+        return res.json()
 
     def put(self, **kwargs):
         """do a PUT and return the response"""
-        return self.run_method(requests.put, **kwargs)
+        return self.run_method(httpx.put, **kwargs)
 
     def post(self, **kwargs):
         """do a POST and return the response"""
-        return self.run_method(requests.post, **kwargs)
+        return self.run_method(httpx.post, **kwargs)
 
     def delete(self, **kwargs):
         """send a DELETE to the current endpoint and return the response"""
-        return self.run_method(requests.delete, **kwargs)
+        return self.run_method(httpx.delete, **kwargs)
+
+    @contextmanager
+    def get_stream(self, **kwargs) -> typing.Iterator[httpx.Response]:
+        """do a GET via httpx.stream() and return the response"""
+        _headers = self._headers(kwargs)
+        _headers.pop("X-UNICORE-SecuritySession", None)
+        with httpx.stream(
+            "GET", headers=_headers, verify=self.verify, timeout=self.timeout, **kwargs
+        ) as r:
+            yield r
 
 
 class Resource:
@@ -299,11 +303,11 @@ class Registry(Resource):
                 site_name = re.match(r"https://\S+/(\S+)/rest/workflows", href).group(1)
                 self.workflow_services_urls[site_name] = base
 
-    def site(self, name):
+    def site(self, name: str):
         """Get a client object for the named site"""
         return Client(self.transport, self.site_urls[name])
 
-    def workflow_service(self, name=None):
+    def workflow_service(self, name: str = None):
         """Get a client object for the named site, or the first in the list if no name is given"""
         if name is None:
             _, url = list(self.workflow_services_urls.items())[0]
@@ -398,18 +402,16 @@ class Client(Resource):
         urls = self.transport.get(url=self.links["jobs"], params=q_params)["jobs"]
         return [Job(self.transport, url) for url in urls]
 
-    def new_job(self, job_description: dict, inputs=None, autostart: bool = True):
+    def new_job(self, job_description: dict, inputs=[], autostart=True):
         """Submit and start a job on the site, optionally uploading local input data files
         The input files can be either a simple array of local file names, or a dictionary
         with the destination names as keys and the local file names as values.
         """
-        if inputs is None:
-            inputs = []
         if len(inputs) > 0 or job_description.get("haveClientStageIn") is True:
             job_description["haveClientStageIn"] = "true"
         with closing(self.transport.post(url=self.links["jobs"], json=job_description)) as resp:
             job_url = resp.headers["Location"]
-        job_type = job_description.get("Job type", "n/a")
+        job_type: str = job_description.get("Job type", "n/a")
         if "ALLOCATE" == job_type.upper():
             job = Allocation(self.transport, job_url)
         else:
@@ -425,7 +427,7 @@ class Client(Resource):
             job.start()
         return job
 
-    def execute(self, cmd: str, login_node=None):
+    def execute(self, cmd: str, login_node: str = None):
         """run a (non-batch) command on the site, executed on a login node
         Args:
             cmd - the command to run
@@ -470,7 +472,7 @@ class Application(Resource):
         self,
         security: Credential | Transport,
         app_url: str,
-        submit_url=None,
+        submit_url: str = None,
         cache_time=_DEFAULT_CACHE_TIME,
     ):
         super().__init__(security, app_url, cache_time)
@@ -556,20 +558,17 @@ class Job(Resource):
     def abort(self):
         """abort this job"""
         url = self.links["action:abort"]
-        with self.transport.post(url=url, json={}):
-            pass
+        self.transport.post(url=url, json={})
 
     def restart(self):
         """restart this job"""
         url = self.links["action:restart"]
-        with self.transport.post(url=url, json={}):
-            pass
+        self.transport.post(url=url, json={})
 
     def start(self):
         """start this job - only required if client had to stage-in local files"""
         url = self.links["action:start"]
-        with self.transport.post(url=url, json={}):
-            pass
+        self.transport.post(url=url, json={})
 
     @property
     def job_id(self):
@@ -617,7 +616,7 @@ class Allocation(Job):
     ):
         super().__init__(security, job_url, cache_time)
 
-    def new_job(self, job_description, inputs=[], autostart=True):
+    def new_job(self, job_description: dict, inputs=[], autostart=True):
         """submit and start a job within the existing allocation"""
         if len(inputs) > 0 or job_description.get("haveClientStageIn") is True:
             job_description["haveClientStageIn"] = "true"
@@ -706,18 +705,18 @@ class Storage(Resource):
             if timeout > 0 and i > timeout:
                 raise OSError("Timeout waiting for Storage to become useable")
 
-    def _to_file_url(self, path):
+    def _to_file_url(self, path: str):
         return (
             self.resource_url
             + "/files"
             + pathlib.Path("/" + path.lstrip("/")).as_posix().rstrip("/")
         )
 
-    def contents(self, path="/"):
+    def contents(self, path: str = "/"):
         """get a simple list of files in the given directory"""
         return self.transport.get(url=self._to_file_url(path))
 
-    def stat(self, path):
+    def stat(self, path: str):
         """get a reference to a file/directory"""
         path_url = self._to_file_url(path)
         headers = {
@@ -730,7 +729,7 @@ class Storage(Resource):
             ret = PathFile(self, path_url, path)
         return ret
 
-    def listdir(self, base="/") -> dict:
+    def listdir(self, base: str = "/") -> dict:
         """get a list of files and directories in the given base directory"""
         ret = {}
         for path, meta in self.contents(base)["content"].items():
@@ -742,39 +741,44 @@ class Storage(Resource):
                 ret[path] = PathFile(self, path_url, path)
         return ret
 
-    def rename(self, source, target):
+    def rename(self, source: str, target: str):
         """rename a file on this storage"""
         json = {
             "from": source,
             "to": target,
         }
-        return self.transport.post(url=self.links["action:rename"], json=json)
+        with closing(self.transport.post(url=self.links["action:rename"], json=json)):
+            pass
 
-    def copy(self, source, target):
+    def copy(self, source: str, target: str):
         """copy a file on this storage"""
         json = {
             "from": source,
             "to": target,
         }
-        return self.transport.post(url=self.links["action:copy"], json=json)
+        with closing(self.transport.post(url=self.links["action:copy"], json=json)):
+            pass
 
-    def mkdir(self, name):
+    def mkdir(self, name: str):
         """create a directory"""
-        return self.transport.post(url=self._to_file_url(name), json={})
+        with closing(self.transport.post(url=self._to_file_url(name), json={})):
+            pass
 
-    def rmdir(self, name):
+    def rmdir(self, name: str):
         """remove a directory and all its content"""
-        self.transport.delete(url=self._to_file_url(name)).close()
+        with closing(self.transport.delete(url=self._to_file_url(name))):
+            pass
 
-    def rm(self, name):
+    def rm(self, name: str):
         """remove a file"""
-        self.transport.delete(url=self._to_file_url(name)).close()
+        with closing(self.transport.delete(url=self._to_file_url(name))):
+            pass
 
-    def makedirs(self, name):
+    def makedirs(self, name: str):
         """create directory"""
         self.mkdir(name)
 
-    def upload(self, file_name, destination=None):
+    def upload(self, file_name: str, destination: str = None):
         """upload local file "file_name" to the remote file "destination".
 
         Remote directories will be created automatically, if required.
@@ -800,7 +804,7 @@ class Storage(Resource):
         with open(file_name, "rb") as fd:
             self.put(source=fd, destination=destination)
 
-    def put(self, source, destination):
+    def put(self, source: httpx._types.RequestData, destination: str):
         """upload data to the destination file on this storage
 
         Args:
@@ -809,18 +813,18 @@ class Storage(Resource):
 
         """
         _headers = {"Content-Type": "application/octet-stream"}
-        with self.transport.put(
-            url=self._to_file_url(destination), headers=_headers, stream=True, data=source
-        ) as r:
-            r.close()
+        with closing(
+            self.transport.put(url=self._to_file_url(destination), headers=_headers, content=source)
+        ):
+            pass
 
     def send_file(
         self,
-        file_name,
-        remote_url,
-        protocol=None,
-        scheduled=None,
-        additional_parameters={},
+        file_name: str,
+        remote_url: str,
+        protocol: str = None,
+        scheduled: str = None,
+        additional_parameters: dict = {},
     ):
         """launch a server-to-server transfer: send a file from this storage to a remote location
 
@@ -852,11 +856,11 @@ class Storage(Resource):
 
     def receive_file(
         self,
-        remote_url,
-        file_name,
-        protocol=None,
-        scheduled=None,
-        additional_parameters={},
+        remote_url: str,
+        file_name: str,
+        protocol: str = None,
+        scheduled: str = None,
+        additional_parameters: dict = {},
     ):
         """launch a server-to-server transfer: pull a file from a remote storage to this storage
 
@@ -882,10 +886,9 @@ class Storage(Resource):
         }
 
         dest = self.resource_url + "/transfers"
-        with closing(self.transport.post(url=dest, json=json)) as resp:
-            tr_url = resp.headers["Location"]
-
-        return Transfer(self.transport, tr_url)
+        with closing(self.transport.post(url=dest, json=json)) as r:
+            tr_url = r.headers["Location"]
+            return Transfer(self.transport, tr_url)
 
     def __repr__(self):
         return f"Storage: {self.resource_url}"
@@ -912,7 +915,7 @@ class Path(Resource):
     def size(self):
         return self.properties["size"]
 
-    def get_metadata(self, name=None):
+    def get_metadata(self, name: str = None):
         if name:
             return self.properties["metadata"][name]
         else:
@@ -945,7 +948,7 @@ class PathFile(Path):
     def __init__(self, storage: Storage, path_url: str, name: str, cache_time=_DEFAULT_CACHE_TIME):
         super().__init__(storage, path_url, name, cache_time)
 
-    def download(self, file):
+    def download(self, file: str | typing.Any):
         """download file
 
         Args:
@@ -961,26 +964,18 @@ class PathFile(Path):
             >>> foo.download(foo_contents)
             >>> print(foo.contents.getvalue())
         """
-
-        _headers = {"Accept": "application/octet-stream"}
-        with closing(
-            self.transport.get(
-                url=self.resource_url,
-                headers=_headers,
-                stream=True,
-                to_json=False,
-            )
-        ) as resp:
+        with self.raw() as resp:
             chunk_size = 10 * 1024
             if isinstance(file, str):
                 with open(file, "wb") as fd:
-                    for chunk in resp.iter_content(chunk_size):
+                    for chunk in resp.iter_raw(chunk_size):
                         fd.write(chunk)
             else:
-                for chunk in resp.iter_content(chunk_size):
+                for chunk in resp.iter_raw(chunk_size):
                     file.write(chunk)
 
-    def raw(self, offset=0, size=-1):
+    @contextmanager
+    def raw(self, offset=0, size=-1) -> typing.Iterator[httpx.Response]:
         """access the raw http response for a streaming download.
         The optional 'offset' and 'size' parameters allow to download only
         part of the file.
@@ -996,10 +991,13 @@ class PathFile(Path):
                 _range += str(size + offset - 1)
             _headers["Range"] = _range
 
-        resp = self.transport.get(
-            to_json=False, url=self.resource_url, headers=_headers, stream=True
-        )
-        return resp.raw
+        with self.transport.get_stream(url=self.resource_url, headers=_headers) as r:
+            yield r
+
+    def read(self, offset=0, size=-1):
+        """read file content into memory"""
+        with self.raw(offset, size) as r:
+            return r.read()
 
     def isfile(self):
         return True
@@ -1025,7 +1023,9 @@ class TransferStatus(Enum):
 class Transfer(Resource):
     """wrapper around a UNICORE server-to-server transfer"""
 
-    def __init__(self, security: Credential, tr_url: Transport, cache_time=_DEFAULT_CACHE_TIME):
+    def __init__(
+        self, security: Credential | Transport, tr_url: str, cache_time=_DEFAULT_CACHE_TIME
+    ):
         super().__init__(security, tr_url, cache_time)
 
     @property
@@ -1113,7 +1113,7 @@ class WorkflowService(Resource):
         urls = self.transport.get(url=self.resource_url, params=q_params)["workflows"]
         return [Workflow(self.transport, url) for url in urls]
 
-    def new_workflow(self, wf_description):
+    def new_workflow(self, wf_description: dict):
         """submit a workflow"""
         with closing(self.transport.post(url=self.resource_url, json=wf_description)) as resp:
             wf_url = resp.headers["Location"]
@@ -1179,7 +1179,7 @@ class Workflow(Resource):
         with self.transport.post(url=url, json={}):
             pass
 
-    def resume(self, params={}):
+    def resume(self, params: dict = {}):
         """resume this workflow (from "HELD" state), optionally updating parameters"""
         url = self.properties["_links"]["action:continue"]["href"]
         return self.transport.post(url=url, json=params)
@@ -1199,7 +1199,7 @@ class Workflow(Resource):
         urls = self.transport.get(url=self.links["jobs"], params=q_params)["jobs"]
         return [Job(self.transport, url) for url in urls]
 
-    def stat(self, path):
+    def stat(self, path: str):
         """lookup the named workflow file and return a PathFile object"""
         physical_location = self.get_files()[path]
         storage_url, name = physical_location.split("/files/", 1)

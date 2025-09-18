@@ -10,12 +10,9 @@ This library provides a Python wrapper for the UNICORE REST API, making common t
 Visit https://github.com/HumanBrainProject/pyunicore for more information.
 """
 
-python_requires = ">=3.7"
+python_requires = ">=3.9"
 
-install_requires = [
-    "pyjwt>=2.8",
-    "requests>=2.5",
-]
+install_requires = ["pyjwt>=2.8", "httpx>=0.28.1"]
 
 extras_require = {
     "fuse": ["fusepy>=3.0.1"],
@@ -25,7 +22,7 @@ extras_require = {
 
 setup(
     name="pyunicore",
-    version=versioneer.get_version(),
+    version="2.0.0",  # versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     packages=find_packages(),
     author="Bernd Schuller",

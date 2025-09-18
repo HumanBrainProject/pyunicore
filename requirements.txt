@@ -1,2 +1,2 @@
-requests>=2.5.1
+httpx>=0.28.1
 PyJWT>=2.0

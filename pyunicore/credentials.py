@@ -22,7 +22,7 @@ from os import getenv
 from os.path import isabs
 from os.path import isfile
 
-import requests
+import httpx
 from jwt import encode as jwt_encode
 
 
@@ -267,7 +267,7 @@ class OIDCServerToken(OIDCToken):
         try:
             response = self._execute_call(params)
             self._handle_response(response)
-        except requests.HTTPError:
+        except httpx.HTTPError:
             pass
 
     def load_refresh_token(self):
@@ -314,7 +314,7 @@ class OIDCServerToken(OIDCToken):
         headers = {}
         if auth is not None:
             headers["Authorization"] = auth.get_auth_header()
-        with closing(requests.post(endpoint, data=params, headers=headers)) as response:
+        with closing(httpx.post(endpoint, data=params, headers=headers)) as response:
             response.raise_for_status()
             return response.json()
 
