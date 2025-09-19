@@ -34,6 +34,12 @@ class TestAsyncBasic(unittest.IsolatedAsyncioTestCase):
             token = await client.issue_auth_token(lifetime=600, limited=True)
             print("token: %s" % token)
 
+    async def test_list_application(self):
+        print("*** test_list_application")
+        async with self.get_client() as client:
+            for a in await client.get_applications():
+                print(f"{a} {await a.name} {await a.version} {await a.options}")
+
 
 if __name__ == "__main__":
     unittest.main()

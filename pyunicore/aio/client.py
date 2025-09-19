@@ -407,13 +407,14 @@ class Client(Resource):
         (for long lists, the server might not return all results!).
         Use the optional tag list to filter the results."""
         q_params = _url_params(offset, num, tags)
-        urls = await self.transport.get(url=self.links["transfers"], params=q_params)["transfers"]
+        url = (await self.links)["transfers"]
+        urls = (await self.transport.get(url=url, params=q_params))["transfers"]
         return [Transfer(self.transport, url) for url in urls]
 
     async def get_applications(self) -> list[Application]:
         apps = []
         for url in (await self.transport.get(url=(await self.links)["factories"]))["factories"]:
-            for app in self.transport.get(url=url)["applications"]:
+            for app in (await self.transport.get(url=url))["applications"]:
                 apps.append(Application(self.transport, url + "/applications/" + app))
         return apps
 
@@ -509,23 +510,19 @@ class Application(Resource):
         self.submit_url = submit_url
 
     @property
-    def name(self):
-        return self.properties["ApplicationName"]
+    async def name(self):
+        return (await self.properties)["ApplicationName"]
 
     @property
-    def version(self):
-        return self.properties["ApplicationVersion"]
+    async def version(self):
+        return (await self.properties)["ApplicationVersion"]
 
     @property
-    def options(self):
-        return self.properties["Options"]
+    async def options(self):
+        return (await self.properties)["Options"]
 
     def __repr__(self):
-        return "Application {} {} @ {}".format(
-            self.name,
-            self.version,
-            self.submit_url,
-        )
+        return f"Application {self.resource_url}"
 
     __str__ = __repr__
 
@@ -936,16 +933,19 @@ class Path(Resource):
         self.name = name
         self.storage = storage
 
+    @property
     def isdir(self):
         """is a directory"""
         return False
 
+    @property
     def isfile(self):
         """is a file"""
         return False
 
+    @property
     async def size(self):
-        return (await self.properties)["size"]
+        return int((await self.properties)["size"])
 
     async def get_metadata(self, name: str = None):
         if name:
@@ -967,6 +967,7 @@ class PathDir(Path):
     def __init__(self, storage: Storage, path_url: str, name: str, cache_time=_DEFAULT_CACHE_TIME):
         super().__init__(storage, path_url, name, cache_time)
 
+    @property
     def isdir(self):
         return True
 
@@ -1000,10 +1001,10 @@ class PathFile(Path):
             chunk_size = 10 * 1024
             if isinstance(file, str):
                 with open(file, "wb") as fd:
-                    for chunk in resp.iter_raw(chunk_size):
+                    async for chunk in resp.aiter_raw(chunk_size):
                         fd.write(chunk)
             else:
-                for chunk in resp.iter_raw(chunk_size):
+                async for chunk in resp.aiter_raw(chunk_size):
                     file.write(chunk)
 
     @asynccontextmanager
@@ -1067,9 +1068,14 @@ class Transfer(Resource):
     async def is_running(self):
         """checks whether this transfer is still running"""
         return (await self.status) not in (
-            "DONE",
-            "FAILED",
+            TransferStatus.DONE,
+            TransferStatus.FAILED,
         )
+
+    @property
+    async def transferred_bytes(self):
+        """gets the number of transferred bytes"""
+        return int((await self.properties)["transferredBytes"])
 
     async def abort(self):
         """abort this transfer"""

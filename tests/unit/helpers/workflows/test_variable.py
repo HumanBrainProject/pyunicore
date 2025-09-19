@@ -1,7 +1,27 @@
-import pytest
+import contextlib
+from typing import Any
+
+import pytest  # type: ignore
 
 from pyunicore.helpers.workflows import variable
-from tests import testing
+
+
+def expect_raise_if_exception(
+    expected: Any,
+):
+    """Create a context that expects a raised exception or no raised exception.
+
+    Args:
+        expected: The expected result.
+
+    Returns:
+        _pytest.python_api.RaisesContext: If expected is of type `Exception`
+        contextlib.suppress: otherwise.
+
+    """
+    return (
+        pytest.raises(type(expected)) if isinstance(expected, Exception) else contextlib.suppress()
+    )
 
 
 class TestVariable:
@@ -68,7 +88,7 @@ class TestVariable:
         ],
     )
     def test_to_dict(self, type, initial_value, expected):
-        with testing.expect_raise_if_exception(expected):
+        with expect_raise_if_exception(expected):
             var = variable.Variable(
                 name="test-variable",
                 type=type,

@@ -1,13 +1,14 @@
 import os
 import unittest
 from io import BytesIO
-from time import sleep
+
+import aiofiles
 
 import pyunicore.aio.client as uc_client
 import pyunicore.credentials as uc_credentials
 
 
-class TestBasic(unittest.IsolatedAsyncioTestCase):
+class TestAsyncStorage(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         pass
 
@@ -36,57 +37,66 @@ class TestBasic(unittest.IsolatedAsyncioTestCase):
                     home = s
                     break
             self.assertIsNotNone(home)
-            home.listdir()
-            home.listdir(".")
-            home.listdir("/")
+            await home.listdir()
+            await home.listdir(".")
+            await home.listdir("/")
 
-    def x_test_upload_download(self):
+    async def test_upload_download(self):
         print("*** test_upload_download")
-        home = self.get_home_storage()
-        _path = "tests/integration/files/script.sh"
-        _length = os.stat(_path).st_size
-        with open(_path, "rb") as f:
-            home.put(f, "script.sh")
-        remote_file = home.stat("script.sh")
-        self.assertEqual(_length, int(remote_file.properties["size"]))
-        _out = BytesIO()
-        remote_file.download(_out)
-        self.assertEqual(_length, len(str(_out.getvalue(), "UTF-8")))
+        async with self.get_home_storage() as home:
+            _path = "tests/integration/files/script.sh"
+            _length = os.stat(_path).st_size
+            async with aiofiles.open(_path, "rb") as f:
+                await home.put(f, "script.sh")
+            remote_file = await home.stat("script.sh")
+            self.assertEqual(_length, await remote_file.size)
+            _out = BytesIO()
+            await remote_file.download(_out)
+            self.assertEqual(_length, len(str(_out.getvalue(), "UTF-8")))
 
-    def x_test_upload_download_data(self):
+    async def test_upload_download_data(self):
         print("*** test_upload_download_data")
-        home = self.get_home_storage()
-        _data = "this is some test data"
-        _length = len(_data)
-        home.put(_data, "test.txt")
-        remote_file = home.stat("test.txt")
-        self.assertEqual(_length, int(remote_file.properties["size"]))
-        _out = BytesIO()
-        remote_file.download(_out)
-        self.assertEqual(_length, len(str(_out.getvalue(), "UTF-8")))
+        async with self.get_home_storage() as home:
+            _data = "this is some test data"
+            _length = len(_data)
+            await home.put(_data, "test.txt")
+            remote_file = await home.stat("test.txt")
+            self.assertEqual(_length, await remote_file.size)
+            _out = BytesIO()
+            await remote_file.download(_out)
+            self.assertEqual(_length, len(str(_out.getvalue(), "UTF-8")))
 
-    def x_test_transfer(self):
+    async def test_transfer(self):
         print("*** test_transfer")
-        storage1 = self.get_home_storage()
-        _path = "tests/integration/files/script.sh"
-        _length = os.stat(_path).st_size
-        with open(_path, "rb") as f:
-            storage1.put(f, "script.sh")
-        site_client = self.get_client()
-        storage2 = site_client.new_job({}).working_dir
-        transfer = storage2.receive_file(storage1.resource_url + "/files/script.sh", "script.sh")
-        print(transfer)
-        while transfer.is_running():
-            sleep(2)
-        print("Transferred bytes: %s" % transfer.properties["transferredBytes"])
-        self.assertEqual(_length, int(transfer.properties["transferredBytes"]))
-        transfer2 = storage1.send_file("script.sh", storage2.resource_url + "/files/script2.sh")
-        print(transfer2)
-        transfer2.poll()
-        print("Transferred bytes: %s" % transfer2.properties["transferredBytes"])
-        self.assertEqual(_length, int(transfer2.properties["transferredBytes"]))
-        for t in site_client.get_transfers():
-            print(t)
+        async with self.get_home_storage() as storage1:
+            _path = "tests/integration/files/script.sh"
+            _length = os.stat(_path).st_size
+            async with aiofiles.open(_path, "rb") as f:
+                await storage1.put(f, "script.sh")
+            async with self.get_client() as site_client:
+                j = await site_client.new_job({})
+                storage2 = await j.working_dir
+                await storage2._wait_until_ready()
+                transfer = await storage2.receive_file(
+                    storage1.resource_url + "/files/script.sh", "script.sh"
+                )
+                print(transfer)
+                await transfer.poll()
+                self.assertFalse(await transfer.is_running)
+                n = await transfer.transferred_bytes
+                print("Transferred bytes: %s" % n)
+                self.assertEqual(_length, n)
+
+                transfer2 = await storage1.send_file(
+                    "script.sh", storage2.resource_url + "/files/script2.sh"
+                )
+                print(transfer2)
+                await transfer2.poll()
+                n2 = await transfer2.transferred_bytes
+                print("Transferred bytes: %s" % n2)
+                self.assertEqual(_length, n2)
+                for t in await site_client.get_transfers():
+                    print(t)
 
 
 if __name__ == "__main__":
