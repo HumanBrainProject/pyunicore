@@ -38,8 +38,8 @@ class TestBasic(unittest.TestCase):
         self.assertEqual("789", params["COUNTER"])
         self.assertEqual(2, len(workflow1.get_files()))
         self.assertEqual(2, len(workflow1.get_jobs()))
-        print("Output from date1: %s " % workflow1.stat("wf:date1/stdout").raw().read())
-        print("Output from date2: %s " % workflow1.stat("wf:date2/stdout").raw().read())
+        print("Output from date1: %s " % workflow1.stat("wf:date1/stdout").read())
+        print("Output from date2: %s " % workflow1.stat("wf:date2/stdout").read())
 
 
 if __name__ == "__main__":
