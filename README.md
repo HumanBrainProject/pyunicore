@@ -8,7 +8,8 @@
 This library covers the UNICORE REST API, making common tasks like
 file access, job submission and management, workflow submission and
 management more convenient, and integrating UNICORE features better
-with typical Python usage.
+with typical Python usage. Both blocking and non-blocking (asyncio)
+styles of communication with the server are supported.
 
 The full, up-to-date documentation of the REST API can be found
 [here](https://unicore-docs.readthedocs.io/en/latest/user-docs/rest-api)
@@ -90,7 +91,7 @@ print(json.dumps(work_dir.properties, indent = 2))
 
 stdout = work_dir.stat("/stdout")
 print(json.dumps(stdout.properties, indent = 2))
-content = stdout.raw().read()
+content = stdout.read()
 print(content)
 ```
 
@@ -152,6 +153,32 @@ You can use this feature in two ways
 
 [More...](https://pyunicore.readthedocs.io/en/latest/port_forwarding.html)
 
+## Asyncio support
+
+PyUNICORE has a fully async implementation of the basic UNICORE APIs in
+the package `pyunicore.aio.client`. As an example, running a job
+would look like this:
+
+```Python
+import pyunicore.client as uc_client
+import pyunicore.credentials as uc_credentials
+
+base_url = "https://localhost:8080/DEMO-SITE/rest/core"
+credential = uc_credentials.UsernamePassword("demouser", "test123")
+
+async with uc_client.Client(credential, base_url) as client:
+  my_job = {'Executable': 'date'}
+  job = await client.new_job(job_description=my_job, inputs=[])
+  await job.poll() # wait for job to finish
+  work_dir = await job.working_dir
+  stdout = await work_dir.stat("/stdout")
+  content = await stdout.read()
+  print(content)
+```
+
+More code examples can be found in the "integration-tests"
+folder in the source code repository.
+
 ## Dask cluster implementation (experimental)
 
 PyUNICORE provides an implementation of a Dask Cluster, allowing to
@@ -162,109 +189,14 @@ on the HPC site.
 [More...](https://pyunicore.readthedocs.io/en/latest/dask.html)
 
 
-### Convert a CWL job to UNICORE
-
-PyUNICORE provides a tool to convert a CWL CommanLineTool and input into a
-UNICORE job file. Given the following YAML files that describe a
-CommandLineTool wrapper for the echo command and an input file:
-
-```yaml
-# echo.cwl
-
-cwlVersion: v1.2
-
-class: CommandLineTool
-baseCommand: echo
-
-inputs:
-  message:
-    type: string
-    inputBinding:
-      position: 1
-
-outputs: []
-```
-
-```yaml
-# hello_world.yml
-
-message: "Hello World"
-```
-
-A UNICORE job file can be generated using the following command:
-
-```bash
-unicore-cwl-runner echo.cwl hello_world.yml > hello_world.u
-```
-
 ## Helpers
 
 The `pyunicore.helpers` module provides helper code for:
 
-* Connecting to
-  * a Registry (`pyunicore.helpers.connect_to_registry`).
-  * a site via a Registry URL (`pyunicore.helpers.connect_to_site_from_registry`).
-  * a site via its core URL (`pyunicore.helpers.connect_to_site`).
 * Defining descriptions as a dataclass and easily converting to a `dict` as required by `pyunicore.client.Client.new_job` via a `to_dict()` method:
   * `pyunicore.helpers.jobs.Description` for `pyunicore.client.Client.new_job()`
   * `pyunicore.helpers.workflows.Description` for `pyunicore.client.WorkflowService.new_workflow()`
 * Defining a workflow description
-
-### Connecting to a Registry
-
-```Python
-import json
-import pyunicore.credentials as uc_credentials
-import pyunicore.helpers as helpers
-
-registry_url = "https://localhost:8080/REGISTRY/rest/registries/default_registry"
-
-credentials = uc_credentials.UsernamePassword("demouser", "test123")
-
-client = helpers.connection.connect_to_registry(
-    registry_url=registry_url,
-    credentials=credentials,
-)
-print(json.dumps(client.properties, indent=2))
-```
-
-### Connecting to a site via a Registry
-
-```Python
-import json
-import pyunicore.credentials as uc_credentials
-import pyunicore.helpers as helpers
-
-registry_url = "https://localhost:8080/REGISTRY/rest/registries/default_registry"
-site = "DEMO-SITE"
-
-credentials = uc_credentials.UsernamePassword("demouser", "test123")
-
-client = helpers.connection.connect_to_site_from_registry(
-    registry_url=registry_url,
-    site_name=site,
-    credentials=credentials,
-)
-print(json.dumps(client.properties, indent=2))
-```
-
-### Connecting to a site directly
-
-```Python
-import json
-import pyunicore.credentials as uc_credentials
-import pyunicore.helpers as helpers
-
-site_url = "https://localhost:8080/DEMO-SITE/rest/core"
-
-credentials = uc_credentials.UsernamePassword("demouser", "test123")
-
-client = helpers.connection.connect_to_site(
-    site_api_url=site_url ,
-    credentials=credentials,
-)
-print(json.dumps(client.properties, indent=2))
-```
 
 ### Defining a job or workflow
 
