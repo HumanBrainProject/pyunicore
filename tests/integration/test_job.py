@@ -36,6 +36,20 @@ class TestBasic(unittest.TestCase):
         self.assertTrue(len(stdout) > 0)
         print(stdout)
 
+    def test_exec_date(self):
+        print("*** test_run_date")
+        client = self.get_client()
+        job = client.execute("date")
+        print(job)
+        job.cache_time = 0
+        job.poll()
+        exit_code = int(job.properties["exitCode"])
+        self.assertEqual(0, exit_code)
+        work_dir = job.working_dir
+        stdout = work_dir.stat("/stdout").read()
+        self.assertTrue(len(stdout) > 0)
+        print(stdout)
+
     def test_run_uploaded_script(self):
         print("*** test_run_uploaded_script")
         client = self.get_client()
