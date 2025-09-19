@@ -1031,6 +1031,7 @@ class PathFile(Path):
         async with self.raw(offset, size) as r:
             return await r.aread()
 
+    @property
     def isfile(self):
         return True
 
