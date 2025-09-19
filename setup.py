@@ -12,7 +12,7 @@ Visit https://github.com/HumanBrainProject/pyunicore for more information.
 
 python_requires = ">=3.9"
 
-install_requires = ["pyjwt>=2.8", "httpx>=0.28.1"]
+install_requires = ["pyjwt>=2.8", "httpx>=0.28.1", "aiofiles>=24.0.0"]
 
 extras_require = {
     "fuse": ["fusepy>=3.0.1"],

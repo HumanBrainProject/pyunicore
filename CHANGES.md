@@ -3,6 +3,20 @@ Changelog for PyUNICORE
 
 Issue tracker: https://github.com/HumanBrainProject/pyunicore
 
+Version 2.0.0 (MMM DD, 20yy)
+---------------------------
+ - new feature: new pyunicore.aio.client for fully asynchronous operation
+   Mostly compatible to the standard client, with the following changes
+     - dropped "assert_authentication" flag from Client constructor
+     - methods are async wherever possible
+ - where possible, @property is used instead of a simple getter method
+ - new feature: new Job properties: exit_code, log
+ - code cleanup
+ - remove CWL code, remove connection helper
+ - use httpx instead of requests as underlying HTTP library for both
+   sync and async APIs
+
+
 Version 1.3.5 (Sep 8, 2025)
 ---------------------------
  - improve forwarder
