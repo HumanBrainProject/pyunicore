@@ -1040,7 +1040,7 @@ class Transfer(Resource):
 
     def abort(self):
         """abort this transfer"""
-        url = self.properties["_links"]["action:abort"]["href"]
+        url = self.links["action:abort"]
         with closing(self.transport.post(url=url, json={})):
             pass
 
@@ -1174,13 +1174,13 @@ class Workflow(Resource):
 
     def abort(self):
         """abort this workflow"""
-        url = self.properties["_links"]["action:abort"]["href"]
+        url = self.links["action:abort"]
         with self.transport.post(url=url, json={}):
             pass
 
     def resume(self, params={}):
         """resume this workflow (from "HELD" state), optionally updating parameters"""
-        url = self.properties["_links"]["action:continue"]["href"]
+        url = self.links["action:continue"]
         return self.transport.post(url=url, json=params)
 
     def get_files(self):
