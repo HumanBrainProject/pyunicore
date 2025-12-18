@@ -23,7 +23,7 @@ Here is a basic example using username/password.
 .. code:: python
 
   import pyunicore.credentials as uc_credentials
-  import pyunicore.uftp as uc_uftp
+  import pyunicore.uftp.uftp as uc_uftp
 
   # URL of the authentication service
   auth_url = "https://localhost:9000/rest/auth/TEST"
@@ -33,10 +33,16 @@ Here is a basic example using username/password.
 
   # authenticate with username/password
   credential = uc_credentials.UsernamePassword("demouser", "test123")
+  # create a UFTP session and connect
+  uftp_session = uc_uftp.UFTP()
+  uftp.session.connect(credential, auth_url, base_directory)
 
-  uftp_session = uc_uftp.UFTP().connect(credential, auth_url, base_directory)
+The UFTP object provides some commands like stat(), listdir() etc., but primarily
+it gives access to the underlying `ftplib` FTP object via `uftp_session.ftp`, e.g.
 
-The object returned by `connect()` is an `ftplib` `FTP` object.
+.. code:: python
+
+  uftp_session.ftp.retrlines('LIST')
 
 
 Mounting remote filesystems via UFTP and FUSE
