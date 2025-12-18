@@ -332,7 +332,7 @@ def create_credential(username=None, password=None, token=None, identity=None):
     username + password : create a UsernamePassword credential
     token               ; create a OIDCToken credential from the given token
     username + identity : create a JWTToken credential which will be signed
-                          with the given private key (ssh key or PEM)
+                          with the given private key (ssh key or X509)
     """
 
     if token is not None:
@@ -343,6 +343,8 @@ def create_credential(username=None, password=None, token=None, identity=None):
         raise AuthenticationFailedException("Not enough info to create user credential")
     try:
         from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey
+        from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 
         if not isabs(identity):
             if identity.startswith("~"):
@@ -362,9 +364,9 @@ def create_credential(username=None, password=None, token=None, identity=None):
         secret = private_key
         sub = username
         algo = "EdDSA"
-        if "BEGIN RSA" in pem:
+        if isinstance(private_key, RSAPrivateKey):
             algo = "RS256"
-        elif "BEGIN EC" in pem or "PuTTY" in pem:
+        elif isinstance(private_key, EllipticCurvePrivateKey) or "PuTTY" in pem:
             algo = "ES256"
         return JWTToken(sub, sub, secret, algorithm=algo, etd=False)
     except ImportError:

@@ -23,7 +23,7 @@ _commands = {
 }
 
 
-def get_command(name):
+def get_command(name) -> pyunicore.cli.base.Base:
     return _commands.get(name)()
 
 
@@ -37,12 +37,12 @@ def show_version():
 
 
 def help():
+    print(_header)
     s = """UNICORE Commandline Client (pyUNICORE) %s, https://www.unicore.eu
 Usage: unicore <command> [OPTIONS] <args>
 The following commands are available:""" % pyunicore._version.get_versions().get(
         "version", "n/a"
     )
-    print(_header)
     print(s)
     for cmd in sorted(_commands):
         print(f" {cmd:20} - {get_command(cmd).get_description()}")

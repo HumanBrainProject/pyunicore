@@ -3,6 +3,13 @@ Changelog for PyUNICORE
 
 Issue tracker: https://github.com/HumanBrainProject/pyunicore
 
+Version 1.3.6  (Dec 18, 2025)
+-----------------------------
+ - CLI: add bearer-token authentication method
+ - CLI: add sshkey authentication method
+ - CLI: resolve ${...} environment values in properties from config file
+ - fix: using non-EdDSA keys did not correctly set the JWT signing algorithm
+
 Version 1.3.5 (Sep 8, 2025)
 ---------------------------
  - improve forwarder

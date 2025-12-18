@@ -8,7 +8,7 @@ from pyunicore.client import Resource
 
 class Info(Base):
     def add_command_args(self):
-        self.parser.prog = "unicore system-info"
+        self.parser.prog = "unicore info"
         self.parser.description = self.get_synopsis()
         self.parser.add_argument("URL", help="Endpoint URL(s)", nargs="*")
         self.parser.add_argument(
@@ -52,10 +52,12 @@ class Info(Base):
 
     def show_endpoint_details(self, ep: Resource):
         print(ep.resource_url)
-        if ep.resource_url.endswith("/rest/core"):
+        if re.match(".*/rest/core[/]?$", ep.resource_url):
             self._show_details_core(ep)
         elif re.match(".*/rest/core/storages/.+", ep.resource_url):
             self._show_details_storage(ep)
+        elif re.match(".*/rest/core/factories/.+", ep.resource_url):
+            self._show_details_sitefactory(ep)
         else:
             print(" * no further details available.")
 
@@ -63,10 +65,12 @@ class Info(Base):
         props = ep.properties
         print(" * type: UNICORE/X base")
         print(f" * server v{props['server']['version']}")
+        dn = {props["client"]["dn"]}
         xlogin = props["client"]["xlogin"]
         role = props["client"]["role"]["selected"]
         uid = xlogin.get("UID", "n/a")
-        print(f" * authenticated as: '{props['client']['dn']}' role='{role}' uid='{uid}'")
+        method = props["client"].get("authenticationMethod", "n/a")
+        print(f" * authenticated (via '{method}') as: '{dn}' role='{role}' uid='{uid}'")
         grps = xlogin.get("availableGroups", [])
         uids = xlogin.get("availableUIDs", [])
         if len(uids) > 0:
@@ -85,3 +89,7 @@ class Info(Base):
         print(f" * type: {t}")
         print(f" * mount point: {props['mountPoint']}")
         print(f" * free space : {int(props['freeSpace'] / 1024 / 1024)} MB")
+
+    def _show_details_sitefactory(self, ep: Resource):
+        t = "compute"
+        print(f" * type: {t}")
