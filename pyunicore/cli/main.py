@@ -40,9 +40,7 @@ def help():
     print(_header)
     s = """UNICORE Commandline Client (pyUNICORE) %s, https://www.unicore.eu
 Usage: unicore <command> [OPTIONS] <args>
-The following commands are available:""" % pyunicore._version.get_versions().get(
-        "version", "n/a"
-    )
+The following commands are available:""" % pyunicore._version.get_versions().get("version", "n/a")
     print(s)
     for cmd in sorted(_commands):
         print(f" {cmd:20} - {get_command(cmd).get_description()}")
