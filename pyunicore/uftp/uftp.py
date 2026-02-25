@@ -7,6 +7,7 @@ from time import mktime
 from time import strftime
 from time import strptime
 
+from pyunicore.client import Resource
 from pyunicore.client import Transport
 from pyunicore.credentials import Credential
 
@@ -16,8 +17,6 @@ class UFTP:
     Authenticate UFTP sessions via Authserver
     Uses ftplib to open the session and interact with the UFTPD server
     """
-
-    uftp_session_tag = "___UFTP___MULTI___FILE___SESSION___MODE___"
 
     def __init__(self):
         self.ftp = None
@@ -48,7 +47,7 @@ class UFTP:
         if preferences is not None:
             transport.preferences = preferences
         req = {
-            "serverPath": base_dir + self.uftp_session_tag,
+            "serverPath": base_dir,
         }
         if persistent:
             req["persistent"] = "true"
@@ -152,3 +151,65 @@ class UFTP:
     def get_read_socket(self, path, offset):
         path = self.normalize(path)
         return self.ftp.transfercmd("RETR %s" % path, rest=offset)
+
+
+class AuthServer:
+    """
+    Helper to interact with an UFTP Authserver.
+    """
+
+    def __init__(self, security: Credential | Transport, url: str):
+        if isinstance(security, Credential):
+            self.transport = Transport(security)
+        elif isinstance(security, Transport):
+            self.transport = security._clone()
+        else:
+            raise TypeError("Need Credential or Transport object")
+        self.auth_url = url
+        parts = url.split("/rest/auth/")
+        if len(parts) == 1:
+            raise ValueError(f"Not an AuthServer URL: {url}")
+        self.base_url = parts[0] + "/rest/auth"
+        self.server_name = parts[1].split(":")[0]
+        self.info = self.transport.get(url=self.base_url)
+
+    def authenticate(self, base_dir="", persistent=True):
+        """authenticate to the auth server and return a tuple (host, port, one-time-password)"""
+        if base_dir != "" and not base_dir.endswith("/"):
+            base_dir += "/"
+        req = {"serverPath": base_dir}
+        if persistent:
+            req["persistent"] = "true"
+        auth_url = self.base_url + "/" + self.server_name
+        params = self.transport.post(url=auth_url, json=req).json()
+        return params["serverHost"], params["serverPort"], params["secret"]
+
+    def is_sharing_supported(self) -> bool:
+        try:
+            return self.info[self.server_name]["dataSharing"]["enabled"]
+        except KeyError:
+            return False
+
+    def get_sharing_endpoint(self) -> Resource:
+        resource_url = self.info[self.server_name]["dataSharing"]["href"]
+        return Resource(security=self.transport, resource_url=resource_url)
+
+    def issue_auth_token(self, lifetime=-1, renewable=False, limited=False) -> str:
+        """
+        Issue an authentication token (JWT) from this Auth server
+        Args:
+            lifetime: lifetime in seconds. If <=0, the server default will be used
+            limited: if True, the token will only be useable on this server
+            renewable: if True, the token can be used to get a new token
+        """
+        url = self.base_url + "/token"
+        params = {}
+        if lifetime > 0:
+            params["lifetime"] = lifetime
+        if renewable:
+            params["renewable"] = "true"
+        if limited:
+            params["limited"] = "true"
+        return self.transport.get(
+            url=url, headers={"Accept": "text/plain"}, to_json=False, params=params
+        ).text

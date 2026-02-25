@@ -38,6 +38,8 @@ class UFTPFS(FTPFS):
 
     def __init__(self, auth_url, creds, base_path="/"):
         """Creates a new UFTP FS instance authenticating using the given URL and credentials"""
+        self.uftp_auth_credentials = creds
+        self.uftp_auth_url = auth_url
         self.uftp_host, self.uftp_port, self.uftp_password = UFTP().authenticate(
             creds, auth_url, base_path
         )
