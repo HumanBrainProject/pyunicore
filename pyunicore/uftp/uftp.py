@@ -158,7 +158,7 @@ class AuthServer:
     Helper to interact with an UFTP Authserver.
     """
 
-    def __init__(self, security: Credential | Transport, url: str):
+    def __init__(self, security, url):
         if isinstance(security, Credential):
             self.transport = Transport(security)
         elif isinstance(security, Transport):
