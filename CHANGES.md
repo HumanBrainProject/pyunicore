@@ -3,6 +3,11 @@ Changelog for PyUNICORE
 
 Issue tracker: https://github.com/HumanBrainProject/pyunicore
 
+Version 1.3.7 (Mar 17, 2026)
+----------------------------
+ - add helper code for uftp authserver
+ - fix build issues with new setuptools
+
 Version 1.3.6  (Dec 18, 2025)
 -----------------------------
  - CLI: add bearer-token authentication method
