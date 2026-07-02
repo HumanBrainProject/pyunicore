@@ -33,14 +33,8 @@ setup(
     install_requires=install_requires,
     extras_require=extras_require,
     entry_points={
-        "fs.opener": [
-            "uftp = pyunicore.uftp.uftpfs:UFTPOpener",
-            "uftpmount = pyunicore.uftp.uftpmountfs:UFTPMountOpener",
-        ],
         "console_scripts": [
             "unicore-port-forwarder=pyunicore.forwarder:main",
-            "unicore-cwl-runner=pyunicore.cwl.cwltool:main",
-            "unicore-fusedriver=pyunicore.uftp.uftpfuse:main",
             "unicore=pyunicore.cli.main:main",
         ],
     },
