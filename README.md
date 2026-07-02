@@ -129,16 +129,6 @@ uftp_fs = open_fs(fs_url)
 
 [More...](https://pyunicore.readthedocs.io/en/latest/uftp.html#using-uftp-for-pyfilesystem)
 
-### Mounting remote filesystems via UFTP
-
-PyUNICORE contains a FUSE driver based on [fusepy](https://pypi.org/project/fusepy),
-allowing you to mount a remote filesystem via UFTP. Mounting is a two step process,
-
-  * authenticate to an Auth server, giving you the UFTPD host/port and one-time password
-  * run the FUSE driver
-
-[More...](https://pyunicore.readthedocs.io/en/latest/uftp.html#mounting-remote-filesystems-via-uftp)
-
 ## Tunneling / port forwarding
 
 Opens a local server socket for clients to connect to, where traffic

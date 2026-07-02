@@ -15,7 +15,7 @@ jobs:
 
     services:
       unicore:
-        image: ghcr.io/unicore-eu/unicore-testing-all:10.2.0
+        image: ghcr.io/unicore-eu/unicore-testing-all:11.0.0
         ports:
           - 8080:8080
 
@@ -28,7 +28,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install setuptools wheel
+        pip install 'setuptools<81' wheel
         pip install .
     - name: Run tests
       run: |

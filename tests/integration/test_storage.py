@@ -7,7 +7,7 @@ import pyunicore.client as uc_client
 import pyunicore.credentials as uc_credentials
 
 
-class TestBasic(unittest.TestCase):
+class TestStorage(unittest.TestCase):
     def setUp(self):
         pass
 

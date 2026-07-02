@@ -1,7 +1,7 @@
 import dataclasses
 
 from pyunicore.helpers.workflows.activities import activity
-from pyunicore.helpers.workflows.activities.loops import body
+from pyunicore.helpers.workflows.activities.loops import body  # noqa: F401
 
 
 @dataclasses.dataclass

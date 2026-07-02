@@ -5,7 +5,7 @@ import pyunicore.client as uc_client
 import pyunicore.credentials as uc_credentials
 
 
-class TestBasic(unittest.TestCase):
+class TestJob(unittest.TestCase):
     def setUp(self):
         pass
 
@@ -46,7 +46,7 @@ class TestBasic(unittest.TestCase):
         exit_code = int(job.properties["exitCode"])
         self.assertEqual(0, exit_code)
         work_dir = job.working_dir
-        stdout = work_dir.stat("/stdout").read()
+        stdout = work_dir.stat("/stdout").raw().read()
         self.assertTrue(len(stdout) > 0)
         print(stdout)
 

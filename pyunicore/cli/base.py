@@ -5,6 +5,7 @@ import getpass
 import json
 import os
 from base64 import b64decode
+from string import Template
 
 import pyunicore.client
 import pyunicore.credentials
@@ -33,7 +34,8 @@ class Base:
             return True
         if value.lower() == "false":
             return False
-        return value
+        t = Template(value)
+        return t.substitute(os.environ)
 
     def load_user_properties(self):
         with open(self.config_file) as f:
@@ -43,7 +45,7 @@ class Base:
                     continue
                 try:
                     key, value = line.split("=", 1)
-                    self.config[key] = self._value(value)
+                    self.config[key.strip()] = self._value(value.strip())
                 except ValueError:
                     pass
 
@@ -82,18 +84,31 @@ class Base:
         return "Other"
 
     def create_credential(self):
-        auth_method = self.config.get("authentication-method", "USERNAME").upper()
-        if "OIDC-AGENT" == auth_method:
+        auth_method = self.config.get("authentication-method", "USERNAME")
+        _m = auth_method.upper()
+        if "OIDC-AGENT" == _m:
             account_name = self.config.get("oidc-agent.account")
             self.credential = pyunicore.credentials.OIDCAgentToken(account_name)
-        elif "OIDC-SERVER" == auth_method:
+        elif "OIDC-SERVER" == _m:
             self.credential = pyunicore.credentials.OIDCServerToken(self.config)
-        elif "USERNAME" == auth_method:
+        elif "USERNAME" == _m:
             username = self.config["username"]
             password = self._get_password()
             self.credential = pyunicore.credentials.create_credential(username, password)
-        elif "ANONYMOUS" == auth_method:
+        elif "BEARER-TOKEN" == _m:
+            token = self.config["token"]
+            self.credential = pyunicore.credentials.BearerToken(token)
+        elif "SSHKEY" == _m:
+            username = self.config["username"]
+            identity = self.config["identity"]
+            password = self._get_password()
+            self.credential = pyunicore.credentials.create_credential(
+                username=username, password=password, identity=identity
+            )
+        elif "ANONYMOUS" == _m or "NONE" == _m:
             self.credential = pyunicore.credentials.Anonymous()
+        else:
+            raise ValueError(f"No such authentication method: {auth_method}")
 
     def _get_password(self, key="password") -> str:
         password = self.config.get(key)

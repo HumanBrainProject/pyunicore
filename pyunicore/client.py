@@ -260,7 +260,7 @@ class Resource:
 
     def delete(self):
         """delete/destroy this resource"""
-        self.transport.delete(url=self.resource_url).close()
+        self.transport.delete(url=self.resource_url)
 
     def set_properties(self, props):
         """set/update resource properties"""
@@ -1041,8 +1041,8 @@ class Transfer(Resource):
 
     def abort(self):
         """abort this transfer"""
-        url = self.properties["_links"]["action:abort"]["href"]
-        with self.transport.post(url=url, json={}):
+        url = self.links["action:abort"]
+        with closing(self.transport.post(url=url, json={})):
             pass
 
     def poll(self, state=TransferStatus.DONE, timeout=0):
@@ -1175,13 +1175,13 @@ class Workflow(Resource):
 
     def abort(self):
         """abort this workflow"""
-        url = self.properties["_links"]["action:abort"]["href"]
+        url = self.links["action:abort"]
         with self.transport.post(url=url, json={}):
             pass
 
     def resume(self, params: dict = {}):
         """resume this workflow (from "HELD" state), optionally updating parameters"""
-        url = self.properties["_links"]["action:continue"]["href"]
+        url = self.links["action:continue"]
         return self.transport.post(url=url, json=params)
 
     def get_files(self):
