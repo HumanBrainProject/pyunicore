@@ -46,7 +46,7 @@ class TestJob(unittest.TestCase):
         exit_code = int(job.properties["exitCode"])
         self.assertEqual(0, exit_code)
         work_dir = job.working_dir
-        stdout = work_dir.stat("/stdout").raw().read()
+        stdout = work_dir.stat("/stdout").read()
         self.assertTrue(len(stdout) > 0)
         print(stdout)
 
