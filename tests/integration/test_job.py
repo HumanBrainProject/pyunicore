@@ -29,8 +29,8 @@ class TestJob(unittest.TestCase):
         print(job)
         job.cache_time = 0
         job.poll()
-        exit_code = int(job.properties["exitCode"])
-        self.assertEqual(0, exit_code)
+        self.assertEqual(0, job.exit_code)
+        self.assertTrue(len(job.log) > 0)
         work_dir = job.working_dir
         stdout = work_dir.stat("/stdout").read()
         self.assertTrue(len(stdout) > 0)
@@ -43,8 +43,7 @@ class TestJob(unittest.TestCase):
         print(job)
         job.cache_time = 0
         job.poll()
-        exit_code = int(job.properties["exitCode"])
-        self.assertEqual(0, exit_code)
+        self.assertEqual(0, job.exit_code)
         work_dir = job.working_dir
         stdout = work_dir.stat("/stdout").read()
         self.assertTrue(len(stdout) > 0)
@@ -57,8 +56,7 @@ class TestJob(unittest.TestCase):
         in_file = os.getcwd() + "/tests/integration/files/script.sh"
         job = client.new_job(job_desc, [in_file])
         job.poll()
-        exit_code = int(job.properties["exitCode"])
-        self.assertEqual(0, exit_code)
+        self.assertEqual(0, job.exit_code)
         work_dir = job.working_dir
         stdout = work_dir.stat("/stdout").read()
         self.assertTrue(len(stdout) > 0)
@@ -71,8 +69,7 @@ class TestJob(unittest.TestCase):
         in_file = os.getcwd() + "/tests/integration/files/script.sh"
         job = client.new_job(job_desc, {"myscript.sh": in_file})
         job.poll()
-        exit_code = int(job.properties["exitCode"])
-        self.assertEqual(0, exit_code)
+        self.assertEqual(0, job.exit_code)
         work_dir = job.working_dir
         stdout = work_dir.stat("/stdout").read()
         self.assertTrue(len(stdout) > 0)
@@ -94,8 +91,7 @@ class TestJob(unittest.TestCase):
             print(job)
             job.cache_time = 0
             job.poll()
-            exit_code = int(job.properties["exitCode"])
-            self.assertEqual(0, exit_code)
+            self.assertEqual(0, job.exit_code)
             work_dir = job.working_dir
             stdout = work_dir.stat("/stdout").read()
             self.assertTrue(len(stdout) > 0)

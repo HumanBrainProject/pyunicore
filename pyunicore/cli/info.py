@@ -65,7 +65,7 @@ class Info(Base):
         props = ep.properties
         print(" * type: UNICORE/X base")
         print(f" * server v{props['server']['version']}")
-        dn = {props["client"]["dn"]}
+        dn = props["client"]["dn"]
         xlogin = props["client"]["xlogin"]
         role = props["client"]["role"]["selected"]
         uid = xlogin.get("UID", "n/a")

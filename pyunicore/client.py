@@ -27,8 +27,6 @@ from pyunicore.credentials import Credential
 
 _DEFAULT_CACHE_TIME = 5  # in seconds
 
-_HBP_REGISTRY_URL = "https://unicore.fz-juelich.de" "/HBP/rest/registries/default_registry"
-
 _FACTORY_RE = r"""
 ^                                 # start of line
 (?P<site_url>\s*https://.*/       # capture full url
@@ -550,6 +548,15 @@ class Job(Resource):
     def bss_details(self):
         """return a JSON containing the low-level batch system details"""
         return self.transport.get(url=self.links["details"])
+
+    @property
+    def exit_code(self) -> int | None:
+        x = self.properties.get("exitCode", None)
+        return int(x) if x else None
+
+    @property
+    def log(self) -> list[str]:
+        return self.properties["log"]
 
     def is_running(self):
         """checks whether this job is still running"""
