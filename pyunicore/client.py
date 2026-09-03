@@ -301,14 +301,18 @@ class Registry(Resource):
                 site_name = re.match(r"https://\S+/(\S+)/rest/workflows", href).group(1)
                 self.workflow_services_urls[site_name] = base
 
-    def site(self, name: str):
-        """Get a client object for the named site"""
-        return Client(self.transport, self.site_urls[name])
+    def site(self, name: str = None):
+        """Get a client object for the named site, or any one in the list if no name is given"""
+        if name is None:
+            url = list(self.site_urls.values())[0]
+        else:
+            url = self.site_urls[name]
+        return Client(self.transport, url)
 
     def workflow_service(self, name: str = None):
-        """Get a client object for the named site, or the first in the list if no name is given"""
+        """Get a client object for the named site, or any one in the list if no name is given"""
         if name is None:
-            _, url = list(self.workflow_services_urls.items())[0]
+            url = list(self.workflow_services_urls.values())[0]
         else:
             url = self.workflow_services_urls[name]
         return WorkflowService(self.transport, url)

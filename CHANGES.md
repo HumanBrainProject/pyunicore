@@ -16,6 +16,11 @@ Version 2.0.0 (MMM DD, 20yy)
  - code cleanup
  - remove CWL code, remove connection helper
 
+Version 1.3.8 (MMM DD, 2026)
+----------------------------
+ - CLI: exec / run use any site from registry when no sitename or
+   url is given
+
 Version 1.3.7 (Mar 17, 2026)
 ----------------------------
  - add helper code for uftp authserver
