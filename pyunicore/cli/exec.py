@@ -41,20 +41,19 @@ class JobExecutionBase(Base):
         return "Job execution"
 
     def get_site_client(self):
-        if self.args.sitename:
-            if self.registry:
-                try:
-                    site_client = self.registry.site(self.args.sitename)
-                except KeyError:
-                    raise ValueError("Site '%s' not found in registry." % self.args.sitename)
-            else:
-                raise ValueError(
-                    "Sitename resolution requires registry - please check your configuration!"
-                )
-        elif not self.args.server_url:
-            raise ValueError("Either --server-url or --sitename must be given.")
-        else:
+        if self.args.server_url:
             site_client = Client(self.credential, site_url=self.args.server_url)
+        elif self.registry:
+            try:
+                site_client = self.registry.site(self.args.sitename)
+            except KeyError:
+                raise ValueError("Site '%s' not found in registry." % self.args.sitename)
+            except IndexError:
+                raise ValueError("No site was found in registry.")
+        else:
+            raise ValueError(
+                "Sitename resolution requires registry - please check your configuration!"
+            )
         return site_client
 
     def run_job(self, job_definition, submission_endpoint):
