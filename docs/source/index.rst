@@ -13,14 +13,16 @@ making common tasks like file access, job submission and management,
 workflow submission and management more convenient, and integrating
 UNICORE features better with typical Python usage.
 
+PyUNICORE is based on the 'httpx' HTTP client library and offers both
+synchronous and asynchronous APIs.
+
 PyUNICORE comes with a commandline utility 'unicore', which is modeled
 after the UNICORE Commandline Client (UCC) and supports many of UCC's
 features.
 
 In addition, this library contains code for using
-`UFTP <https://uftp-docs.readthedocs.io>`_ (UNICORE FTP)
-for filesystem mounts with FUSE, a UFTP driver for
-`PyFilesystem <https://github.com/PyFilesystem/pyfilesystem2>`_
+`UFTP <https://uftp-docs.readthedocs.io>`_ (UNICORE FTP),
+a UFTP driver for `PyFilesystem <https://github.com/PyFilesystem/pyfilesystem2>`_
 and a UNICORE implementation of a
 `Dask Cluster <https://distributed.dask.org/en/stable/>`_
 
@@ -44,16 +46,15 @@ Install from PyPI with
 
 Additional extra packages may be required for your use case:
 
- * Using the UFTP fuse driver requires "fusepy"
- * Using UFTP with pyfilesystem requires "fs"
  * Creating JWT tokens signed with keys requires the "cryptography" package
+ * Using UFTP with pyfilesystem requires "fs"
 
 
 You can install (one or more) extras with pip:
 
 .. code:: console
 
-    pip install -U pyunicore[crypto,fs,fuse]
+    pip install -U pyunicore[crypto]
 
 
 .. toctree::
@@ -61,6 +62,7 @@ You can install (one or more) extras with pip:
 	:caption: Using PyUNICORE
 
 	basic_usage
+	async_client
 	authentication
 	uftp
 	dask

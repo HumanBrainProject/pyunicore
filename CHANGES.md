@@ -3,7 +3,7 @@ Changelog for PyUNICORE
 
 Issue tracker: https://github.com/HumanBrainProject/pyunicore
 
-Version 2.0.0 (MMM DD, 20yy)
+Version 2.0.0 (Sep DD, 2026)
 ---------------------------
  - new feature: new pyunicore.aio.client for fully asynchronous operation
    Mostly compatible to the standard client, with the following changes
@@ -13,13 +13,10 @@ Version 2.0.0 (MMM DD, 20yy)
  - new feature: new Job properties: exit_code, log
  - use httpx instead of requests as underlying HTTP library for both
    sync and async APIs
+ - fix: CLI: exec / run now uses any site from registry when no sitename or
+   url is given
  - code cleanup
  - remove CWL code, remove connection helper
-
-Version 1.3.8 (MMM DD, 2026)
-----------------------------
- - CLI: exec / run use any site from registry when no sitename or
-   url is given
 
 Version 1.3.7 (Mar 17, 2026)
 ----------------------------

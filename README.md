@@ -46,10 +46,9 @@ Install from PyPI with
 
 Additional extra packages may be required for your use case:
 
- * Using the UFTP fuse driver requires "fusepy"
- * Using UFTP with pyfilesystem requires "fs"
  * Creating JWT tokens signed with keys requires the
   "cryptography" package
+ * Using UFTP with pyfilesystem requires "fs"
 
 You can install (one or more) extras with pip:
 
