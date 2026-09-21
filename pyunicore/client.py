@@ -148,7 +148,7 @@ class Transport:
             except ValueError:
                 pass
             msg = f"{res.status_code} Server Error: {reason} for url: {res.url}"
-            raise httpx.HTTPError(msg, response=res)
+            raise httpx.HTTPError(msg)
         else:
             res.raise_for_status()
 

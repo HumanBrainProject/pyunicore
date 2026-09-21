@@ -3,6 +3,10 @@ Changelog for PyUNICORE
 
 Issue tracker: https://github.com/HumanBrainProject/pyunicore
 
+Version 2.0.1 (Sep 21, 2026)
+---------------------------
+ - fix: bug in http response error handling
+
 Version 2.0.0 (Sep 9, 2026)
 ---------------------------
 
