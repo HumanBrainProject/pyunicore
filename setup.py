@@ -21,7 +21,7 @@ extras_require = {
 
 setup(
     name="pyunicore",
-    version="2.0.0",  # versioneer.get_version(),
+    version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     packages=find_packages(),
     author="Bernd Schuller",
