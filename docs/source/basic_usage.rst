@@ -36,8 +36,9 @@ Running a job and read result files
 
   stdout = work_dir.stat("/stdout")
   print(json.dumps(stdout.properties, indent = 2))
-  content = stdout.raw().read()
-  print(content)
+  with stdout.raw() as r:
+    r.read()
+    print(r.content)
 
 
 
