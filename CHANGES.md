@@ -3,6 +3,10 @@ Changelog for PyUNICORE
 
 Issue tracker: https://github.com/HumanBrainProject/pyunicore
 
+Version 2.1.0 (mmm dd, 2026)
+---------------------------
+ - new feature: fsspec filesystem implementation
+
 Version 2.0.2 (Sep 23, 2026)
 ---------------------------
  - fix: wrong version in setup.py

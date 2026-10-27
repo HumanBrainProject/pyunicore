@@ -16,7 +16,8 @@ install_requires = ["pyjwt>=2.8", "httpx>=0.28.1", "aiofiles>=24.0.0"]
 
 extras_require = {
     "crypto": ["cryptography>=3.3.1", "bcrypt>=4.0.0"],
-    "fs": ["fs>=2.4.0"],
+    "fs": ["fs>=2.4.0", "pkg-resources-backport"],
+    "fsspec": ["fsspec>=2026.9.0"],
 }
 
 setup(
@@ -34,6 +35,9 @@ setup(
     entry_points={
         "fs.opener": [
             "uftp = pyunicore.uftp.uftpfs:UFTPOpener",
+        ],
+        "fsspec.specs": [
+            "uftp = pyunicore.uftp.uftpfsspec.UFTPFS",
         ],
         "console_scripts": [
             "unicore-port-forwarder=pyunicore.forwarder:main",
